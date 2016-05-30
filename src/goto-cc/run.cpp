@@ -8,6 +8,8 @@ Date: August 2012
 
 \*******************************************************************/
 
+#include <cassert>
+
 #ifdef _WIN32
 #include <process.h>
 #else

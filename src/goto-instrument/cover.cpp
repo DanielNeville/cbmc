@@ -8,6 +8,8 @@ Date: May 2016
 
 \*******************************************************************/
 
+#include <algorithm>
+
 #include <util/i2string.h>
 
 #include "cover.h"
@@ -32,8 +34,7 @@ public:
         source_location_map[block_count]=it->source_location;
       
       next_is_target=
-        it->is_goto() || it->is_return() ||
-        it->is_function_call() || it->is_assume();
+        it->is_goto() || it->is_function_call();
     }
   }
 
@@ -73,6 +74,7 @@ const char *as_string(coverage_criteriont c)
   case coverage_criteriont::PATH: return "path";
   case coverage_criteriont::MCDC: return "MC/DC";
   case coverage_criteriont::ASSERTION: return "assertion";
+  case coverage_criteriont::COVER: return "cover instructions";
   default: return "";
   }
 }
@@ -153,7 +155,6 @@ std::set<exprt> collect_conditions(const goto_programt::const_targett t)
   switch(t->type)
   {
   case GOTO:
-  case ASSUME:
   case ASSERT:
     return collect_conditions(t->guard);
   
@@ -244,7 +245,6 @@ std::set<exprt> collect_decisions(const goto_programt::const_targett t)
   switch(t->type)
   {
   case GOTO:
-  case ASSUME:
   case ASSERT:
     return collect_decisions(t->guard);
   
@@ -285,10 +285,37 @@ void instrument_cover_goals(
     {
     case coverage_criteriont::ASSERTION:
       // turn into 'assert(false)' to avoid simplification
-      i_it->guard=false_exprt();
+      if(i_it->is_assert())
+        i_it->guard=false_exprt();
+      break;
+      
+    case coverage_criteriont::COVER:
+      // turn __CPROVER_cover(x) into 'assert(!x)'
+      if(i_it->is_function_call())
+      {
+        const code_function_callt &code_function_call=
+          to_code_function_call(i_it->code);
+        if(code_function_call.function().id()==ID_symbol &&
+           to_symbol_expr(code_function_call.function()).get_identifier()==
+           "__CPROVER_cover" &&
+           code_function_call.arguments().size()==1)
+        {
+          const exprt c=code_function_call.arguments()[0];
+          std::string comment="condition `"+from_expr(ns, "", c)+"'";
+          i_it->guard=not_exprt(c);
+          i_it->type=ASSERT;
+          i_it->code.clear();
+          i_it->source_location.set_comment(comment);
+        }
+      }
+      else if(i_it->is_assert())
+        i_it->make_skip();
       break;
       
     case coverage_criteriont::LOCATION:
+      if(i_it->is_assert())
+        i_it->make_skip();
+
       {
         unsigned block_nr=basic_blocks[i_it];
         if(blocks_done.insert(block_nr).second)
@@ -301,9 +328,7 @@ void instrument_cover_goals(
           if(!source_location.get_file().empty() &&
              source_location.get_file()[0]!='<')
           {
-            std::string comment=
-              "block "+i2string(i_it->location_number);
-
+            std::string comment="block "+b;
             goto_program.insert_before_swap(i_it);
             i_it->make_assertion(false_exprt());
             i_it->source_location=source_location;
@@ -328,37 +353,44 @@ void instrument_cover_goals(
         source_locationt source_location=i_it->source_location;
 
         goto_program.insert_before_swap(i_it);
-        i_it->make_assertion(guard);
+        i_it->make_assertion(not_exprt(guard));
         i_it->source_location=source_location;
         i_it->source_location.set_comment(true_comment);
 
         goto_program.insert_before_swap(i_it);
-        i_it->make_assertion(not_exprt(guard));
+        i_it->make_assertion(guard);
         i_it->source_location=source_location;
         i_it->source_location.set_comment(false_comment);
         
         i_it++;
         i_it++;
       }
+      else if(i_it->is_assert())
+        i_it->make_skip();
+
       break;
       
     case coverage_criteriont::CONDITION:
+      if(i_it->is_assert())
+        i_it->make_skip();
+
       // Conditions are all atomic predicates in the programs.
       {
-        std::set<exprt> conditions=
-          collect_conditions(i_it);
+        const std::set<exprt> conditions=collect_conditions(i_it);
 
-        source_locationt source_location=i_it->source_location;
+        const source_locationt source_location=i_it->source_location;
 
         for(const auto & c : conditions)
         {
-          std::string comment_t="condition `"+from_expr(ns, "", c)+"' true";
+          const std::string c_string=from_expr(ns, "", c);
+        
+          const std::string comment_t="condition `"+c_string+"' true";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(c);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_t);
 
-          std::string comment_f="condition `"+from_expr(ns, "", c)+"' false";
+          const std::string comment_f="condition `"+c_string+"' false";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(not_exprt(c));
           i_it->source_location=source_location;
@@ -371,22 +403,26 @@ void instrument_cover_goals(
       break;
     
     case coverage_criteriont::DECISION:
+      if(i_it->is_assert())
+        i_it->make_skip();
+
       // Decisions are maximal Boolean combinations of conditions.
       {
-        std::set<exprt> decisions=
-          collect_decisions(i_it);
+        const std::set<exprt> decisions=collect_decisions(i_it);
 
-        source_locationt source_location=i_it->source_location;
+        const source_locationt source_location=i_it->source_location;
 
         for(const auto & d : decisions)
         {
-          std::string comment_t="decision `"+from_expr(ns, "", d)+"' true";
+          const std::string d_string=from_expr(ns, "", d);
+        
+          const std::string comment_t="decision `"+d_string+"' true";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(d);
           i_it->source_location=source_location;
           i_it->source_location.set_comment(comment_t);
 
-          std::string comment_f="decision `"+from_expr(ns, "", d)+"' false";
+          const std::string comment_f="decision `"+d_string+"' false";
           goto_program.insert_before_swap(i_it);
           i_it->make_assertion(not_exprt(d));
           i_it->source_location=source_location;
@@ -397,17 +433,59 @@ void instrument_cover_goals(
           i_it++;
       }
       break;
-    
       
     case coverage_criteriont::MCDC:
+      if(i_it->is_assert())
+        i_it->make_skip();
+
       // 1. Each entry and exit point is invoked
       // 2. Each decision takes every possible outcome
       // 3. Each condition in a decision takes every possible outcome
       // 4. Each condition in a decision is shown to independently
       //    affect the outcome of the decision.
+      {
+        const std::set<exprt> conditions=collect_conditions(i_it);
+        const std::set<exprt> decisions=collect_decisions(i_it);
+        
+        std::set<exprt> both;
+        std::set_union(conditions.begin(), conditions.end(),
+                       decisions.begin(), decisions.end(),
+                       inserter(both, both.end()));
+
+        const source_locationt source_location=i_it->source_location;
+
+        for(const auto & p : both)
+        {
+          bool is_decision=decisions.find(p)!=decisions.end();
+          bool is_condition=conditions.find(p)!=conditions.end();
+          
+          std::string description=
+            (is_decision && is_condition)?"decision/condition":
+            is_decision?"decision":"condition";
+            
+          std::string p_string=from_expr(ns, "", p);
+        
+          std::string comment_t=description+" `"+p_string+"' true";
+          goto_program.insert_before_swap(i_it);
+          i_it->make_assertion(p);
+          i_it->source_location=source_location;
+          i_it->source_location.set_comment(comment_t);
+
+          std::string comment_f=description+" `"+p_string+"' false";
+          goto_program.insert_before_swap(i_it);
+          i_it->make_assertion(not_exprt(p));
+          i_it->source_location=source_location;
+          i_it->source_location.set_comment(comment_f);
+        }
+        
+        for(unsigned i=0; i<both.size()*2; i++)
+          i_it++;
+      }
       break;
 
     case coverage_criteriont::PATH:
+      if(i_it->is_assert())
+        i_it->make_skip();
       break;
     
     default:;
