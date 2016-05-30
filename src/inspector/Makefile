@@ -1,0 +1,62 @@
+SRC = inspector_main.cpp inspector_parse_options.cpp \
+
+OBJ += ../ansi-c/ansi-c$(LIBEXT) \
+      ../linking/linking$(LIBEXT) \
+      ../big-int/big-int$(LIBEXT) \
+      ../goto-programs/goto-programs$(LIBEXT) \
+      ../analyses/analyses$(LIBEXT) \
+      ../pointer-analysis/pointer-analysis$(LIBEXT) \
+      ../langapi/langapi$(LIBEXT) \
+      ../json/json$(LIBEXT) \
+      ../assembler/assembler$(LIBEXT) \
+      ../util/util$(LIBEXT) \
+
+INCLUDES= -I ..
+
+LIBS =
+
+include ../config.inc
+include ../common
+
+CLEANFILES = inspector$(EXEEXT)
+
+all: inspector$(EXEEXT)
+
+ifneq ($(wildcard ../cpp/Makefile),)
+  OBJ += ../cpp/cpp$(LIBEXT)
+  CP_CXXFLAGS += -DHAVE_CPP
+endif
+
+ifneq ($(wildcard ../java_bytecode/Makefile),)
+  OBJ += ../java_bytecode/java_bytecode$(LIBEXT)
+  CP_CXXFLAGS += -DHAVE_JAVA_BYTECODE
+  ifneq ($(wildcard $(LIBZIPINC)),)
+    LIBS += $(LIBZIPLIB)
+  endif
+endif
+
+ifneq ($(wildcard ../jsil/Makefile),)
+  OBJ += ../jsil/jsil$(LIBEXT)
+  CP_CXXFLAGS += -DHAVE_JSIL
+endif
+
+ifneq ($(wildcard ../specc/Makefile),)
+  OBJ += ../specc/specc$(LIBEXT)
+  CP_CXXFLAGS += -DHAVE_SPECC
+endif
+
+ifneq ($(wildcard ../php/Makefile),)
+  OBJ += ../php/php$(LIBEXT)
+  CP_CXXFLAGS += -DHAVE_PHP
+endif
+
+###############################################################################
+
+inspector$(EXEEXT): $(OBJ)
+	$(LINKBIN)
+
+.PHONY: inspector-mac-signed
+
+inspector-mac-signed: inspector$(EXEEXT)
+	strip inspector$(EXEEXT) ; codesign -v -s $(OSX_IDENTITY) inspector$(EXEEXT)
+
