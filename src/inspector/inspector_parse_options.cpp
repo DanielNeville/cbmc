@@ -48,9 +48,11 @@ Author:
 #include <goto-analyzer/taint_parser.h>
 
 /* To be correctly linked later when exact includes determined. */
-#include <goto-analyzer/taint_parser.cpp>
-#include <goto-analyzer/taint_analysis.cpp>
+//#include <goto-analyzer/taint_parser.cpp>
+//#include <goto-analyzer/taint_analysis.cpp>
 /* End includes */
+
+#include "parse_input_locations.h"
 
 #include "inspector_parse_options.h"
 
@@ -137,92 +139,6 @@ void inspector_parse_optionst::get_command_line_options(optionst &options)
     usage_error();
     exit(1);
   }
-
-  #if 0
-  if(cmdline.isset("c89"))
-    config.ansi_c.set_c89();
-
-  if(cmdline.isset("c99"))
-    config.ansi_c.set_c99();
-
-  if(cmdline.isset("c11"))
-    config.ansi_c.set_c11();
-
-  if(cmdline.isset("cpp98"))
-    config.cpp.set_cpp98();
-
-  if(cmdline.isset("cpp03"))
-    config.cpp.set_cpp03();
-
-  if(cmdline.isset("cpp11"))
-    config.cpp.set_cpp11();
-  #endif
-
-  #if 0
-  // check array bounds
-  if(cmdline.isset("bounds-check"))
-    options.set_option("bounds-check", true);
-  else
-    options.set_option("bounds-check", false);
-
-  // check division by zero
-  if(cmdline.isset("div-by-zero-check"))
-    options.set_option("div-by-zero-check", true);
-  else
-    options.set_option("div-by-zero-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("signed-overflow-check"))
-    options.set_option("signed-overflow-check", true);
-  else
-    options.set_option("signed-overflow-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("unsigned-overflow-check"))
-    options.set_option("unsigned-overflow-check", true);
-  else
-    options.set_option("unsigned-overflow-check", false);
-
-  // check overflow/underflow
-  if(cmdline.isset("float-overflow-check"))
-    options.set_option("float-overflow-check", true);
-  else
-    options.set_option("float-overflow-check", false);
-
-  // check for NaN (not a number)
-  if(cmdline.isset("nan-check"))
-    options.set_option("nan-check", true);
-  else
-    options.set_option("nan-check", false);
-
-  // check pointers
-  if(cmdline.isset("pointer-check"))
-    options.set_option("pointer-check", true);
-  else
-    options.set_option("pointer-check", false);
-
-  // check for memory leaks
-  if(cmdline.isset("memory-leak-check"))
-    options.set_option("memory-leak-check", true);
-  else
-    options.set_option("memory-leak-check", false);
-
-  // check assertions
-  if(cmdline.isset("no-assertions"))
-    options.set_option("assertions", false);
-  else
-    options.set_option("assertions", true);
-
-  // use assumptions
-  if(cmdline.isset("no-assumptions"))
-    options.set_option("assumptions", false);
-  else
-    options.set_option("assumptions", true);
-
-  // magic error label
-  if(cmdline.isset("error-label"))
-    options.set_option("error-label", cmdline.get_values("error-label"));
-  #endif
 }
 
 /*******************************************************************\
@@ -256,7 +172,7 @@ int inspector_parse_optionst::doit()
   //
   // Print a banner
   //
-  status() << "INSPECTOR version " CBMC_VERSION " "
+  status() << "Inspector version " CBMC_VERSION " "
            << sizeof(void *)*8 << "-bit "
            << config.this_architecture() << " "
            << config.this_operating_system() << eom;
@@ -272,22 +188,21 @@ int inspector_parse_optionst::doit()
   if(get_goto_program_ret!=-1)
     return get_goto_program_ret;
 
-  if(cmdline.isset("taint"))
-  {
-    std::string taint_file=cmdline.get_value("taint");
 
-    if(cmdline.isset("show-taint"))
-    {
-//      taint_analysis(symbol_table, goto_functions, taint_file, get_message_handler(), true, "");
-      return 0;
-    }
-    else
-    {
-      std::string json_file=cmdline.get_value("json");
-      bool result=
-        taint_analysis(symbol_table, goto_functions, taint_file, get_message_handler(), false, json_file);
-      return result?10:0;
-    }
+  if(cmdline.isset("input-locations"))
+  {
+    std::string input_location_file = cmdline.get_value("input-locations");
+
+    std::cout << "Using taint file: " << input_location_file << "\n";
+
+    input_location_parse_treet dest;
+
+    parse_input_locations(input_location_file, dest, get_message_handler());
+
+    std::cout << "Taint rules:\n";
+    dest.output(std::cout);
+
+    return 6;
   }
 
 
