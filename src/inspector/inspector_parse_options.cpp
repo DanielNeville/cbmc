@@ -47,9 +47,9 @@ Author:
 #include <goto-analyzer/taint_analysis.h>
 #include <goto-analyzer/taint_parser.h>
 
-/* To be correctly linked later when exact includes determined. */
-//#include <goto-analyzer/taint_parser.cpp>
-//#include <goto-analyzer/taint_analysis.cpp>
+/* To be correctly linked later when exact includes determined.
+ * This avoids changing Makefiles for now. */
+#include <path-symex/locs.cpp>
 /* End includes */
 
 #include "parse_input_locations.h"
@@ -188,23 +188,61 @@ int inspector_parse_optionst::doit()
   if(get_goto_program_ret!=-1)
     return get_goto_program_ret;
 
+  locst locs(ns);
+  locs.build(goto_functions);
+
+  bool strict_rules = cmdline.isset("strict-rules");
 
   if(cmdline.isset("input-locations"))
   {
     std::string input_location_file = cmdline.get_value("input-locations");
 
-    std::cout << "Using taint file: " << input_location_file << "\n";
+    debug() << "Using taint file: " << input_location_file << eom;
 
     input_location_parse_treet dest;
 
+    /* Parse JSON */
     parse_input_locations(input_location_file, dest, get_message_handler());
 
-    std::cout << "Taint rules:\n";
-    dest.output(std::cout);
+    /* If requested, output the rules. */
+    if(cmdline.isset("show-input-rules")) {
+    	status() << "Taint rules (" << dest.rules.size() << "):"  << eom;
+        dest.output(status());
+        status() << eom;
+    }
 
-    return 6;
+    /* Check the rules are somewhat valid. */
+    std::vector<unsigned int> input_locations, output_locations;
+
+    if(!check_rules(dest.rules, locs, warning(), strict_rules,
+    		input_locations, output_locations)) {
+    	warning() << eom; // Ensures print.
+		error() << "Bad rule detected.  Exiting." << eom;
+    	return 10;
+    }
+
+    {
+        /* Output some debug info */
+        debug() << "Input locations:" << eom;
+        for(auto location: input_locations) {
+        	debug() << location << ", ";
+        }
+        debug() << eom << "Output locations:" << eom;
+        for(auto location: output_locations) {
+        	debug() << location << ", ";
+        }
+        debug() << eom;
+    }
+
+    /* Reduced CFG time... */
+
+
+
+
+
+
+    return 0;
   }
-
 
   error() << "no analysis option given -- consider reading --help"
           << eom;

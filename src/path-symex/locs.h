@@ -64,7 +64,13 @@ public:
     assert(l.loc_number>=0 && l.loc_number < loc_vector.size());
     return loc_vector[l.loc_number];
   }
-  
+
+  inline const loct &operator[] (unsigned int l) const
+  {
+    assert(l>=0 && l < loc_vector.size());
+    return loc_vector[l];
+  }
+
   static inline loc_reft begin()
   {
     loc_reft tmp;
@@ -77,6 +83,11 @@ public:
     loc_reft tmp;
     tmp.loc_number=loc_vector.size();
     return tmp;
+  }
+
+  inline unsigned int size() const
+  {
+	  return loc_vector.size();
   }
 
 protected:

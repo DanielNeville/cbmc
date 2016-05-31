@@ -32,7 +32,7 @@ class optionst;
   "(taint):(show-taint)" \
   "(show-local-may-alias)" \
   "(json):(xml):" \
-  "(input-locations):" \
+  "(input-locations):(show-input-rules)(strict-rules)" \
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)"

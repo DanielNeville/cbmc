@@ -16,15 +16,18 @@ Author:
 #include <util/message.h>
 #include <util/irep.h>
 
+/* To be correctly linked later when exact includes determined.
+ * This avoids changing Makefiles for now. */
+#include <path-symex/locs.h>
+/* End includes */
+
 class input_location_parse_treet
 {
 public:
   class rulet
   {
   public:
-
 	unsigned int loc;
-
 
     enum { COMPLETE, CONSTANT, OTHER } taint;
     enum { INPUT, OUTPUT, NONE } flow;
@@ -49,5 +52,13 @@ bool parse_input_locations(
   const std::string &taint_file_name,
   input_location_parse_treet &,
   message_handlert &);
+
+bool check_rules(
+		input_location_parse_treet::rulest &rules,
+		locst &locs,
+		std::ostream & warnings,
+		bool errors,
+		std::vector<unsigned int> &input_locations,
+		std::vector<unsigned int> &output_locations);
 
 #endif

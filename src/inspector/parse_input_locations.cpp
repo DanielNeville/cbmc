@@ -11,6 +11,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/string2int.h>
 
 #include <json/json_parser.h>
+#include <util/message.h>
+
 
 #include "parse_input_locations.h"
 
@@ -150,7 +152,7 @@ void input_location_parse_treet::rulet::output(std::ostream &out) const
   case NONE: out << " none "; break;
   }
 
-  out << "taint on";
+  out << "taint on ";
 
   switch(flow)
   {
@@ -159,7 +161,7 @@ void input_location_parse_treet::rulet::output(std::ostream &out) const
   case NONE: out << "none"; break;
   }
 
-  out << '\n';
+  out << "\n";
 }
 
 /*******************************************************************\
@@ -180,3 +182,62 @@ void input_location_parse_treet::output(std::ostream &out) const
     rule.output(out);
 }
 
+
+
+bool check_rules(
+		input_location_parse_treet::rulest &rules,
+		locst &locs,
+		std::ostream & warnings,
+		bool errors,
+		std::vector<unsigned int> &input_locations,
+		std::vector<unsigned int> &output_locations) {
+
+	bool found_error = false;
+
+    for(auto rule: rules) {
+    	if(!warnings)
+    		return true;
+
+    	if(rule.loc >= locs.size()) {
+    		warnings << "Following rule outside program scope:" << "\n";
+    		rule.output(warnings);
+    		warnings << "\n";
+
+    		found_error = true;
+    	}
+
+    	goto_programt::const_targett inst = locs[rule.loc].target;
+
+    	if(inst->is_assign() || inst->is_decl() || inst->is_function_call())
+    	{
+    		if(inst->is_function_call()) {
+    			code_function_callt function_call = to_code_function_call(inst->code);
+    			if(function_call.lhs().is_nil()) {
+    				warnings << "Following rule refers to function call with nil left-hand side:" << "\n";
+    				rule.output(warnings);
+    				warnings << "\n";
+
+    				if(errors) {
+    	    			return false;
+    				}
+    			}
+    		}
+    	} else
+    	{
+    		warnings << "Following rule refers to an unsupported op (" << inst->type << ")\n";
+    		rule.output(warnings);
+    		warnings << "\n";
+
+    		found_error = true;
+    	}
+
+    	if(rule.flow == input_location_parse_treet::rulet::INPUT) {
+    		input_locations.push_back(rule.loc);
+    	}
+    	if(rule.flow  == input_location_parse_treet::rulet::OUTPUT) {
+    		output_locations.push_back(rule.loc);
+    	}
+    }
+
+    return !(errors && found_error);
+}

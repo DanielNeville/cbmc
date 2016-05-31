@@ -1,4 +1,5 @@
 SRC = inspector_main.cpp inspector_parse_options.cpp \
+      parse_input_locations.cpp
 
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../linking/linking$(LIBEXT) \

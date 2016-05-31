@@ -85,3 +85,4 @@ minisat-2.2.1/minisat/utils/System.cc
 minisat-2.2.1/minisat/utils/System.h
 src/.project
 src/symex/symex
+src/inspector/inspector
