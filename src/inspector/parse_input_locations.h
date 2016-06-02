@@ -16,10 +16,14 @@ Author:
 #include <util/message.h>
 #include <util/irep.h>
 
+#include <path-symex/locs.h>
+
+#include "inspector_util.h"
+
 /* To be correctly linked later when exact includes determined.
  * This avoids changing Makefiles for now. */
-#include <path-symex/locs.h>
-/* End includes */
+// BLANK
+/* End .cpp includes */
 
 class input_location_parse_treet
 {
@@ -53,12 +57,22 @@ bool parse_input_locations(
   input_location_parse_treet &,
   message_handlert &);
 
+bool parse_entry_locations(
+  const std::string &entry_location_file,
+  locationst &entry_locations,
+  message_handlert &);
+
 bool check_rules(
-		input_location_parse_treet::rulest &rules,
-		locst &locs,
-		std::ostream & warnings,
-		bool errors,
-		std::vector<unsigned int> &input_locations,
-		std::vector<unsigned int> &output_locations);
+  input_location_parse_treet::rulest &rules,
+  locst &locs,
+  std::ostream & warnings,
+  bool errors,
+  locationst &input_locations,
+  locationst &output_locations);
+
+void calculate_entry_locations(
+		goto_functionst &goto_functions,
+		locationst &entry_locations,
+		bool &have_entry_point);
 
 #endif

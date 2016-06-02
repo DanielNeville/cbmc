@@ -14,6 +14,8 @@ Author:
 
 #include <langapi/language_ui.h>
 
+#include "inspector_util.h"
+
 class bmct;
 class goto_functionst;
 class optionst;
@@ -32,7 +34,8 @@ class optionst;
   "(taint):(show-taint)" \
   "(show-local-may-alias)" \
   "(json):(xml):" \
-  "(input-locations):(show-input-rules)(strict-rules)" \
+  "(input-locations):(show-input-locations)(strict-rules)" \
+  "(entry-locations):(show-entry-locations)" \
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)"

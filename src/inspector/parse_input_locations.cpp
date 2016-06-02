@@ -2,19 +2,20 @@
 
 Module: Taint Parser
 
-Author: Daniel Kroening, kroening@kroening.com
+Author:
 
 \*******************************************************************/
 
 #include <ostream>
+#include <iostream>
 
 #include <util/string2int.h>
 
 #include <json/json_parser.h>
 #include <util/message.h>
 
-
 #include "parse_input_locations.h"
+#include "reachability_analysis.h"
 
 /*******************************************************************\
 
@@ -29,9 +30,9 @@ Function: taint_parser
 \*******************************************************************/
 
 bool parse_input_locations(
-  const std::string &file_name,
-  input_location_parse_treet &dest,
-  message_handlert &message_handler)
+    const std::string &file_name,
+    input_location_parse_treet &dest,
+    message_handlert &message_handler)
 {
   /* Format
 	Array of Objects.
@@ -41,7 +42,7 @@ bool parse_input_locations(
 	Loc: <Program location s.t. LHS is tainted>
 	Taint: <Taint value>
 	Flow: <Input or Output taint>
-  */
+   */
 
   jsont json;
 
@@ -49,7 +50,7 @@ bool parse_input_locations(
   {
     messaget message(message_handler);
     message.error() << "input location file is not a valid json file"
-                    << messaget::eom;
+        << messaget::eom;
     return true;
   }
 
@@ -57,7 +58,7 @@ bool parse_input_locations(
   {
     messaget message(message_handler);
     message.error() << "expecting an array in the input location file, but got "
-                    << json << messaget::eom;
+        << json << messaget::eom;
     return true;
   }
 
@@ -70,7 +71,7 @@ bool parse_input_locations(
     {
       messaget message(message_handler);
       message.error() << "expecting an array of objects in the input location file, but got "
-                      << *it << messaget::eom;
+          << *it << messaget::eom;
       return true;
     }
 
@@ -91,8 +92,8 @@ bool parse_input_locations(
     {
       messaget message(message_handler);
       message.error() << "taint rule must have \"kind\" which is "
-                         "\"complete\" or \"constant\" or \"none\""
-                      << messaget::eom;
+          "\"complete\" or \"constant\" or \"none\""
+          << messaget::eom;
       return true;
     }
 
@@ -106,18 +107,18 @@ bool parse_input_locations(
     {
       messaget message(message_handler);
       message.error() << "FLOW rule must have \"kind\" which is "
-                         "\"input\" or \"output\" or \"none\""
-                      << messaget::eom;
+          "\"input\" or \"output\" or \"none\""
+          << messaget::eom;
       return true;
     }
 
     if(loc.empty()) {
-        messaget message(message_handler);
-        message.error() << "location must have \"unsigned int\""
-                        << messaget::eom;
-        return true;
+      messaget message(message_handler);
+      message.error() << "location must have \"unsigned int\""
+          << messaget::eom;
+      return true;
     } else {
-    	rule.loc = safe_string2unsigned(std::string(loc, 0, std::string::npos));
+      rule.loc = safe_string2unsigned(std::string(loc, 0, std::string::npos));
 
     }
 
@@ -185,59 +186,102 @@ void input_location_parse_treet::output(std::ostream &out) const
 
 
 bool check_rules(
-		input_location_parse_treet::rulest &rules,
-		locst &locs,
-		std::ostream & warnings,
-		bool errors,
-		std::vector<unsigned int> &input_locations,
-		std::vector<unsigned int> &output_locations) {
+    input_location_parse_treet::rulest &rules,
+    locst &locs,
+    std::ostream & warnings,
+    bool errors,
+    locationst &input_locations,
+    locationst &output_locations) {
 
-	bool found_error = false;
+  bool found_error = false;
 
-    for(auto rule: rules) {
-    	if(!warnings)
-    		return true;
+  for(auto rule: rules) {
+    if(!warnings)
+      return true;
 
-    	if(rule.loc >= locs.size()) {
-    		warnings << "Following rule outside program scope:" << "\n";
-    		rule.output(warnings);
-    		warnings << "\n";
+    if(rule.loc >= locs.size()) {
+      warnings << "Following rule outside program scope:" << "\n";
+      rule.output(warnings);
+      warnings << "\n";
 
-    		found_error = true;
-    	}
-
-    	goto_programt::const_targett inst = locs[rule.loc].target;
-
-    	if(inst->is_assign() || inst->is_decl() || inst->is_function_call())
-    	{
-    		if(inst->is_function_call()) {
-    			code_function_callt function_call = to_code_function_call(inst->code);
-    			if(function_call.lhs().is_nil()) {
-    				warnings << "Following rule refers to function call with nil left-hand side:" << "\n";
-    				rule.output(warnings);
-    				warnings << "\n";
-
-    				if(errors) {
-    	    			return false;
-    				}
-    			}
-    		}
-    	} else
-    	{
-    		warnings << "Following rule refers to an unsupported op (" << inst->type << ")\n";
-    		rule.output(warnings);
-    		warnings << "\n";
-
-    		found_error = true;
-    	}
-
-    	if(rule.flow == input_location_parse_treet::rulet::INPUT) {
-    		input_locations.push_back(rule.loc);
-    	}
-    	if(rule.flow  == input_location_parse_treet::rulet::OUTPUT) {
-    		output_locations.push_back(rule.loc);
-    	}
+      found_error = true;
     }
 
-    return !(errors && found_error);
+    goto_programt::const_targett inst = locs[rule.loc].target;
+
+    if(inst->is_assign() || inst->is_decl() || inst->is_function_call())
+    {
+      if(inst->is_function_call()) {
+        code_function_callt function_call = to_code_function_call(inst->code);
+        if(function_call.lhs().is_nil()) {
+          warnings << "Following rule refers to function call with nil left-hand side:" << "\n";
+          rule.output(warnings);
+          warnings << "\n";
+
+          if(errors) {
+            return false;
+          }
+        }
+      }
+    } else
+    {
+      warnings << "Following rule refers to an unsupported op (" << inst->type << ")\n";
+      rule.output(warnings);
+      warnings << "\n";
+
+      found_error = true;
+    }
+
+    if(rule.flow == input_location_parse_treet::rulet::INPUT) {
+      input_locations.push_back(rule.loc);
+    }
+    if(rule.flow  == input_location_parse_treet::rulet::OUTPUT) {
+      output_locations.push_back(rule.loc);
+    }
+  }
+
+  return !(errors && found_error);
 }
+
+bool parse_entry_locations(
+    const std::string &entry_location_file,
+    locationst &entry_locations,
+    message_handlert &message_handler) {
+
+  jsont json;
+
+  if(parse_json(entry_location_file, message_handler, json))
+  {
+    messaget message(message_handler);
+    message.error() << "input location file is not a valid json file"
+        << messaget::eom;
+    return true;
+  }
+
+  if(!json.is_array())
+  {
+    messaget message(message_handler);
+    message.error() << "expecting an array in the input location file, but got "
+        << json << messaget::eom;
+    return true;
+  }
+
+  for(jsont::arrayt::const_iterator
+      it=json.array.begin();
+      it!=json.array.end();
+      it++)
+  {
+    if(!it->is_object())
+    {
+      messaget message(message_handler);
+      message.error() << "expecting an array of objects in the input location file, but got "
+          << *it << messaget::eom;
+      return true;
+    }
+    unsigned int location = safe_string2unsigned(std::string((*it)["loc"].value, 0, std::string::npos));
+    entry_locations.push_back(location);
+  }
+  return false;
+}
+
+

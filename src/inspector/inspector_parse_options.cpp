@@ -46,14 +46,18 @@ Author:
 
 #include <goto-analyzer/taint_analysis.h>
 #include <goto-analyzer/taint_parser.h>
+#include <goto-programs/cfg.h>
+#include <analyses/cfg_dominators.h>
+
+
 
 /* To be correctly linked later when exact includes determined.
  * This avoids changing Makefiles for now. */
 #include <path-symex/locs.cpp>
 /* End includes */
 
+#include "reachability_analysis.h"
 #include "parse_input_locations.h"
-
 #include "inspector_parse_options.h"
 
 /*******************************************************************\
@@ -199,22 +203,23 @@ int inspector_parse_optionst::doit()
 
     debug() << "Using taint file: " << input_location_file << eom;
 
-    input_location_parse_treet dest;
+    input_location_parse_treet rules;
 
     /* Parse JSON */
-    parse_input_locations(input_location_file, dest, get_message_handler());
+    if(parse_input_locations(input_location_file, rules, get_message_handler()))
+      return 10;
 
     /* If requested, output the rules. */
-    if(cmdline.isset("show-input-rules")) {
-    	status() << "Taint rules (" << dest.rules.size() << "):"  << eom;
-        dest.output(status());
+    if(cmdline.isset("show-input-locations")) {
+    	status() << "Taint rules (" << rules.rules.size() << "):"  << eom;
+    	rules.output(status());
         status() << eom;
     }
 
     /* Check the rules are somewhat valid. */
-    std::vector<unsigned int> input_locations, output_locations;
+    locationst input_locations, output_locations, entry_locations;
 
-    if(!check_rules(dest.rules, locs, warning(), strict_rules,
+    if(!check_rules(rules.rules, locs, warning(), strict_rules,
     		input_locations, output_locations)) {
     	warning() << eom; // Ensures print.
 		error() << "Bad rule detected.  Exiting." << eom;
@@ -234,7 +239,27 @@ int inspector_parse_optionst::doit()
         debug() << eom;
     }
 
+    if(cmdline.isset("entry-locations")) {
+        std::string entry_location_file = cmdline.get_value("entry-locations");
+        if(parse_entry_locations(entry_location_file, entry_locations, get_message_handler()))
+          return 10;
+
+        debug() << "Using entry location file: " << entry_location_file << eom;
+    } else {
+      error() << "NOT IMPLEMENTED (1)\n--entry-locations <file.json> required!" << eom;
+      return 10;
+    }
+
+    {
+      debug() << "Entry locations:";
+      for(auto location: entry_locations) {
+        debug() << location << ", ";
+      }
+      debug() << eom;
+    }
+
     /* Reduced CFG time... */
+    reachability_analysis(goto_functions, entry_locations, input_locations, output_locations, get_message_handler());
 
 
 
