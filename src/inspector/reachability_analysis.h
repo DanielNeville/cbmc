@@ -64,14 +64,34 @@ public:
 
 
       dominators(goto_program);
+      unsigned int entry_location = dominators.entry_node->location_number;
+      unsigned int instruction_count = dominators.cfg.size();
 
-      unsigned int loc = dominators.entry_node->location_number;
-      std::cout << "Entry location:" << loc << "\n";
+      std::cout << "____________\n";
+      std::cout << "Function: " << f_it->first << " (" << dominators.entry_node->location_number << " -> " << \
+          entry_location + instruction_count - 1 << ")" << "\n";
+
+      for(unsigned int i = 0; i < dominators.cfg.size(); i++) {
+        std::cout << (i + entry_location) << ": ";
+
+        unsigned int dominator_count = dominators.cfg[i].dominators.size();
+        std::cout << "(" << dominator_count << ") ";
+
+        for(auto it = dominators.cfg[i].dominators.begin();
+            it != dominators.cfg[i].dominators.end();
+            it++) {
+          std::cout << (*it)->location_number << ", ";
+        }
+        std::cout << "\n";
+      }
+//      std::cout << "Entry location:" << loc << "\n";
+
 
 
 //      std::cout << "Location:" << dominators.cfg[0].PC->location_number << "\n";
 //      std::cout << "entry" << dominators.entry_node->location_number << "\n";
-      std::cout << (*(dominators.cfg[0].dominators.begin()))->location_number;
+//      std::cout << (*(dominators.cfg[0].dominators.begin()))->location_number << ":";
+//      std::cout << "Dominators:" <<  dominators.cfg[0].dominators.size() << "\n";
 //      dominators.output(std::cout);
     }
 
