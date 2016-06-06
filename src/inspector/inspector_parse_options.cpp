@@ -259,7 +259,8 @@ int inspector_parse_optionst::doit()
     }
 
     /* Reduced CFG time... */
-    reachability_analysis(goto_functions, entry_locations, input_locations, output_locations, get_message_handler());
+    std::vector<std::pair<locationt, locationst> > reached;
+    reachability_analysis(goto_functions, reached, entry_locations, input_locations, output_locations, get_message_handler());
 
 
 

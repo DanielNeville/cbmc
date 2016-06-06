@@ -129,11 +129,12 @@ Function: reachability_analysis
 \*******************************************************************/
 
 void reachability_analysis(goto_functionst &goto_functions,
+    std::vector<std::pair<locationt, locationst> >  &reached,
     locationst &entry_locations,
     locationst &input_locations,
     locationst &output_locations,
     message_handlert &message_handler)
 {
   reachability_analysist(entry_locations, input_locations, output_locations, message_handler)
-      (goto_functions);
+      (goto_functions, reached);
 }

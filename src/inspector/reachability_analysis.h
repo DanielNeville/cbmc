@@ -52,7 +52,8 @@ public:
 #endif
 }
 
-  void operator()(goto_functionst &goto_functions)
+  void operator()(goto_functionst &goto_functions,
+      std::vector<std::pair<locationt, locationst> > &reaches)
   {
     cfg(goto_functions);
 
@@ -64,6 +65,7 @@ public:
 
 
       dominators(goto_program);
+
       unsigned int entry_location = dominators.entry_node->location_number;
       unsigned int instruction_count = dominators.cfg.size();
 
