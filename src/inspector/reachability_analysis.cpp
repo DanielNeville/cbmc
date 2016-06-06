@@ -30,91 +30,35 @@ Function: reachability_analysist::fixedpoint_assertions
 \*******************************************************************/
 
 void reachability_analysist::fixedpoint(
-  const is_threadedt &is_threaded)
+    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
+    std::vector<std::pair<locationt, locationst> > &all_reaches)
 {
-  queuet queue;
+  Forall_locations(location, all_locations) {
+    locationst reached;
+    locationst interactions_reached;
+    locationst frontier;
 
-  message.status() << "___\n" << message.eom;
+    frontier.push_back(*location);
 
-  for(cfgt::entry_mapt::iterator
-      e_it=cfg.entry_map.begin();
-      e_it!=cfg.entry_map.end();
-      e_it++) {
+    while(!frontier.empty()) {
+      locationt item = frontier.back();
+      frontier.pop_back();
+      reached.push_back(item);
 
-    if(is_threaded(e_it->first)){
-      message.error() << "Threaded programs not currently supported." << message.eom;
-      return;
-    }
+      if(contains(interaction_locations, item))
+        interactions_reached.push_back(item);
 
-    locationt location = (locationt) e_it->first->location_number;
-
-    std::cout << e_it->first->location_number << "\n";
-    if(contains(entry_locations, (locationt) location)) {
-//      queue.push(e_it->second);
-      std::cout << "CONTAINED!" << location << "\n";
-    }
-  }
-
-
-
-//
-//  while(!queue.empty())
-//  {
-//    cfgt::entryt e=queue.top();
-//    cfgt::nodet &node=cfg[e];
-//    queue.pop();
-//
-//    if(node.reaches_assertion) continue;
-//
-//    node.reaches_assertion=true;
-//
-//    for(cfgt::edgest::const_iterator
-//        p_it=node.in.begin();
-//        p_it!=node.in.end();
-//        p_it++)
-//    {
-//      queue.push(p_it->first);
-//    }
-//  }
-}
-
-/*******************************************************************\
-
-Function: reachability_analysist::slice
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-void reachability_analysist::slice(goto_functionst &goto_functions)
-{
-  // now replace those instructions that do not reach any assertions
-  // by self-loops
-  return;
-
-  Forall_goto_functions(f_it, goto_functions)
-    if(f_it->second.body_available())
-    {
-      Forall_goto_program_instructions(i_it, f_it->second.body)
-      {
-        const cfgt::nodet &e=cfg[cfg.entry_map[i_it]];
-        if(!e.reaches_assertion &&
-           !i_it->is_end_function())
-          i_it->make_goto(i_it);
+      for(auto it : cfg[item].out) {
+        if(!contains(reached, it.first)) {
+          frontier.push_back((unsigned) it.first);
+        }
       }
-
-      // replace unreachable code by skip
-      remove_unreachable(f_it->second.body);
     }
 
-  // remove the skips
-  remove_skip(goto_functions);
-  goto_functions.update();
+    all_reaches.push_back(std::make_pair(*location, reached));
+  }
 }
+
 
 /*******************************************************************\
 
@@ -129,12 +73,13 @@ Function: reachability_analysis
 \*******************************************************************/
 
 void reachability_analysis(goto_functionst &goto_functions,
-    std::vector<std::pair<locationt, locationst> >  &reached,
+    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
+    std::vector<std::pair<locationt, locationst> >  &all_reaches,
     locationst &entry_locations,
     locationst &input_locations,
     locationst &output_locations,
     message_handlert &message_handler)
 {
   reachability_analysist(entry_locations, input_locations, output_locations, message_handler)
-      (goto_functions, reached);
+      (goto_functions, interaction_reaches, all_reaches);
 }

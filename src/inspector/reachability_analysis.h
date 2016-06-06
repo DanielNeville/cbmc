@@ -15,6 +15,11 @@ Author:
 #include <analyses/is_threaded.h>
 #include <analyses/cfg_dominators.h>
 
+/* To be correctly linked later when exact includes determined.
+ * This avoids changing Makefiles for now. */
+#include <path-symex/locs.h>
+/* End includes */
+
 
 #include "inspector_util.h"
 
@@ -49,57 +54,21 @@ public:
   for(auto it = output_locations.begin(); it != output_locations.end(); it++) {
     interaction_locations.push_back(*it);
   }
+
+  all_locations = interaction_locations;
+  for(auto it = entry_locations.begin(); it != entry_locations.end(); it++) {
+    all_locations.push_back(*it);
+  }
 #endif
 }
 
   void operator()(goto_functionst &goto_functions,
-      std::vector<std::pair<locationt, locationst> > &reaches)
+      std::vector<std::pair<locationt, locationst> > &interaction_reaches,
+      std::vector<std::pair<locationt, locationst> > &all_reaches,
+)
   {
     cfg(goto_functions);
-
-    forall_goto_functions(f_it, goto_functions) {
-      if(!f_it->second.body_available()) continue;
-
-      const goto_programt &goto_program=f_it->second.body;
-      cfg_dominatorst dominators;
-
-
-      dominators(goto_program);
-
-      unsigned int entry_location = dominators.entry_node->location_number;
-      unsigned int instruction_count = dominators.cfg.size();
-
-      std::cout << "____________\n";
-      std::cout << "Function: " << f_it->first << " (" << dominators.entry_node->location_number << " -> " << \
-          entry_location + instruction_count - 1 << ")" << "\n";
-
-      for(unsigned int i = 0; i < dominators.cfg.size(); i++) {
-        std::cout << (i + entry_location) << ": ";
-
-        unsigned int dominator_count = dominators.cfg[i].dominators.size();
-        std::cout << "(" << dominator_count << ") ";
-
-        for(auto it = dominators.cfg[i].dominators.begin();
-            it != dominators.cfg[i].dominators.end();
-            it++) {
-          std::cout << (*it)->location_number << ", ";
-        }
-        std::cout << "\n";
-      }
-//      std::cout << "Entry location:" << loc << "\n";
-
-
-
-//      std::cout << "Location:" << dominators.cfg[0].PC->location_number << "\n";
-//      std::cout << "entry" << dominators.entry_node->location_number << "\n";
-//      std::cout << (*(dominators.cfg[0].dominators.begin()))->location_number << ":";
-//      std::cout << "Dominators:" <<  dominators.cfg[0].dominators.size() << "\n";
-//      dominators.output(std::cout);
-    }
-
-//    is_threadedt is_threaded(goto_functions);
-//    fixedpoint(is_threaded);
-//    slice(goto_functions);
+    fixedpoint(interaction_reaches, all_reaches);
   }
 
 
@@ -119,7 +88,9 @@ protected:
   typedef std::stack<cfgt::entryt> queuet;
 
 
-  void fixedpoint(const is_threadedt &is_threaded);
+  void fixedpoint(
+      std::vector<std::pair<locationt, locationst> > &interaction_reaches,
+      std::vector<std::pair<locationt, locationst> > &alL_reaches);
 
   void slice(goto_functionst &goto_functions);
 
@@ -132,9 +103,13 @@ protected:
   /* Union of input + output. */
   locationst interaction_locations;
 
+  /* Union of input, output, entry. */
+  locationst all_locations;
 };
 
 void reachability_analysis(goto_functionst &goto_functions,
+    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
+    std::vector<std::pair<locationt, locationst> > &all_reaches,
     locationst &entry_locations_,
     locationst &input_locations_,
     locationst &output_locations_,

@@ -16,6 +16,14 @@ typedef std::vector<locationt> locationst;
 #define contains(locations, location) \
   (std::find(locations.begin(), locations.end(), location) != locations.end())
 
+#define Forall_locations(it, locations) \
+  for(locationst::iterator it=(locations).begin(); \
+      it!=(locations).end(); it++)
+
+#define forall_locations(it, locations) \
+  for(locationst::const_iterator it=(locations).begin(); \
+      it!=(locations).end(); it++)
+
 /*  TODO : Should have its scope altered.
  * Possibly even just macroed. */
 
