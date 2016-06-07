@@ -36,10 +36,15 @@ Author:
 class reachability_analysist
 {
 public:
-  reachability_analysist(locationst &entry_locations_,
+  reachability_analysist(
+      locationst &entry_locations_,
       locationst &input_locations_,
       locationst &output_locations_,
-      message_handlert &message_handler_):
+      message_handlert &message_handler_,
+      goto_functionst &goto_functions,
+      reaching_automatat &interaction_reaches,
+      reaching_automatat &all_reaches)
+    :
         entry_locations(entry_locations_),
         input_locations(input_locations_),
         output_locations(output_locations_),
@@ -60,16 +65,23 @@ public:
     all_locations.push_back(*it);
   }
 #endif
+
+  cfg(goto_functions);
+  fixedpoint(interaction_reaches, all_reaches);
+  interaction_reaches_ = interaction_reaches;
+  all_reaches_ = all_reaches;
 }
 
-  void operator()(goto_functionst &goto_functions,
-      std::vector<std::pair<locationt, locationst> > &interaction_reaches,
-      std::vector<std::pair<locationt, locationst> > &all_reaches,
-)
+  void operator()()
   {
-    cfg(goto_functions);
-    fixedpoint(interaction_reaches, all_reaches);
+
   }
+
+  enum output_typet { JSON, PLAINTEXT, DOT };
+
+  void output(std::ostream& out,
+      output_typet output_type);
+
 
 
 protected:
@@ -82,6 +94,7 @@ protected:
     bool reaches_assertion;
   };
 
+
   typedef cfg_baset<reachability_entryt> cfgt;
   cfgt cfg;
 
@@ -89,10 +102,19 @@ protected:
 
 
   void fixedpoint(
-      std::vector<std::pair<locationt, locationst> > &interaction_reaches,
-      std::vector<std::pair<locationt, locationst> > &alL_reaches);
+      reaching_automatat &interaction_reaches,
+      reaching_automatat &alL_reaches);
 
-  void slice(goto_functionst &goto_functions);
+  void output_plaintext(
+      locationst &locations,
+      std::ostream& out);
+
+  void output_dot(
+      locationst &locations,
+      std::ostream &out);
+
+  void output_dot(
+      std::ostream& out);
 
   locationst entry_locations;
   locationst input_locations;
@@ -105,11 +127,18 @@ protected:
 
   /* Union of input, output, entry. */
   locationst all_locations;
+
+  goto_functionst goto_functions;
+
+  reaching_automatat interaction_reaches_;
+  reaching_automatat all_reaches_;
+
+
 };
 
 void reachability_analysis(goto_functionst &goto_functions,
-    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
-    std::vector<std::pair<locationt, locationst> > &all_reaches,
+    reaching_automatat &interaction_reaches,
+    reaching_automatat &all_reaches,
     locationst &entry_locations_,
     locationst &input_locations_,
     locationst &output_locations_,

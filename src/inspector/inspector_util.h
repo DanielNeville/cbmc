@@ -12,6 +12,8 @@ Author:
 
 typedef unsigned locationt;
 typedef std::vector<locationt> locationst;
+typedef std::vector<std::pair<locationt, locationst> > reaching_automatat;
+
 
 #define contains(locations, location) \
   (std::find(locations.begin(), locations.end(), location) != locations.end())

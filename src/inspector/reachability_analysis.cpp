@@ -30,8 +30,8 @@ Function: reachability_analysist::fixedpoint_assertions
 \*******************************************************************/
 
 void reachability_analysist::fixedpoint(
-    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
-    std::vector<std::pair<locationt, locationst> > &all_reaches)
+    reaching_automatat &interaction_reaches,
+    reaching_automatat &all_reaches)
 {
   Forall_locations(location, all_locations) {
     locationst reached;
@@ -56,13 +56,13 @@ void reachability_analysist::fixedpoint(
     }
 
     all_reaches.push_back(std::make_pair(*location, reached));
+    interaction_reaches.push_back(std::make_pair(*location, interactions_reached));
   }
 }
 
-
 /*******************************************************************\
 
-Function: reachability_analysis
+Function: reachability_analysist::fixedpoint_assertions
 
   Inputs:
 
@@ -72,14 +72,108 @@ Function: reachability_analysis
 
 \*******************************************************************/
 
-void reachability_analysis(goto_functionst &goto_functions,
-    std::vector<std::pair<locationt, locationst> > &interaction_reaches,
-    std::vector<std::pair<locationt, locationst> >  &all_reaches,
-    locationst &entry_locations,
-    locationst &input_locations,
-    locationst &output_locations,
-    message_handlert &message_handler)
+void reachability_analysist::output(std::ostream& out,
+    output_typet output_type)
 {
-  reachability_analysist(entry_locations, input_locations, output_locations, message_handler)
-      (goto_functions, interaction_reaches, all_reaches);
+  switch(output_type) {
+  case PLAINTEXT: {
+      out << "Entry locations: \n";
+      output_plaintext(entry_locations, out);
+      out << "Input locations: \n";
+      output_plaintext(input_locations, out);
+      out << "Output locations: \n";
+      output_plaintext(output_locations, out);
+      break;
+    }
+  case DOT: {
+    output_dot(out);
+    break;
+  }
+  case JSON: {
+
+    break;
+  }
+
+  }
+
 }
+
+void reachability_analysist::output_plaintext(
+    locationst &locations,
+    std::ostream& out)
+{
+  Forall_locations(location, locations) {
+
+    locationst *reaches = NULL;
+    out << *location << " -> ";
+
+    for(auto it = interaction_reaches_.begin();
+    it != interaction_reaches_.end();
+    it++) {
+      if(it->first == *location) {
+       reaches = &it->second;
+      }
+    }
+
+    if(reaches == NULL) {
+      out << "<NONE>";
+    } else {
+      bool first = false;
+      Forall_locations(it, *reaches) {
+        if(first) {
+          out << ", ";
+        }
+        first = true;
+        out << *it;
+      }
+    }
+
+    out << "\n";
+  }
+}
+
+void reachability_analysist::output_dot(
+    locationst &locations,
+    std::ostream &out)
+{
+  Forall_locations(location, locations) {
+
+     bool found = false;
+
+     for(auto it = interaction_reaches_.begin();
+     it != interaction_reaches_.end() && !found;
+     it++) {
+       if(it->first == *location) {
+        Forall_locations(reached_location, it->second) {
+          out << "\t\"" << *location << "\" -> \"" << *reached_location << "\"\n";
+          found = true;
+        }
+       }
+     }
+   }
+}
+
+void reachability_analysist::output_dot(
+    std::ostream& out)
+{
+  out << "digraph G {\n";
+
+  Forall_locations(it, entry_locations) {
+    out << "\t\"" << *it << "\" [shape=square]" << "\n";
+  }
+  Forall_locations(it, input_locations) {
+    out << "\t\"" << *it << "\" [shape=diamond]" << "\n";
+  }
+  Forall_locations(it, output_locations) {
+    out << "\t\"" << *it << "\" [shape=oval]" << "\n";
+  }
+
+  output_dot(entry_locations, out);
+  output_dot(input_locations, out);
+  output_dot(output_locations, out);
+
+  out << "}";
+
+
+}
+

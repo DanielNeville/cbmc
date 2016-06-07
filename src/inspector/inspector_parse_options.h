@@ -34,8 +34,9 @@ class optionst;
   "(taint):(show-taint)" \
   "(show-local-may-alias)" \
   "(json):(xml):" \
-  "(input-locations):(show-input-locations)(strict-rules)" \
+  "(taint-locations):(show-taint-locations)(strict-rules)" \
   "(entry-locations):(show-entry-locations)" \
+  "(output-automata):" \
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)"

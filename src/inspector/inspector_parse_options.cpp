@@ -121,6 +121,11 @@ void inspector_parse_optionst::eval_verbosity()
     if(v>10) v=10;
   }
   
+  if(cmdline.isset("output-automata") &&
+      cmdline.get_value("output-automata") == "dot") {
+    v=5; /* Overrule for neat DOT generation. */
+  }
+
   ui_message_handler.set_verbosity(v);
 }
 
@@ -197,9 +202,44 @@ int inspector_parse_optionst::doit()
 
   bool strict_rules = cmdline.isset("strict-rules");
 
-  if(cmdline.isset("input-locations"))
+  /*** Options:
+
+  * --taint-locations [filename.json]
+    Use --taint-locations to state the file where the taint rules are stored.
+    Format is:
+
+        Array of Objects.
+
+           Each Object:
+
+              Loc: <Program location s.t. LHS is tainted>
+              Taint: <Taint value>
+              Flow: <Input or Output taint>
+
+  * --show-taint-locations
+    Use --show-taint-locations to output the taint locations as interpreted
+    by the Inspector.
+
+  * --strict-rules
+    Use --strict-rules to enforce that rules were somewhat well-formed.
+
+
+  * --entry-locations [filename.json]
+    Use --entry-locations to state where program execution can be started from.
+
+    Options (will be.)
+
+    1) List of locations as stated in file (preferred.)
+    2) For linked programs, the entry locations.
+    3) For all programs, the head of all functions.
+
+
+
+   */
+
+  if(cmdline.isset("taint-locations"))
   {
-    std::string input_location_file = cmdline.get_value("input-locations");
+    std::string input_location_file = cmdline.get_value("taint-locations");
 
     debug() << "Using taint file: " << input_location_file << eom;
 
@@ -209,13 +249,6 @@ int inspector_parse_optionst::doit()
     if(parse_input_locations(input_location_file, rules, get_message_handler()))
       return 10;
 
-    /* If requested, output the rules. */
-    if(cmdline.isset("show-input-locations")) {
-    	status() << "Taint rules (" << rules.rules.size() << "):"  << eom;
-    	rules.output(status());
-        status() << eom;
-    }
-
     /* Check the rules are somewhat valid. */
     locationst input_locations, output_locations, entry_locations;
 
@@ -224,19 +257,6 @@ int inspector_parse_optionst::doit()
     	warning() << eom; // Ensures print.
 		error() << "Bad rule detected.  Exiting." << eom;
     	return 10;
-    }
-
-    {
-        /* Output some debug info */
-        debug() << "Input locations:" << eom;
-        for(auto location: input_locations) {
-        	debug() << location << ", ";
-        }
-        debug() << eom << "Output locations:" << eom;
-        for(auto location: output_locations) {
-        	debug() << location << ", ";
-        }
-        debug() << eom;
     }
 
     if(cmdline.isset("entry-locations")) {
@@ -250,7 +270,18 @@ int inspector_parse_optionst::doit()
       return 10;
     }
 
+
     {
+      debug() << "Input locations:" << eom;
+      for(auto location: input_locations) {
+        debug() << location << ", ";
+      }
+      debug() << eom << "Output locations:" << eom;
+      for(auto location: output_locations) {
+        debug() << location << ", ";
+      }
+      debug() << eom;
+
       debug() << "Entry locations:";
       for(auto location: entry_locations) {
         debug() << location << ", ";
@@ -258,17 +289,22 @@ int inspector_parse_optionst::doit()
       debug() << eom;
     }
 
-    /* Reduced CFG time... */
-    std::vector<std::pair<locationt, locationst> > all_reaches;
-    std::vector<std::pair<locationt, locationst> > interaction_reaches;
+    /* Generate partial CFG. */
+    reaching_automatat all_reaches;
+    reaching_automatat interaction_reaches;
 
-    reachability_analysis(goto_functions, interaction_reaches, all_reaches,
-        entry_locations, input_locations, output_locations, get_message_handler());
+    reachability_analysist reachability_analysis(entry_locations,
+        input_locations, output_locations, get_message_handler(),
+        goto_functions, interaction_reaches, all_reaches);
 
-
-
-
-
+    if(cmdline.isset("output-automata")) {
+      if(cmdline.get_value("output-automata") == "dot") {
+        reachability_analysis.output(result(), reachability_analysist::DOT);
+      } else {
+        reachability_analysis.output(result(), reachability_analysist::PLAINTEXT);
+      }
+      result() << eom;
+    }
 
     return 0;
   }
