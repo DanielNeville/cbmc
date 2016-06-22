@@ -11,6 +11,7 @@ Date: May 2016
 #include <algorithm>
 
 #include <util/i2string.h>
+#include <util/expr_util.h>
 
 #include "cover.h"
 
@@ -63,6 +64,18 @@ public:
   }
 };
 
+/*******************************************************************\
+
+Function: as_string
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
 const char *as_string(coverage_criteriont c)
 {
   switch(c)
@@ -77,6 +90,30 @@ const char *as_string(coverage_criteriont c)
   case coverage_criteriont::COVER: return "cover instructions";
   default: return "";
   }
+}
+
+/*******************************************************************\
+
+Function: is_condition
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool is_condition(const exprt &src)
+{
+  if(src.type().id()!=ID_bool) return false;
+
+  // conditions are 'atomic predicates'
+  if(src.id()==ID_and || src.id()==ID_or ||
+     src.id()==ID_not || src.id()==ID_implies)
+    return false;
+  
+  return true;
 }
 
 /*******************************************************************\
@@ -101,22 +138,8 @@ void collect_conditions_rec(const exprt &src, std::set<exprt> &dest)
   for(const auto & op : src.operands())
     collect_conditions_rec(op, dest);
 
-  if(src.type().id()==ID_bool)
-  {
-    if(src.id()==ID_and || src.id()==ID_or ||
-       src.id()==ID_not || src.id()==ID_implies)
-    {
-      // ignore me
-    }
-    else if(src.is_constant())
-    {
-      // ignore me
-    }
-    else
-    {
-      dest.insert(src); 
-    }
-  }
+  if(is_condition(src) && !src.is_constant())
+    dest.insert(src); 
 }
 
 /*******************************************************************\
@@ -168,6 +191,129 @@ std::set<exprt> collect_conditions(const goto_programt::const_targett t)
   return std::set<exprt>();
 }
 
+/*******************************************************************\
+
+Function: collect_operands
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void collect_operands(const exprt &src, std::vector<exprt> &dest)
+{
+  for(const exprt &op : src.operands())
+  {
+    if(op.id()==src.id())
+      collect_operands(op, dest);
+    else
+      dest.push_back(op);
+  }
+}
+
+/*******************************************************************\
+
+Function: collect_mcdc_controlling_rec
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void collect_mcdc_controlling_rec(
+  const exprt &src,
+  const std::vector<exprt> &conditions,
+  std::set<exprt> &result)
+{
+  if(src.id()==ID_and ||
+     src.id()==ID_or)
+  {
+    std::vector<exprt> operands;
+    collect_operands(src, operands);
+
+    if(operands.size()==1)
+    {
+      exprt e=*operands.begin();
+      collect_mcdc_controlling_rec(e, conditions, result);
+    }
+    else if(!operands.empty())
+    {
+      for(unsigned i=0; i<operands.size(); i++)
+      {
+        const exprt op=operands[i];
+      
+        if(is_condition(op))
+        {
+          std::vector<exprt> o=operands;
+        
+          // 'o[i]' needs to be true and false
+          std::vector<exprt> new_conditions=conditions;
+          new_conditions.push_back(conjunction(o));
+          result.insert(conjunction(new_conditions));
+
+          o[i].make_not();
+          new_conditions.back()=conjunction(o);
+          result.insert(conjunction(new_conditions));
+        }
+        else
+        {
+          std::vector<exprt> others;
+          others.reserve(operands.size()-1);
+
+          for(unsigned j=0; j<operands.size(); j++)
+            if(i!=j)
+            {
+              if(src.id()==ID_or)
+                others.push_back(not_exprt(operands[j]));
+              else
+                others.push_back(operands[j]);
+            }
+            
+          exprt c=conjunction(others);
+          std::vector<exprt> new_conditions=conditions;
+          new_conditions.push_back(c);
+
+          collect_mcdc_controlling_rec(op, new_conditions, result);
+        }
+      }
+    }
+  }
+  else if(src.id()==ID_not)
+  {
+    exprt e=to_not_expr(src).op();
+    collect_mcdc_controlling_rec(e, conditions, result);
+  }
+}
+
+/*******************************************************************\
+
+Function: collect_mcdc_controlling
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+std::set<exprt> collect_mcdc_controlling(
+  const std::set<exprt> &decisions)
+{
+  std::set<exprt> result;
+  
+  for(const auto &d : decisions)
+    collect_mcdc_controlling_rec(d, { }, result);
+
+  return result;
+}
+        
 /*******************************************************************\
 
 Function: collect_decisions_rec
@@ -478,7 +624,23 @@ void instrument_cover_goals(
           i_it->source_location.set_comment(comment_f);
         }
         
-        for(unsigned i=0; i<both.size()*2; i++)
+        std::set<exprt> controlling;
+        controlling=collect_mcdc_controlling(decisions);
+
+        for(const auto & p : controlling)
+        {
+          std::string p_string=from_expr(ns, "", p);
+
+          std::string description=
+            "MC/DC independence condition `"+p_string+"'";
+            
+          goto_program.insert_before_swap(i_it);
+          i_it->make_assertion(p);
+          i_it->source_location=source_location;
+          i_it->source_location.set_comment(description);
+        }
+        
+        for(unsigned i=0; i<both.size()*2+controlling.size(); i++)
           i_it++;
       }
       break;

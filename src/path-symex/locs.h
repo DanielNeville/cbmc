@@ -84,6 +84,11 @@ public:
     tmp.loc_number=loc_vector.size();
     return tmp;
   }
+  
+  inline std::size_t size() const
+  {
+    return loc_vector.size();
+  }
 
   inline unsigned int size() const
   {

@@ -88,11 +88,7 @@ std::string expr2javat::convert_code_function_call(
   const code_typet &code_type=
     to_code_type(src.function().type());
   
-  const code_typet::parameterst &parameters=
-    code_type.parameters();
-  
-  bool has_this=!parameters.empty() &&
-                parameters.front().get_bool(ID_C_this) &&
+  bool has_this=code_type.has_this() &&
                 !src.arguments().empty();
 
   if(has_this)
@@ -230,11 +226,17 @@ std::string expr2javat::convert_constant(
 {
   if(src.type().id()==ID_bool)
   {
-    // C++ has built-in Boolean constants, in contrast to C
+    // Java has built-in Boolean constants, in contrast to C
     if(src.is_true())
       return "true";
     else if(src.is_false())
       return "false";
+  }
+  else if(src.type().id()==ID_pointer)
+  {
+    // Java writes 'null' for the null reference
+    if(src.is_zero())
+      return "null";
   }
 
   return expr2ct::convert_constant(src, precedence);

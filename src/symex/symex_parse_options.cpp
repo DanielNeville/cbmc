@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <ansi-c/ansi_c_language.h>
 #include <cpp/cpp_language.h>
+#include <java_bytecode/java_bytecode_language.h>
 
 #include <goto-programs/goto_convert_functions.h>
 #include <goto-programs/show_properties.h>
@@ -28,6 +29,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/link_to_library.h>
 #include <goto-programs/goto_inline.h>
 #include <goto-programs/xml_goto_trace.h>
+#include <goto-programs/remove_complex.h>
+#include <goto-programs/remove_vector.h>
+#include <goto-programs/remove_virtual_functions.h>
 
 #include <analyses/goto_check.h>
 
@@ -175,7 +179,7 @@ void symex_parse_optionst::get_command_line_options(optionst &options)
 
   // magic error label
   if(cmdline.isset("error-label"))
-    options.set_option("error-label", cmdline.get_value("error-label"));
+    options.set_option("error-label", cmdline.get_values("error-label"));
 }
 
 /*******************************************************************\
@@ -200,6 +204,7 @@ int symex_parse_optionst::doit()
 
   register_language(new_ansi_c_language);
   register_language(new_cpp_language);
+  register_language(new_java_bytecode_language);
 
   //
   // command line options
@@ -251,8 +256,20 @@ int symex_parse_optionst::doit()
     if(cmdline.isset("context-bound"))
       path_search.set_context_bound(unsafe_string2unsigned(cmdline.get_value("context-bound")));
 
+    if(cmdline.isset("branch-bound"))
+      path_search.set_branch_bound(unsafe_string2unsigned(cmdline.get_value("branch-bound")));
+
     if(cmdline.isset("unwind"))
       path_search.set_unwind_limit(unsafe_string2unsigned(cmdline.get_value("unwind")));
+
+    if(cmdline.isset("dfs"))
+      path_search.set_dfs();
+
+    if(cmdline.isset("bfs"))
+      path_search.set_bfs();
+
+    if(cmdline.isset("locs"))
+      path_search.set_locs();
 
     if(cmdline.isset("show-vcc"))
     {
@@ -261,7 +278,8 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
-    path_search.infeasible_set = !cmdline.isset("no-eager-infeasibility");
+    path_search.eager_infeasibility=
+      cmdline.isset("eager-infeasibility");
 
     // do actual symex
     switch(path_search(goto_functions))
@@ -523,6 +541,11 @@ bool symex_parse_optionst::process_goto_program(
     // add generic checks
     status() << "Generic Property Instrumentation" << eom;
     goto_check(ns, options, goto_functions);
+
+    // remove stuff    
+    remove_complex(symbol_table, goto_functions);
+    remove_vector(symbol_table, goto_functions);
+    remove_virtual_functions(symbol_table, goto_functions);
     
     // recalculate numbers, etc.
     goto_functions.update();
@@ -592,6 +615,9 @@ Function: symex_parse_optionst::report_properties
 void symex_parse_optionst::report_properties(
   const path_searcht::property_mapt &property_map)
 {
+  if(get_ui()==ui_message_handlert::PLAIN)
+    status() << "\n** Results:" << eom;
+  
   for(path_searcht::property_mapt::const_iterator
       it=property_map.begin();
       it!=property_map.end();
@@ -606,9 +632,9 @@ void symex_parse_optionst::report_properties(
 
       switch(it->second.status)
       {
-      case path_searcht::PASS: status_string="OK"; break;
+      case path_searcht::PASS: status_string="SUCCESS"; break;
       case path_searcht::FAIL: status_string="FAILURE"; break;
-      case path_searcht::NOT_REACHED: status_string="OK"; break;
+      case path_searcht::NOT_REACHED: status_string="SUCCESS"; break;
       }
 
       xml_result.set_attribute("status", status_string);
@@ -621,9 +647,9 @@ void symex_parse_optionst::report_properties(
                << it->second.description << ": ";
       switch(it->second.status)
       {
-      case path_searcht::PASS: status() << "OK"; break;
-      case path_searcht::FAIL: status() << "FAILED"; break;
-      case path_searcht::NOT_REACHED: status() << "OK"; break;
+      case path_searcht::PASS: status() << "SUCCESS"; break;
+      case path_searcht::FAIL: status() << "FAILURE"; break;
+      case path_searcht::NOT_REACHED: status() << "SUCCESS"; break;
       }
       status() << eom;
     }
@@ -836,9 +862,10 @@ void symex_parse_optionst::help()
     "Symex options:\n"
     " --function name              set main function name\n"
     " --property nr                only check one specific property\n"
+    " --unwind nr                  unwind nr times\n"
     " --depth nr                   limit search depth\n"
     " --context-bound nr           limit number of context switches\n"
-    " --unwind nr                  unwind nr times\n"
+    " --branch-bound nr            limit number of branches taken\n"
     "\n"
     "Other options:\n"
     " --version                    show version and exit\n"
