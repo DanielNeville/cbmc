@@ -12,6 +12,7 @@ Author:
 
 typedef unsigned locationt;
 typedef std::vector<locationt> locationst;
+typedef std::set<locationt> location_sett;
 typedef std::vector<std::pair<locationt, locationst> > reaching_automatat;
 
 

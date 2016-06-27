@@ -51,9 +51,11 @@ Author:
 
 
 
+
 /* To be correctly linked later when exact includes determined.
  * This avoids changing Makefiles for now. */
 #include <path-symex/locs.cpp>
+#include <goto-instrument/dot.cpp>
 /* End includes */
 
 #include "reachability_analysis.h"
@@ -170,6 +172,8 @@ int inspector_parse_optionst::doit()
     return 0;
   }
   
+//  debug() << " ** Debug information output ON! **" << eom;
+
   //
   // command line options
   //
@@ -201,6 +205,7 @@ int inspector_parse_optionst::doit()
   locs.build(goto_functions);
 
   bool strict_rules = cmdline.isset("strict-rules");
+
 
   /*** Options:
 
@@ -259,30 +264,36 @@ int inspector_parse_optionst::doit()
     	return 10;
     }
 
+
+
     if(cmdline.isset("entry-locations")) {
         std::string entry_location_file = cmdline.get_value("entry-locations");
         if(parse_entry_locations(entry_location_file, entry_locations, get_message_handler()))
           return 10;
 
         debug() << "Using entry location file: " << entry_location_file << eom;
+
+        if(!contains(entry_locations, locs.entry_loc.loc_number)) {
+          debug() << "Entry locations list does not include linked program entry location." << eom;
+        }
     } else {
-      error() << "NOT IMPLEMENTED (1)\n--entry-locations <file.json> required!" << eom;
+      entry_locations.push_back(locs.entry_loc.loc_number);
+      debug() << "Using program entry point [only] as entry location list: " <<
+          locs.entry_loc << "." << eom;
       return 10;
     }
 
 
     {
-      debug() << "Input locations:" << eom;
+      debug() << "Input locations: ";
       for(auto location: input_locations) {
         debug() << location << ", ";
       }
-      debug() << eom << "Output locations:" << eom;
+      debug() << eom << "Output locations: ";
       for(auto location: output_locations) {
         debug() << location << ", ";
       }
-      debug() << eom;
-
-      debug() << "Entry locations:";
+      debug() << eom << "Entry locations: " ;
       for(auto location: entry_locations) {
         debug() << location << ", ";
       }
@@ -293,17 +304,32 @@ int inspector_parse_optionst::doit()
     reaching_automatat all_reaches;
     reaching_automatat interaction_reaches;
 
-    reachability_analysist reachability_analysis(entry_locations,
-        input_locations, output_locations, get_message_handler(),
-        goto_functions, interaction_reaches, all_reaches);
+    goto_functions.update();
 
-    if(cmdline.isset("output-automata")) {
-      if(cmdline.get_value("output-automata") == "dot") {
-        reachability_analysis.output(result(), reachability_analysist::DOT);
-      } else {
-        reachability_analysis.output(result(), reachability_analysist::PLAINTEXT);
-      }
-      result() << eom;
+    namespacet ns(symbol_table);
+
+    locst locs(ns);
+    locs.build(goto_functions);
+
+   reachability_analysist reachability_analysis(entry_locations,
+       input_locations, output_locations, get_message_handler(),
+       goto_functions, interaction_reaches, all_reaches, locs);
+
+   if(cmdline.isset("show-automata")) {
+     if(cmdline.get_value("show-automata") == "dot") {
+       reachability_analysis.output(result(), reachability_analysist::DOT);
+     } else {
+       reachability_analysis.output(result(), reachability_analysist::PLAINTEXT);
+     }
+     result() << eom;
+   }
+
+
+
+    if(cmdline.isset("show-goto-functions"))
+    {
+      goto_functions.output(ns, std::cout);
+      return true;
     }
 
     return 0;
@@ -564,11 +590,6 @@ bool inspector_parse_optionst::process_goto_program(
     goto_functions.compute_loop_numbers();
     
     // show it?
-    if(cmdline.isset("show-goto-functions"))
-    {
-      goto_functions.output(ns, std::cout);
-      return true;
-    }
   }
 
   catch(const char *e)

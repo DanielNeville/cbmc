@@ -36,7 +36,7 @@ class optionst;
   "(json):(xml):" \
   "(taint-locations):(show-taint-locations)(strict-rules)" \
   "(entry-locations):(show-entry-locations)" \
-  "(output-automata):" \
+  "(show-automata):" \
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)"

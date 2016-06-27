@@ -43,12 +43,14 @@ public:
       message_handlert &message_handler_,
       goto_functionst &goto_functions,
       reaching_automatat &interaction_reaches,
-      reaching_automatat &all_reaches)
+      reaching_automatat &all_reaches,
+      locst &locs_)
     :
         entry_locations(entry_locations_),
         input_locations(input_locations_),
         output_locations(output_locations_),
-        message(message_handler_)
+        message(message_handler_),
+        locs(locs_)
 {
     interaction_locations = input_locations;
 #if 0
@@ -66,7 +68,7 @@ public:
   }
 #endif
 
-  cfg(goto_functions);
+  simple_cfg(goto_functions);
   fixedpoint(interaction_reaches, all_reaches);
   interaction_reaches_ = interaction_reaches;
   all_reaches_ = all_reaches;
@@ -85,21 +87,12 @@ public:
 
 
 protected:
-  struct reachability_entryt
-  {
-    reachability_entryt():reaches_assertion(false)
-    {
-    }
+  locationst get_next(locationt location);
 
-    bool reaches_assertion;
-  };
+  std::map<locationt, locationst> out_edges;
 
-
-  typedef cfg_baset<reachability_entryt> cfgt;
-  cfgt cfg;
-
-  typedef std::stack<cfgt::entryt> queuet;
-
+  void simple_cfg(
+      goto_functionst &goto_functions);
 
   void fixedpoint(
       reaching_automatat &interaction_reaches,
@@ -132,6 +125,9 @@ protected:
 
   reaching_automatat interaction_reaches_;
   reaching_automatat all_reaches_;
+
+//  locst locs;
+  locst locs;
 
 
 };
