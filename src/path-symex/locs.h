@@ -65,7 +65,7 @@ public:
     return loc_vector[l.loc_number];
   }
 
-  inline const loct &operator[] (unsigned int l) const
+  inline const loct &operator[] (int l) const
   {
     assert(l>=0 && l < loc_vector.size());
     return loc_vector[l];
@@ -88,11 +88,6 @@ public:
   inline std::size_t size() const
   {
     return loc_vector.size();
-  }
-
-  inline unsigned int size() const
-  {
-	  return loc_vector.size();
   }
 
 protected:
