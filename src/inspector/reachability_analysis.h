@@ -85,17 +85,8 @@ public:
 
 
 protected:
-  struct reachability_entryt
-  {
-    reachability_entryt():reaches_assertion(false)
-    {
-    }
 
-    bool reaches_assertion;
-  };
-
-
-  typedef cfg_baset<reachability_entryt> cfgt;
+  typedef cfg_baset<empty_cfg_nodet> cfgt;
   cfgt cfg;
 
   typedef std::stack<cfgt::entryt> queuet;
