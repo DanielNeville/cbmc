@@ -11,6 +11,17 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../json/json$(LIBEXT) \
       ../assembler/assembler$(LIBEXT) \
       ../util/util$(LIBEXT) \
+      ../path-symex/path-symex$(LIBEXT) \
+      ../solvers/solvers$(LIBEXT) \
+      ../xmllang/xmllang$(LIBEXT) \
+      ../assembler/assembler$(LIBEXT) \
+      ../util/util$(LIBEXT) \
+      ../goto-symex/adjust_float_expressions$(OBJEXT) \
+      ../goto-symex/rewrite_union$(OBJEXT) \
+      ../pointer-analysis/dereference$(OBJEXT) \
+      ../path-symex/path-symex$(LIBEXT)
+
+
 
 INCLUDES= -I ..
 

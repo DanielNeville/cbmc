@@ -50,10 +50,21 @@ Author:
 #include <analyses/cfg_dominators.h>
 
 
+#include <solvers/flattening/bv_pointers.h>
+#include <solvers/sat/satcheck.h>
+
+#include <path-symex/path_symex.h>
+#include <path-symex/build_goto_trace.h>
+
+#include <goto-programs/xml_goto_trace.h>
+
+
 
 /* To be correctly linked later when exact includes determined.
  * This avoids changing Makefiles for now. */
 #include <path-symex/locs.cpp>
+#include <symex/path_search.cpp>
+
 /* End includes */
 
 #include "reachability_analysis.h"
@@ -200,6 +211,13 @@ int inspector_parse_optionst::doit()
   locst locs(ns);
   locs.build(goto_functions);
 
+  if(cmdline.isset("show-locs"))
+  {
+    locs.output(std::cout);
+    return 0;
+  }
+
+
   bool strict_rules = cmdline.isset("strict-rules");
 
   /*** Options:
@@ -305,6 +323,81 @@ int inspector_parse_optionst::doit()
       }
       result() << eom;
     }
+
+
+    /** SYMEX **/
+
+
+    try
+    {
+      const namespacet ns(symbol_table);
+      path_searcht path_search(ns);
+
+      path_search.set_message_handler(get_message_handler());
+
+      if(cmdline.isset("depth"))
+        path_search.set_depth_limit(unsafe_string2unsigned(cmdline.get_value("depth")));
+
+      if(cmdline.isset("context-bound"))
+        path_search.set_context_bound(unsafe_string2unsigned(cmdline.get_value("context-bound")));
+
+      if(cmdline.isset("branch-bound"))
+        path_search.set_branch_bound(unsafe_string2unsigned(cmdline.get_value("branch-bound")));
+
+      if(cmdline.isset("unwind"))
+        path_search.set_unwind_limit(unsafe_string2unsigned(cmdline.get_value("unwind")));
+
+      if(cmdline.isset("dfs"))
+        path_search.set_dfs();
+
+      if(cmdline.isset("bfs"))
+        path_search.set_bfs();
+
+      if(cmdline.isset("locs"))
+        path_search.set_locs();
+
+      if(cmdline.isset("show-vcc"))
+      {
+        path_search.show_vcc=true;
+        path_search(goto_functions);
+        return 0;
+      }
+
+      path_search.eager_infeasibility=
+          cmdline.isset("eager-infeasibility");
+
+      // do actual symex
+      switch(path_search(goto_functions))
+      {
+      case safety_checkert::SAFE:
+        report_properties(path_search.property_map);
+        report_success();
+        return 0;
+
+      case safety_checkert::UNSAFE:
+        report_properties(path_search.property_map);
+        report_failure();
+        return 10;
+
+      default:
+        return 8;
+      }
+    }
+    catch(const std::string error_msg)
+    {
+      error() << error_msg << messaget::eom;
+      return 8;
+    }
+
+    catch(const char *error_msg)
+    {
+      error() << error_msg << messaget::eom;
+      return 8;
+    }
+
+
+
+
 
     return 0;
   }
@@ -503,6 +596,180 @@ int inspector_parse_optionst::get_goto_program(
   }
   
   return -1; // no error, continue
+}
+
+
+void inspector_parse_optionst::report_properties(
+  const path_searcht::property_mapt &property_map)
+{
+  if(get_ui()==ui_message_handlert::PLAIN)
+    status() << "\n** Results:" << eom;
+
+  for(path_searcht::property_mapt::const_iterator
+      it=property_map.begin();
+      it!=property_map.end();
+      it++)
+  {
+    if(get_ui()==ui_message_handlert::XML_UI)
+    {
+      xmlt xml_result("result");
+      xml_result.set_attribute("claim", id2string(it->first));
+
+      std::string status_string;
+
+      switch(it->second.status)
+      {
+      case path_searcht::PASS: status_string="SUCCESS"; break;
+      case path_searcht::FAIL: status_string="FAILURE"; break;
+      case path_searcht::NOT_REACHED: status_string="SUCCESS"; break;
+      }
+
+      xml_result.set_attribute("status", status_string);
+
+      std::cout << xml_result << "\n";
+    }
+    else
+    {
+      status() << "[" << it->first << "] "
+               << it->second.description << ": ";
+      switch(it->second.status)
+      {
+      case path_searcht::PASS: status() << "SUCCESS"; break;
+      case path_searcht::FAIL: status() << "FAILURE"; break;
+      case path_searcht::NOT_REACHED: status() << "SUCCESS"; break;
+      }
+      status() << eom;
+    }
+
+    if(cmdline.isset("show-trace") &&
+       it->second.status==path_searcht::FAIL)
+      show_counterexample(it->second.error_trace);
+  }
+
+  if(!cmdline.isset("property"))
+  {
+    status() << eom;
+
+    unsigned failed=0;
+
+    for(path_searcht::property_mapt::const_iterator
+        it=property_map.begin();
+        it!=property_map.end();
+        it++)
+      if(it->second.status==path_searcht::FAIL)
+        failed++;
+
+    status() << "** " << failed
+             << " of " << property_map.size() << " failed"
+             << eom;
+  }
+}
+
+/*******************************************************************\
+
+Function: symex_parse_optionst::report_success
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void inspector_parse_optionst::report_success()
+{
+  result() << "VERIFICATION SUCCESSFUL" << eom;
+
+  switch(get_ui())
+  {
+  case ui_message_handlert::PLAIN:
+    break;
+
+  case ui_message_handlert::XML_UI:
+    {
+      xmlt xml("cprover-status");
+      xml.data="SUCCESS";
+      std::cout << xml;
+      std::cout << std::endl;
+    }
+    break;
+
+  default:
+    assert(false);
+  }
+}
+
+/*******************************************************************\
+
+Function: symex_parse_optionst::show_counterexample
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void inspector_parse_optionst::show_counterexample(
+  const goto_tracet &error_trace)
+{
+  const namespacet ns(symbol_table);
+
+  switch(get_ui())
+  {
+  case ui_message_handlert::PLAIN:
+    std::cout << std::endl << "Counterexample:" << std::endl;
+    show_goto_trace(std::cout, ns, error_trace);
+    break;
+
+  case ui_message_handlert::XML_UI:
+    {
+      xmlt xml;
+      convert(ns, error_trace, xml);
+      std::cout << xml << std::endl;
+    }
+    break;
+
+  default:
+    assert(false);
+  }
+}
+
+/*******************************************************************\
+
+Function: symex_parse_optionst::report_failure
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void inspector_parse_optionst::report_failure()
+{
+  result() << "VERIFICATION FAILED" << eom;
+
+  switch(get_ui())
+  {
+  case ui_message_handlert::PLAIN:
+    break;
+
+  case ui_message_handlert::XML_UI:
+    {
+      xmlt xml("cprover-status");
+      xml.data="FAILURE";
+      std::cout << xml;
+      std::cout << std::endl;
+    }
+    break;
+
+  default:
+    assert(false);
+  }
 }
 
 /*******************************************************************\
