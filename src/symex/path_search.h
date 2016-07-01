@@ -104,6 +104,7 @@ protected:
   struct loc_datat
   {
     bool visited;
+    unsigned int visits = 0;
     loc_datat():visited(false) { }
   };
 

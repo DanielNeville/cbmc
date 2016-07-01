@@ -77,6 +77,7 @@ path_searcht::resultt path_searcht::operator()(
       
       // record we have seen it
       loc_data[state.get_pc().loc_number].visited=true;
+      loc_data[state.get_pc().loc_number].visits++;
 
       debug() << "Loc: #" << state.get_pc().loc_number
               << ", queue: " << queue.size()
