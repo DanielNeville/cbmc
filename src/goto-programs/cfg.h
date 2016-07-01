@@ -213,8 +213,11 @@ void cfg_baset<T, P, I>::compute_edges_goto(
   entryt &entry)
 {
   if(next_PC!=goto_program.instructions.end() &&
-     !instruction.guard.is_true())
+     !instruction.guard.is_true()) {
+    std::cout << "(goto) Adding edge " << entry << " -> " << next_PC->location_number << "\n";
     this->add_edge(entry, entry_map[next_PC]);
+  }
+
 
   for(goto_programt::instructiont::targetst::const_iterator
       t_it=instruction.targets.begin();
@@ -222,8 +225,10 @@ void cfg_baset<T, P, I>::compute_edges_goto(
       t_it++)
   {
     goto_programt::const_targett t=*t_it;
-    if(t!=goto_program.instructions.end())
+    if(t!=goto_program.instructions.end()) {
+      std::cout << "(goto) Adding edge " << entry << " -> " << t->location_number << "\n";
       this->add_edge(entry, entry_map[t]);
+    }
   }
 }
 
@@ -391,20 +396,34 @@ void cfg_baset<T, P, I>::compute_edges_function_call(
     if(i_it!=e_it)
     {
       // nonempty function
+      std::cout << "(func_call 1) Adding edge " << entry << " -> " << i_it->location_number << "\n";
+
       this->add_edge(entry, entry_map[i_it]);
+      std::cout << "(func_call 1) Added!\n";
+
 
       // add the last instruction as predecessor of the return location
-      if(next_PC!=goto_program.instructions.end())
+      if(next_PC!=goto_program.instructions.end()) {
+        std::cout << "(func_call 2) Adding edge " << last_it->location_number << " -> " << next_PC->location_number << "\n";
         this->add_edge(entry_map[last_it], entry_map[next_PC]);
+        std::cout << "(func_call 2) Added!\n";
+      }
     }
     else if(next_PC!=goto_program.instructions.end())
     {
       // empty function
+      std::cout << "(func_call 3) Adding edge " << entry << " -> " << next_PC->location_number << "\n";
+
       this->add_edge(entry, entry_map[next_PC]);
+      std::cout << "(func_call 3) Added!\n";
+
     }        
   }
-  else if(next_PC!=goto_program.instructions.end())
+  else if(next_PC!=goto_program.instructions.end()) {
+    std::cout << "(func_call 4) Adding edge " << entry  << " -> " << next_PC->location_number << "\n";
     this->add_edge(entry, entry_map[next_PC]);
+    std::cout << "(func_call 4) Added!\n";
+  }
 }
 
 /*******************************************************************\
@@ -513,8 +532,11 @@ void cfg_baset<T, P, I>::compute_edges(
   case ATOMIC_END:
   case DECL:
   case DEAD:
-    if(next_PC!=goto_program.instructions.end())
+    if(next_PC!=goto_program.instructions.end()) {
+      std::cout << "(step) Adding edge " << entry << " -> " << next_PC->location_number << "\n";
       this->add_edge(entry, entry_map[next_PC]);
+
+    }
     break;
 
   case NO_INSTRUCTION_TYPE:

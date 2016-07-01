@@ -75,6 +75,12 @@ Function: reachability_analysist::fixedpoint_assertions
 void reachability_analysist::output(std::ostream& out,
     output_typet output_type)
 {
+  std::cout << "CFG DOT\n";
+  cfg.output_dot(std::cout);
+
+  std::cout << "\nMinimised DOT\n";
+
+
   switch(output_type) {
   case PLAINTEXT: {
       out << "Entry locations: \n";

@@ -159,6 +159,7 @@ public:
   
   inline void add_edge(node_indext a, node_indext b)
   {
+    std::cout << "(add_edge) Adding edge: " << a << " -> " << b << "\n";
     nodes[a].add_out(b);
     nodes[b].add_in(a);
   }
@@ -274,6 +275,9 @@ void graph<N>::add_undirected_edge(node_indext a, node_indext b)
   assert(b<nodes.size());
   nodet &na=nodes[a];
   nodet &nb=nodes[b];
+  std::cout << "Adding edge: " << a << " -> " << b << "\n";
+  std::cout << "Adding edge: " << b << " -> " << a << "\n";
+
   na.add_out(b);
   nb.add_out(a);
   na.add_in(b);
