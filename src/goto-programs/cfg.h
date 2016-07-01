@@ -255,7 +255,7 @@ void cfg_baset<T, P, I>::compute_edges_catch(
     this->add_edge(entry, entry_map[next_PC]);
 
   // Not ideal, but preserves targets
-  // Ideally, the throw statements should have those as successors
+  // Ideally, the throw statements should have those as successors.
 
   for(goto_programt::instructiont::targetst::const_iterator
       t_it=instruction.targets.begin();
