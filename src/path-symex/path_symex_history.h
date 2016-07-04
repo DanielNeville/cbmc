@@ -91,6 +91,11 @@ public:
     return branch==BRANCH_TAKEN || branch==BRANCH_NOT_TAKEN;
   }
 
+  inline bool is_hidden() const
+  {
+     return hidden;
+  }
+
   path_symex_step_reft predecessor;
   
   // the thread that did the step
