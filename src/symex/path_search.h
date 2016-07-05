@@ -27,6 +27,7 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
+    hoist_set(false),
     search_heuristic(search_heuristict::DFS)
   {
   }
@@ -110,6 +111,9 @@ protected:
 
   expanding_vector<loc_datat> loc_data;
   
+  typedef std::map<loc_reft, exprt> hoisted_assertst;
+  hoisted_assertst hoisted_asserts;
+
   bool execute(queuet::iterator state);
   
   void check_assertion(statet &state);
@@ -128,6 +132,7 @@ protected:
   unsigned branch_bound;
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
+  bool hoist_set;
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 };

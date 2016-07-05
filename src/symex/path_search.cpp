@@ -31,10 +31,18 @@ Function: path_searcht::operator()
 path_searcht::resultt path_searcht::operator()(
   const goto_functionst &goto_functions)
 {
+  hoist_set = true;
+
   locst locs(ns);
   var_mapt var_map(ns);
   
   locs.build(goto_functions);
+
+  for(loc_reft it=(locs).begin(); it!=(locs).end(); it.increase()) {
+    hoisted_asserts[it] = true_exprt();
+    hoisted_asserts[it].set(ID_default, true);
+    /* Cheap, temporary set-up */
+  }
 
   // this is the container for the history-forest  
   path_symex_historyt history;

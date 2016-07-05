@@ -334,33 +334,14 @@ exprt step_wp(
   const namespacet &ns)
 {
   exprt wp=cond;
-  
-//  std::cout << "IN STEP_WP! \n\n";
-//
-//
-//
-//  std::cout << "STEP LHS (NO SYMBOL):\n" << step.ssa_lhs.pretty() << "\n";
 
   const symbol_exprt &ssa_lhs_symbol(to_symbol_expr(step.ssa_lhs));
-
-//  std::cout << "SSA_LHS_SYMBOL: \n" << ssa_lhs_symbol.pretty() << "\n";
-//
-//
-//  std::cout << "STEP FULL_LHS\n" << step.full_lhs.pretty() << "\n";
-//
-//  std::cout << "IS_NOT_NIL? " << (step.full_lhs.is_not_nil() ? "NOT NIL" : "NIL") << "\n";
-//
-//
-//  std::cout << "HAS_SYMBOL?: " << (has_symbol(ssa_lhs_symbol, wp) ? "HAS SYMBOL" : "DOES NOT HAVE SYMBOL") << "\n";
 
   bool change=false;
 
   // wp(a:=b, x) = x[a<-b]
   if(step.full_lhs.is_not_nil() && has_symbol(ssa_lhs_symbol, wp))
-//  if(true)
   {
-//    std::cout << "CALLED BRANCH 1!\n";
-    // do we do a nondet-assignment?
     if (step.ssa_rhs.is_nil() || 
          (  
            step.ssa_rhs.id()==ID_symbol &&
@@ -381,18 +362,13 @@ exprt step_wp(
     change=true;
   }
   
-//  std::cout << "STEP IS HIDDEN? " << (step.is_hidden() ? "HIDDEN" : "NOT HIDDEN") << "\n";
-
   if(!step.is_hidden()) /* !step.is_hidden() */
   {
-
     // wp(assume c, x) = c=>x
     if(step.guard.is_not_nil())
     {
       exprt negated_guard=not_exprt(step.guard);
-
       impara_disjoin(negated_guard, wp, ns);
-
       change=true;
     }
   }
@@ -402,9 +378,5 @@ exprt step_wp(
     rewrite_if(wp, ns);
   }
   
-//  std::cout << "END STEP_WP\n";
-//
-//  std::cout << "OUTPUT: \n\n" << wp.pretty() << '\n';
-
   return wp;
 }
