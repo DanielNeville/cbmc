@@ -4,11 +4,8 @@ DIRS = ansi-c big-int cbmc cpp goto-cc goto-instrument goto-programs \
        assembler analyses java_bytecode aa-path-symex path-symex musketeer \
        json cegis goto-analyzer jsil symex goto-diff
 
-<<<<<<< HEAD
-all: cbmc.dir goto-cc.dir goto-instrument.dir symex.dir goto-analyzer.dir inspector.dir
-=======
-all: cbmc.dir goto-cc.dir goto-instrument.dir symex.dir goto-analyzer.dir goto-diff.dir
->>>>>>> upstream/master
+all: cbmc.dir goto-cc.dir goto-instrument.dir symex.dir goto-analyzer.dir inspector.dir goto-diff.dir
+
 
 ###############################################################################
 
