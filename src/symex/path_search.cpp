@@ -124,12 +124,14 @@ path_searcht::resultt path_searcht::operator()(
       if(state.get_instruction()->is_assert())
       {
         if(show_vcc)
-          do_show_vcc(state);
+          do_show_vcc(state, result());
         else
         {
+          do_show_vcc(state, debug());
+
           check_assertion(state);
           
-          debug() << "All assertions failed." << eom;
+          status() << "All assertions failed." << eom;
 
           // all assertions failed?
           if(number_of_failed_properties==property_map.size())
@@ -256,7 +258,7 @@ Function: path_searcht::do_show_vcc
 
 \*******************************************************************/
 
-void path_searcht::do_show_vcc(statet &state)
+void path_searcht::do_show_vcc(statet &state, mstreamt &out)
 {
   // keep statistics
   number_of_VCCs++;
@@ -264,8 +266,6 @@ void path_searcht::do_show_vcc(statet &state)
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
     
-  mstreamt &out=result();
-
   if(instruction.source_location.is_not_nil())
     out << instruction.source_location << '\n';
   

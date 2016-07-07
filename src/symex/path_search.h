@@ -113,7 +113,7 @@ protected:
   
   void check_assertion(statet &state);
   bool is_feasible(statet &state);
-  void do_show_vcc(statet &state);
+  void do_show_vcc(statet &state, mstreamt &out);
   
   bool drop_state(const statet &state) const;
   
