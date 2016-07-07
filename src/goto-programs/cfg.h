@@ -11,6 +11,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/std_expr.h>
 #include <util/graph.h>
+#include <iostream>
 
 #include "goto_functions.h"
 
