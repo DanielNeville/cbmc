@@ -88,6 +88,7 @@ path_searcht::resultt path_searcht::operator()(
     
       if(drop_state(state))
       {
+        debug() << "State at loc: #" << state.get_pc() << " dropped (limit exceeded)." << eom;
         number_of_dropped_states++;
         number_of_paths++;
         continue;
@@ -95,6 +96,7 @@ path_searcht::resultt path_searcht::operator()(
       
       if(!state.is_executable())
       {
+        debug() << "State at loc: #" << state.get_pc() << " ignored (non-executable)." << eom;
         number_of_paths++;
         continue;
       }
@@ -103,6 +105,7 @@ path_searcht::resultt path_searcht::operator()(
          state.last_was_branch() &&
          !is_feasible(state))
       {
+        debug() << "State at loc: #" << state.get_pc() << " dropped (infeasibility)." << eom;
         number_of_infeasible_paths++;
         number_of_paths++;
         continue;
@@ -110,10 +113,11 @@ path_searcht::resultt path_searcht::operator()(
       
       if(number_of_steps%1000==0)
       {
-        status() << "Queue " << queue.size()
-                 << " thread " << state.get_current_thread()
+        status() << "Steps: " << number_of_steps
+                 << ". Queue size: " << queue.size()
+                 << ". Thread " << state.get_current_thread()
                  << '/' << state.threads.size()
-                 << " PC " << state.pc() << messaget::eom;
+                 << ". PC " << state.pc() << messaget::eom;
       }
 
       // an error, possibly?
@@ -125,6 +129,8 @@ path_searcht::resultt path_searcht::operator()(
         {
           check_assertion(state);
           
+          debug() << "All assertions failed." << eom;
+
           // all assertions failed?
           if(number_of_failed_properties==property_map.size())
             break;
@@ -410,8 +416,10 @@ void path_searcht::check_assertion(statet &state)
     property_entry.status=FAIL;
     number_of_failed_properties++;
   }
-  
-  sat_time+=current_time()-sat_start_time;
+
+  time_periodt local_sat_time=current_time()-sat_start_time;
+  debug() << "SAT execution time: " << local_sat_time.as_string() << "s" <<  eom;
+  sat_time+=local_sat_time;
 }
 
 /*******************************************************************\
