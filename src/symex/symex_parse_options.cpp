@@ -33,6 +33,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/remove_vector.h>
 #include <goto-programs/remove_virtual_functions.h>
 
+#include <goto-instrument/cover.h>
+
 #include <analyses/goto_check.h>
 
 #include <langapi/mode.h>
@@ -282,22 +284,32 @@ int symex_parse_optionst::doit()
 
     path_search.eager_infeasibility=
       cmdline.isset("eager-infeasibility");
-
-    // do actual symex
-    switch(path_search(goto_model.goto_functions))
+      
+    if(cmdline.isset("cover"))
     {
-    case safety_checkert::SAFE:
-      report_properties(path_search.property_map);
-      report_success();
+      // test-suite generation
+      path_search(goto_model.goto_functions);
+      report_cover(path_search.property_map);
       return 0;
-    
-    case safety_checkert::UNSAFE:
-      report_properties(path_search.property_map);
-      report_failure();
-      return 10;
-    
-    default:
-      return 8;
+    }
+    else
+    {
+      // do actual symex, for assertion checking
+      switch(path_search(goto_model.goto_functions))
+      {
+      case safety_checkert::SAFE:
+        report_properties(path_search.property_map);
+        report_success();
+        return 0;
+      
+      case safety_checkert::UNSAFE:
+        report_properties(path_search.property_map);
+        report_failure();
+        return 10;
+      
+      default:
+        return 8;
+      }
     }
   }
   
@@ -400,11 +412,38 @@ bool symex_parse_optionst::process_goto_program(const optionst &options)
     // add loop ids
     goto_model.goto_functions.compute_loop_numbers();
     
-    // if we aim to cover, replace
-    // all assertions by false to prevent simplification
-    
-    if(cmdline.isset("cover-assertions"))
-      make_assertions_false(goto_model.goto_functions);
+    if(cmdline.isset("cover"))
+    {
+      std::string criterion=cmdline.get_value("cover");
+      
+      coverage_criteriont c;
+
+      if(criterion=="assertion" || criterion=="assertions")
+        c=coverage_criteriont::ASSERTION;
+      else if(criterion=="path" || criterion=="paths")
+        c=coverage_criteriont::PATH;
+      else if(criterion=="branch" || criterion=="branches")
+        c=coverage_criteriont::BRANCH;
+      else if(criterion=="location" || criterion=="locations")
+        c=coverage_criteriont::LOCATION;
+      else if(criterion=="decision" || criterion=="decisions")
+        c=coverage_criteriont::DECISION;
+      else if(criterion=="condition" || criterion=="conditions")
+        c=coverage_criteriont::CONDITION;
+      else if(criterion=="mcdc")
+        c=coverage_criteriont::MCDC;
+      else if(criterion=="cover")
+        c=coverage_criteriont::COVER;
+      else
+      {
+        error() << "unknown coverage criterion" << eom;
+        return true;
+      }
+          
+      status() << "Instrumenting coverge goals" << eom;
+      instrument_cover_goals(symbol_table, goto_model.goto_functions, c);
+      goto_model.goto_functions.update();
+    }
 
     // show it?
     if(cmdline.isset("show-loops"))
@@ -480,8 +519,8 @@ void symex_parse_optionst::report_properties(
 
       switch(it->second.status)
       {
-      case path_searcht::PASS: status_string="SUCCESS"; break;
-      case path_searcht::FAIL: status_string="FAILURE"; break;
+      case path_searcht::SUCCESS: status_string="SUCCESS"; break;
+      case path_searcht::FAILURE: status_string="FAILURE"; break;
       case path_searcht::NOT_REACHED: status_string="SUCCESS"; break;
       }
 
@@ -495,8 +534,8 @@ void symex_parse_optionst::report_properties(
                << it->second.description << ": ";
       switch(it->second.status)
       {
-      case path_searcht::PASS: status() << "SUCCESS"; break;
-      case path_searcht::FAIL: status() << "FAILURE"; break;
+      case path_searcht::SUCCESS: status() << "SUCCESS"; break;
+      case path_searcht::FAILURE: status() << "FAILURE"; break;
       case path_searcht::NOT_REACHED: status() << "SUCCESS"; break;
       }
       status() << eom;
@@ -504,7 +543,7 @@ void symex_parse_optionst::report_properties(
 
     if((cmdline.isset("show-trace") ||
         cmdline.isset("trace")) &&
-       it->second.status==path_searcht::FAIL)
+       it->second.is_failure())
       show_counterexample(it->second.error_trace);
   }
 
@@ -518,7 +557,7 @@ void symex_parse_optionst::report_properties(
         it=property_map.begin();
         it!=property_map.end();
         it++)
-      if(it->second.status==path_searcht::FAIL)
+      if(it->second.is_failure())
         failed++;
     
     status() << "** " << failed

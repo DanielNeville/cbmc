@@ -999,7 +999,7 @@ void goto_convertt::convert_skip(
 
 /*******************************************************************\
 
-Function: goto_convertt::convert_assert
+Function: goto_convertt::convert_assume
 
   Inputs:
 
@@ -2413,12 +2413,13 @@ Function: goto_convertt::get_string_constant
 
 \*******************************************************************/
 
-const irep_idt goto_convertt::get_string_constant(
-  const exprt &expr)
+bool goto_convertt::get_string_constant(
+  const exprt &expr,
+  irep_idt &value)
 {
   if(expr.id()==ID_typecast &&
      expr.operands().size()==1)
-    return get_string_constant(expr.op0());
+    return get_string_constant(expr.op0(), value);
 
   if(expr.id()==ID_address_of &&
      expr.operands().size()==1 &&
@@ -2429,33 +2430,57 @@ const irep_idt goto_convertt::get_string_constant(
     simplify(index_op, ns);
     
     if(index_op.id()==ID_string_constant)
-      return index_op.get(ID_value);
+      return value=index_op.get(ID_value), false;
     else if(index_op.id()==ID_array)
     {
       std::string result;
       forall_operands(it, index_op)
         if(it->is_constant())
         {
-          unsigned i=integer2long(
+          unsigned long i=integer2ulong(
             binary2integer(id2string(to_constant_expr(*it).get_value()), true));
 
           if(i!=0) // to skip terminating 0
             result+=char(i);
         }
-          
-      return result;
+
+      return value=result, false;
     }
   }
 
   if(expr.id()==ID_string_constant)
-    return expr.get(ID_value);
+    return value=expr.get(ID_value), false;
 
-  err_location(expr);
-  str << "expected string constant, but got: "
-      << expr.pretty();
-  error_msg();
+  return true;
+}
 
-  throw 0;
+/*******************************************************************\
+
+Function: goto_convertt::get_string_constant
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+irep_idt goto_convertt::get_string_constant(const exprt &expr)
+{
+  irep_idt result;
+
+  if(get_string_constant(expr, result))
+  {
+    err_location(expr);
+    str << "expected string constant, but got: "
+        << expr.pretty();
+    error_msg();
+
+    throw 0;
+  }
+  
+  return result;
 }
 
 /*******************************************************************\

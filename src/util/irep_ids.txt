@@ -725,3 +725,10 @@ virtual_function
 C_element_type #element_type
 working_directory
 section
+msb
+lsb
+verilog_signed_vector
+verilog_unsigned_vector
+verilog_array
+low
+high

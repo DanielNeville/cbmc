@@ -34,6 +34,7 @@ class optionst;
   "(error-label):(verbosity):(no-library)" \
   "(version)" \
   "(bfs)(dfs)(locs)" \
+  "(cover):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
   "(ppc-macos)(unsigned-char)" \
   "(string-abstraction)(no-arch)(arch):(floatbv)(fixedbv)" \
@@ -63,9 +64,12 @@ protected:
   void report_success();
   void report_failure();
   void report_properties(const path_searcht::property_mapt &);
+  void report_cover(const path_searcht::property_mapt &);
   void show_counterexample(const class goto_tracet &);
             
   void eval_verbosity();
+
+  std::string get_test(const goto_tracet &goto_trace);
 };
 
 #endif

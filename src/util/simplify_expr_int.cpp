@@ -787,7 +787,7 @@ bool simplify_exprt::simplify_extractbit(exprt &expr)
   if(value.size()!=width)
     return true;
 
-  bool bit=(id2string(value)[width-integer2long(i)-1]=='1');
+  bool bit=(id2string(value)[width-integer2size_t(i)-1]=='1');
 
   expr.make_bool(bit);
 
@@ -1095,8 +1095,8 @@ bool simplify_exprt::simplify_extractbits(exprt &expr)
     std::string svalue=id2string(value);
 
     std::string extracted_value=
-      svalue.substr(width-integer2long(start)-1,
-                    integer2long(start-end+1));
+      svalue.substr(width-integer2size_t(start)-1,
+                    integer2size_t(start-end+1));
     
     exprt tmp(ID_constant, expr.type());
     tmp.set(ID_value, extracted_value);
@@ -1650,7 +1650,10 @@ bool simplify_exprt::simplify_inequality_not_constant(exprt &expr)
         else if(expr.id()==ID_equal)
           tmp=(int_value0 == int_value1);
         else
+        {
+          tmp=false;
           assert(0);
+        }
 
         if(first)
         {

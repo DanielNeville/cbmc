@@ -30,7 +30,7 @@ Function: boolbvt::convert_update
 
 \*******************************************************************/
 
-void boolbvt::convert_update(const exprt &expr, bvt &bv)
+bvt boolbvt::convert_update(const exprt &expr)
 {
   const exprt::operandst &ops=expr.operands();
 
@@ -40,9 +40,9 @@ void boolbvt::convert_update(const exprt &expr, bvt &bv)
   std::size_t width=boolbv_width(expr.type());
 
   if(width==0)
-    return conversion_failed(expr, bv);
+    return conversion_failed(expr);
 
-  bv=convert_bv(ops[0]);
+  bvt bv=convert_bv(ops[0]);
 
   if(bv.size()!=width)
     throw "update: unexpected operand 0 width";
@@ -50,6 +50,8 @@ void boolbvt::convert_update(const exprt &expr, bvt &bv)
   // start the recursion
   convert_update_rec(
     expr.op1().operands(), 0, expr.type(), 0, expr.op2(), bv);
+    
+  return bv;
 }
 
 /*******************************************************************\
@@ -120,7 +122,7 @@ void boolbvt::convert_update_rec(
       
     bvt tmp_bv=bv;
     
-    for(std::size_t i=0; i!=integer2long(size); ++i)
+    for(std::size_t i=0; i!=integer2size_t(size); ++i)
     {
       std::size_t new_offset=offset+i*element_size;
       
