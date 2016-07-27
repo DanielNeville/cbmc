@@ -14,6 +14,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex.h>
 #include <path-symex/build_goto_trace.h>
 
+#include <util/cprover_prefix.h>
+#include <util/prefix.h>
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -124,18 +127,19 @@ path_searcht::resultt path_searcht::operator()(
       if(state.get_instruction()->is_assert())
       {
         if(show_vcc)
-          do_show_vcc(state, result());
+          do_show_vcc(state, result(), false);
         else
         {
-          do_show_vcc(state, debug());
+          do_show_vcc(state, progress(), true);
 
-          check_assertion(state);
+          check_assertion(state, progress());
           
-          status() << "All assertions failed." << eom;
 
           // all assertions failed?
-          if(number_of_failed_properties==property_map.size())
+          if(number_of_failed_properties==property_map.size()) {
+            status() << "All assertions failed." << eom;
             break;
+          }
         }
       }
 
@@ -258,7 +262,7 @@ Function: path_searcht::do_show_vcc
 
 \*******************************************************************/
 
-void path_searcht::do_show_vcc(statet &state, mstreamt &out)
+void path_searcht::do_show_vcc(statet &state, mstreamt &out, bool hide_cprover_internals)
 {
   // keep statistics
   number_of_VCCs++;
@@ -281,7 +285,7 @@ void path_searcht::do_show_vcc(statet &state, mstreamt &out)
       s_it=steps.begin();
       s_it!=steps.end();
       s_it++)
-  {      
+  {
     if((*s_it)->guard.is_not_nil())
     {
       std::string string_value=from_expr(ns, "", (*s_it)->guard);
@@ -291,6 +295,11 @@ void path_searcht::do_show_vcc(statet &state, mstreamt &out)
 
     if((*s_it)->ssa_rhs.is_not_nil())
     {
+      if(hide_cprover_internals && (*s_it)->ssa_lhs.is_not_nil()) {
+        if(has_prefix(id2string((*s_it)->ssa_lhs.get_identifier()), CPROVER_PREFIX))
+          continue;
+      }
+
       equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
       std::string string_value=from_expr(ns, "", equality);
       out << "{-" << count << "} " << string_value << '\n';
@@ -302,7 +311,7 @@ void path_searcht::do_show_vcc(statet &state, mstreamt &out)
   
   exprt assertion=state.read(instruction.guard);
 
-  out << "{" << 1 << "} "
+  out << "{assertion} "
       << from_expr(ns, "", assertion) << '\n';
 
   if(!assertion.is_true())
@@ -374,7 +383,7 @@ Function: path_searcht::check_assertion
 
 \*******************************************************************/
 
-void path_searcht::check_assertion(statet &state)
+void path_searcht::check_assertion(statet &state, mstreamt &out)
 {
   // keep statistics
   number_of_VCCs++;
@@ -394,7 +403,13 @@ void path_searcht::check_assertion(statet &state)
   exprt assertion=
     state.read(instruction.guard);
 
-  if(assertion.is_true()) return; // no error, trivially
+  if(assertion.is_true())
+  {
+    out << "Assertion simplifies to TRUE." << eom;
+    return; // no error, trivially
+  } else {
+    out << "SAT solver necessary." << eom;
+  }
 
   // keep statistics
   number_of_VCCs_after_simplification++;
@@ -412,9 +427,12 @@ void path_searcht::check_assertion(statet &state)
 
   if(!state.check_assertion(bv_pointers))
   {
+    out << "{result} SAT." << eom;
     build_goto_trace(state, bv_pointers, property_entry.error_trace);
     property_entry.status=FAIL;
     number_of_failed_properties++;
+  } else {
+    out << "{result} UNSAT." << eom;
   }
 
   time_periodt local_sat_time=current_time()-sat_start_time;

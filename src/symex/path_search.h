@@ -111,9 +111,9 @@ protected:
   
   bool execute(queuet::iterator state);
   
-  void check_assertion(statet &state);
+  void check_assertion(statet &state, mstreamt &out);
   bool is_feasible(statet &state);
-  void do_show_vcc(statet &state, mstreamt &out);
+  void do_show_vcc(statet &state, mstreamt &out, bool hide_cprover_internals);
   
   bool drop_state(const statet &state) const;
   
