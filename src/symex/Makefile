@@ -1,6 +1,8 @@
-SRC = symex_main.cpp symex_parse_options.cpp path_search.cpp
+SRC = symex_main.cpp symex_parse_options.cpp path_search.cpp \
+      symex_cover.cpp
 
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
+       ../cpp/cpp$(LIBEXT) \
        ../linking/linking$(LIBEXT) \
        ../big-int/big-int$(LIBEXT) \
        ../goto-programs/goto-programs$(LIBEXT) \
@@ -13,6 +15,7 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
        ../goto-symex/adjust_float_expressions$(OBJEXT) \
        ../goto-symex/rewrite_union$(OBJEXT) \
        ../pointer-analysis/dereference$(OBJEXT) \
+       ../goto-instrument/cover$(OBJEXT) \
        ../path-symex/path-symex$(LIBEXT)
 
 INCLUDES= -I ..
@@ -29,11 +32,6 @@ all: symex$(EXEEXT)
 ifneq ($(wildcard ../bv_refinement/Makefile),)
   OBJ += ../bv_refinement/bv_refinement$(LIBEXT)
   CP_CXXFLAGS += -DHAVE_BV_REFINEMENT
-endif
-
-ifneq ($(wildcard ../cpp/Makefile),)
-  OBJ += ../cpp/cpp$(LIBEXT)
-  CP_CXXFLAGS += -DHAVE_CPP
 endif
 
 ifneq ($(wildcard ../java_bytecode/Makefile),)

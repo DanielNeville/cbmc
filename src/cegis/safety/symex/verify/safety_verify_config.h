@@ -3,7 +3,7 @@
 Module: Counterexample-Guided Inductive Synthesis
 
 Author: Daniel Kroening, kroening@kroening.com
-        Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -11,6 +11,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #define CEGIS_SAFETY_VERIFY_CONFIG_H_
 
 #include <deque>
+
+#include <util/message.h>
 
 #include <cegis/safety/options/safety_program.h>
 #include <cegis/safety/value/safety_goto_solution.h>
@@ -95,6 +97,17 @@ public:
    */
   void convert(counterexamplest &counterexamples,
       const class goto_tracet &trace);
+
+  /**
+   * @brief
+   *
+   * @details
+   *
+   * @param counterexample
+   */
+  void show_counterexample(
+      messaget::mstreamt &os,
+      const counterexamplet &counterexample) const;
 };
 
 #endif /* CEGIS_SAFETY_VERIFY_CONFIG_H_ */

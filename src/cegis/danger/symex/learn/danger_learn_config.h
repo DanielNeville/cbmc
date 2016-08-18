@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -60,7 +60,7 @@ public:
    *
    * @param program
    */
-  danger_learn_configt(const danger_programt &program);
+  explicit danger_learn_configt(const danger_programt &program);
 
   /**
    * @brief

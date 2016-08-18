@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -61,7 +61,7 @@ public:
    *
    * @param other
    */
-  parallel_danger_verify_taskt(const parallel_danger_verify_taskt &other);
+  explicit parallel_danger_verify_taskt(const parallel_danger_verify_taskt &other);
 
   /**
    * @brief

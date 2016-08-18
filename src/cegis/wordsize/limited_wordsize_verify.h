@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
- Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+ Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
  \*******************************************************************/
 
@@ -12,6 +12,8 @@
 
 #include <deque>
 #include <functional>
+
+#include <util/message.h>
 
 /**
  * @brief
@@ -99,6 +101,18 @@ public:
    * @return <code>true</code> if the last solution holds, <code>false</code> otherwise.
    */
   bool success() const;
+
+  /**
+   * @brief
+   *
+   * @details
+   *
+   * @param os
+   * @param counterexample
+   */
+  void show_counterexample(
+      messaget::mstreamt &os,
+      const counterexamplet &counterexample) const;
 };
 
 #include "limited_wordsize_verify.inc"

@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -172,6 +172,15 @@ public:
    * @param ind
    */
   void post_process(program_individualt &ind) const;
+
+  /**
+   * @brief
+   *
+   * @details
+   *
+   * @return
+   */
+  operator std::function<unsigned int()>() const;
 };
 
 #endif /* CEGIS_GENETIC_RANDOM_INDIVIDUAL_H_ */

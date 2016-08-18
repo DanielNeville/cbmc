@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -94,6 +94,17 @@ public:
    * @return <code>true</code> if the last solution holds, <code>false</code> otherwise.
    */
   bool success() const;
+
+  /**
+   * @brief
+   *
+   * @details
+   *
+   * @param counterexample
+   */
+  void show_counterexample(
+      messaget::mstreamt &os,
+      const counterexamplet &counterexample) const;
 };
 
 #endif /* CEGIS_PARALLEL_DANGER_VERIFIER_H_ */

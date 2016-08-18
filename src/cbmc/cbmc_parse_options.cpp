@@ -742,6 +742,21 @@ int cbmc_parse_optionst::get_goto_program(
 
     if(process_goto_program(options, goto_functions))
       return 6;
+
+    // show it?
+    if(cmdline.isset("show-loops"))
+    {
+      show_loop_ids(get_ui(), goto_functions);
+      return 0;
+    }
+
+    // show it?
+    if(cmdline.isset("show-goto-functions"))
+    {
+      namespacet ns(symbol_table);
+      show_goto_functions(ns, get_ui(), goto_functions);
+      return 0;
+    }
   }
 
   catch(const char *e)
@@ -961,21 +976,6 @@ bool cbmc_parse_optionst::process_goto_program(
     // remove skips
     remove_skip(goto_functions);
     goto_functions.update();
-
-    // show it?
-    if(cmdline.isset("show-loops"))
-    {
-      show_loop_ids(get_ui(), goto_functions);
-      return true;
-    }
-
-    // show it?
-    if(cmdline.isset("show-goto-functions"))
-    {
-      namespacet ns(symbol_table);
-      show_goto_functions(ns, get_ui(), goto_functions);
-      return true;
-    }
   }
 
   catch(const char *e)
@@ -1051,7 +1051,7 @@ void cbmc_parse_optionst::help()
 {
   std::cout <<
     "\n"
-    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2014 ";
+    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2016 ";
     
   std::cout << "(" << (sizeof(void *)*8) << "-bit version)";
     
@@ -1072,6 +1072,7 @@ void cbmc_parse_optionst::help()
     " --show-properties            show the properties, but don't run analysis\n"
     " --property id                only check one specific property\n"
     " --stop-on-fail               stop analysis once a failed property is detected\n"
+    " --trace                      give a counterexample trace for failed properties\n"
     "\n"
     "C/C++ frontend options:\n"
     " -I path                      set include path (C/C++)\n"

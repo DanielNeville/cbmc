@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -37,7 +37,7 @@ public:
    *
    * @param other
    */
-  safety_programt(const safety_programt &other);
+  explicit safety_programt(const safety_programt &other);
 
   /**
    * @brief
@@ -47,7 +47,7 @@ public:
    * @param st
    * @param gf
    */
-  safety_programt(const symbol_tablet &st, const class goto_functionst &gf);
+  safety_programt(const symbol_tablet &st, const goto_functionst &gf);
 
   /**
    * @brief

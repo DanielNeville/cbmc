@@ -3,7 +3,7 @@
  Module: Counterexample-Guided Inductive Synthesis
 
  Author: Daniel Kroening, kroening@kroening.com
-         Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+         Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -32,7 +32,7 @@ public:
    *
    * @param random
    */
-  random_crosst(random_individualt &random);
+  explicit random_crosst(random_individualt &random);
 
   /**
    * @brief

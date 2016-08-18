@@ -3,7 +3,7 @@
 Module: Counterexample-Guided Inductive Synthesis
 
 Author: Daniel Kroening, kroening@kroening.com
-        Pascal Kesseli, pascal.kesseil@cs.ox.ac.uk
+        Pascal Kesseli, pascal.kesseli@cs.ox.ac.uk
 
 \*******************************************************************/
 
@@ -35,7 +35,7 @@ public:
    *
    * @param body
    */
-  instruction_set_info_factoryt(const goto_programt &body);
+  explicit instruction_set_info_factoryt(const goto_programt &body);
 
   /**
    * @brief

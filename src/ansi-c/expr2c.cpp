@@ -2198,7 +2198,7 @@ std::string expr2ct::convert_constant(
       else if(int_value>=' ' && int_value<126)
       {
         dest+='\'';
-        dest+=char(integer2long(int_value));
+        dest+=char(integer2ulong(int_value));
         dest+='\'';
       }
       else
@@ -4400,6 +4400,9 @@ std::string expr2ct::convert(
 
   else if(src.id()==ID_isinf)
     return convert_function(src, "isinf", precedence=16);
+
+  else if(src.id()==ID_bswap)
+    return convert_function(src, "bswap", precedence=16);
 
   else if(src.id()==ID_isnormal)
     return convert_function(src, "isnormal", precedence=16);
