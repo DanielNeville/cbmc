@@ -62,6 +62,52 @@ void c_typecheck_baset::typecheck_expr(exprt &expr)
 
 /*******************************************************************\
 
+Function: c_typecheck_baset::add_rounding_mode
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void c_typecheck_baset::add_rounding_mode(exprt &expr)
+{
+  for(auto & op : expr.operands())
+    add_rounding_mode(op);
+
+  if(expr.id()==ID_div ||
+     expr.id()==ID_mult ||
+     expr.id()==ID_plus ||
+     expr.id()==ID_minus)
+  {
+    if(expr.type().id()==ID_floatbv &&
+       expr.operands().size()==2)
+    {
+      // The rounding mode to be used at compile time is non-obvious.
+      // We'll simply use round to even (0), which is suggested
+      // by Sec. F.7.2 Translation, ISO-9899:1999.
+      expr.operands().resize(3);
+
+      if(expr.id()==ID_div)
+        expr.id(ID_floatbv_div);
+      else if(expr.id()==ID_mult)
+        expr.id(ID_floatbv_mult);
+      else if(expr.id()==ID_plus)
+        expr.id(ID_floatbv_plus);
+      else if(expr.id()==ID_minus)
+        expr.id(ID_floatbv_minus);
+      else
+        assert(false);
+
+      expr.op2()=gen_zero(unsigned_int_type());
+    }
+  }
+}
+
+/*******************************************************************\
+
 Function: c_typecheck_baset::gcc_types_compatible_p
 
   Inputs:
@@ -2433,6 +2479,25 @@ exprt c_typecheck_baset::do_special_functions(
     pointer_object_expr.add_source_location()=source_location;
 
     return pointer_object_expr;
+  }
+  else if(identifier=="__builtin_bswap16" ||
+          identifier=="__builtin_bswap32" ||
+          identifier=="__builtin_bswap64")
+  {
+    typecheck_function_call_arguments(expr);
+
+    if(expr.arguments().size()!=1)
+    {
+      err_location(f_op);
+      error() << identifier << " expects one operand" << eom;
+      throw 0;
+    }
+    
+    exprt bswap_expr(ID_bswap, expr.type());
+    bswap_expr.operands()=expr.arguments();
+    bswap_expr.add_source_location()=source_location;
+    
+    return bswap_expr;
   }
   else if(identifier==CPROVER_PREFIX "isnanf" || 
           identifier==CPROVER_PREFIX "isnand" ||
