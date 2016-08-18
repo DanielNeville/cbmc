@@ -82,6 +82,7 @@ public:
     irep_idt description;
     goto_tracet error_trace;
     source_locationt source_location;
+    unsigned counter_id;
     
     inline bool is_success() const { return status==SUCCESS; }
     inline bool is_failure() const { return status==FAILURE; }

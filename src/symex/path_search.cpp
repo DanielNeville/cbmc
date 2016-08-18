@@ -461,6 +461,7 @@ Function: path_searcht::initialize_property_map
 void path_searcht::initialize_property_map(
   const goto_functionst &goto_functions)
 {
+  unsigned int counter = 1;
   for(goto_functionst::function_mapt::const_iterator
       it=goto_functions.function_map.begin();
       it!=goto_functions.function_map.end();
@@ -485,6 +486,8 @@ void path_searcht::initialize_property_map(
         property_entry.status=NOT_REACHED;
         property_entry.description=source_location.get_comment();
         property_entry.source_location=source_location;
+        property_entry.counter_id=counter;
+        counter++;
       }
     }    
 }
