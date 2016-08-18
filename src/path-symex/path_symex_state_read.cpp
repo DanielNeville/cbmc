@@ -19,6 +19,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 //#define DEBUG
 
+#include <iostream>
+
+
 #ifdef DEBUG
 #include <iostream>
 #include <langapi/language_util.h>
@@ -707,3 +710,24 @@ exprt path_symex_statet::instantiate_rec_address(
   }
 }
 
+
+/*  Cache  */
+
+symex_cachet::result_codet symex_cachet::search(path_symex_step_reft::forward_historyt &history, exprt &assertion) {
+  if(cache.size() == 0)
+    return result_codet::NOT_FOUND;
+
+  std::cout << " *! Checking cache!\n";
+
+
+  return result_codet::ERROR;
+}
+
+void symex_cachet::add(path_symex_step_reft::forward_historyt &history, exprt &assertion, result_codet result) {
+  queryt query = std::make_pair(history, assertion);
+  cache_entryt cache_entry = std::make_pair(query,  result);
+
+  cache.push_back(cache_entry);
+
+  std::cout << " * Inserted to cache.  New size: " << cache.size() << "\n";
+}

@@ -55,8 +55,10 @@ public:
   
   void generate_successor();
 
+  typedef std::vector<path_symex_step_reft> forward_historyt;
+
   // build a forward-traversible version of the history  
-  void build_history(std::vector<path_symex_step_reft> &dest) const;
+  void build_history(forward_historyt &dest) const;
   
 protected:
   // we use a vector to store all steps

@@ -13,6 +13,27 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "var_map.h"
 #include "path_symex_history.h"
 
+/*  Temporary cache location in code */
+
+class symex_cachet {
+  /* PC, Assertion, Result */
+public:
+  typedef std::pair<path_symex_step_reft::forward_historyt, exprt> queryt;
+
+  enum result_codet { UNSAT, SAT, NOT_FOUND, ERROR, TIMEOUT };
+
+  typedef std::pair<queryt, result_codet> cache_entryt;
+  typedef std::vector<cache_entryt> cachet;
+
+  result_codet search(path_symex_step_reft::forward_historyt &history, exprt &assertion);
+  void add(path_symex_step_reft::forward_historyt &history, exprt &assertion, result_codet result);
+
+  inline unsigned int size() { return cache.size(); }
+
+protected:
+  cachet cache;
+};
+
 struct path_symex_statet
 {
 public:
@@ -197,7 +218,8 @@ public:
   
   bool is_feasible(class decision_proceduret &) const;
 
-  bool check_assertion(class decision_proceduret &);
+  bool check_assertion(class decision_proceduret &,
+      symex_cachet &cache);
 
   // counts how many times we have executed backwards edges
   typedef std::map<loc_reft, unsigned> unwinding_mapt;

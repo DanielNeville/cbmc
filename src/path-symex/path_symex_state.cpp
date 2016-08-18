@@ -220,7 +220,8 @@ Function: path_symex_statet::check_assertion
 \*******************************************************************/
 
 bool path_symex_statet::check_assertion(
-  decision_proceduret &decision_procedure)
+  decision_proceduret &decision_procedure,
+  symex_cachet &cache)
 {
   const goto_programt::instructiont &instruction=*get_instruction();
 
@@ -239,13 +240,37 @@ bool path_symex_statet::check_assertion(
   // negate the assertion
   decision_procedure.set_to(assertion, false);
 
+  bool do_caching = true;
+  path_symex_step_reft::forward_historyt forward_history;
+
+  // check cache here.
+  if(do_caching)
+  {
+    history.build_history(forward_history);
+    symex_cachet::result_codet result = cache.search(forward_history, assertion);
+
+    if(result == symex_cachet::result_codet::SAT)
+      return false;
+
+    if(result == symex_cachet::result_codet::UNSAT)
+      return true;
+
+    /* Otherwise no result, let's go to the SAT solver. */
+  }
+
   // check whether SAT  
   switch(decision_procedure.dec_solve())
   {
   case decision_proceduret::D_SATISFIABLE:
+    if(do_caching) {
+      cache.add(forward_history, assertion, symex_cachet::result_codet::SAT);
+    }
     return false; // error
    
   case decision_proceduret::D_UNSATISFIABLE:
+    if(do_caching) {
+      cache.add(forward_history, assertion, symex_cachet::result_codet::UNSAT);
+    }
     return true; // no error
   
   default:

@@ -103,6 +103,8 @@ protected:
   typedef std::list<statet> queuet;
   queuet queue;
   
+  symex_cachet cache;
+
   // search heuristic
   void pick_state();
 

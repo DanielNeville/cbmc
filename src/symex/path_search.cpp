@@ -38,7 +38,7 @@ path_searcht::resultt path_searcht::operator()(
 
   // this is the container for the history-forest  
   path_symex_historyt history;
-  
+
   queue.push_back(initial_state(var_map, locs, history));
   
   // set up the statistics
@@ -404,7 +404,7 @@ void path_searcht::check_assertion(statet &state)
   satcheck.set_message_handler(get_message_handler());
   bv_pointers.set_message_handler(get_message_handler());
 
-  if(!state.check_assertion(bv_pointers))
+  if(!state.check_assertion(bv_pointers, cache))
   {
     build_goto_trace(state, bv_pointers, property_entry.error_trace);
     property_entry.status=FAILURE;

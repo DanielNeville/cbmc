@@ -79,7 +79,7 @@ Function: path_symex_step_reft::build_history
 \*******************************************************************/
 
 void path_symex_step_reft::build_history(
-  std::vector<path_symex_step_reft> &dest) const
+    forward_historyt &dest) const
 {
   dest.clear();
 

@@ -1,0 +1,243 @@
+Test 'array1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'function_pointer1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'if1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=10$
+    ^SIGNAL=0$
+    ^VERIFICATION FAILED$
+    ^\[main.assertion.1\] assertion i==1: SUCCESS$
+    ^\[main.assertion.2\] assertion i!=1: SUCCESS$
+    ^\[main.assertion.3\] assertion i!=1: FAILURE$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 10
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=10\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION FAILED\r\\?$ [OK]
+^\\[main.assertion.1\\] assertion i==1: SUCCESS\r\\?$ [OK]
+^\\[main.assertion.2\\] assertion i!=1: SUCCESS\r\\?$ [OK]
+^\\[main.assertion.3\\] assertion i!=1: FAILURE\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'malloc1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --little-endian
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex --little-endian main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'pointer1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --little-endian
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex --little-endian main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'pointer2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --little-endian
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex --little-endian main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'pointer3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --little-endian
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex --little-endian main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'show-trace1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --show-trace
+  Results:
+    ^EXIT=10$
+    ^SIGNAL=0$
+    ^VERIFICATION FAILED$
+    ^  i=2 .*$
+    ^  j=3 .*$
+    ^  k=6 .*$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex --show-trace main.c >main.out 2>&1
+  Exit: 10
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=10\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION FAILED\r\\?$ [OK]
+^  i=2 .*\r\\?$ [FAILED]
+^  j=3 .*\r\\?$ [FAILED]
+^  k=6 .*\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'struct1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'struct2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'struct3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: 
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^VERIFICATION SUCCESSFUL$
+    --
+    ^warning: ignoring
+Running ../../../src/symex/symex  main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^VERIFICATION SUCCESSFUL\r\\?$ [OK]
+^warning: ignoring [OK]
+
