@@ -14,6 +14,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex.h>
 #include <path-symex/build_goto_trace.h>
 
+#include <analyses/dependence_graph.h>
+#include <analyses/cfg_dominators.h>
+
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -40,7 +44,10 @@ path_searcht::resultt path_searcht::operator()(
   path_symex_historyt history;
   
   queue.push_back(initial_state(var_map, locs, history));
-  
+
+  dependence_grapht dependence_graph(ns);
+  dependence_graph(goto_functions, ns);
+
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
