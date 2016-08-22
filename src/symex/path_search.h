@@ -156,8 +156,6 @@ public:
       path_searcht::property_mapt &property_map)
   {
     cfg(goto_functions);
-
-
     for(auto p : property_map) {
       std::vector<unsigned> locations;
       locations.clear();
@@ -166,32 +164,8 @@ public:
       for(auto l: locations) {
         reachable_assertions[l].insert(p.second.location_number);
       }
-
-
-
-      /* Map from location -> reachable assertion locations */
-
-//      Output test.
-//      std::sort (std::begin(locations), std::end(locations));
-//      std::cout << "Assertion at " << p.second.location_number << ":\n";
-//      for(auto a: locations) {
-//        std::cout << a << ", ";
-//      }
-//      std::cout << "\n";
     }
-
-
-//    int i = 0;
-//    for(; i < cfg.entry_map.size(); i++) {
-//      std::cout << i << " reaches :";
-//      for(auto l: reachable_assertions[i]) {
-//        std::cout << l << ", ";
-//      }
-//      std::cout << "\n";
-//    }
-
   }
-
 
 
 protected:
@@ -210,6 +184,7 @@ protected:
   typedef std::stack<cfgt::entryt> queuet;
 
   std::map<unsigned, std::set<unsigned>> reachable_assertions;
+  /* Map from location -> reachable assertion locations */
 
   void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
 
