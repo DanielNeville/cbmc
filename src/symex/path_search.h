@@ -16,6 +16,15 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <path-symex/path_symex_state.h>
 
+//
+
+#include <goto-programs/goto_functions.h>
+#include <goto-programs/cfg.h>
+#include <iostream>
+#include <algorithm>    // std::sort
+
+//
+
 class path_searcht:public safety_checkert
 {
 public:
@@ -83,6 +92,7 @@ public:
     goto_tracet error_trace;
     source_locationt source_location;
     unsigned counter_id;
+    unsigned location_number;
     
     inline bool is_success() const { return status==SUCCESS; }
     inline bool is_failure() const { return status==FAILURE; }
@@ -137,4 +147,61 @@ protected:
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 };
 
+
+
+class reachabilityt
+{
+public:
+  void operator()(const goto_functionst &goto_functions,
+      path_searcht::property_mapt &property_map)
+  {
+    cfg(goto_functions);
+
+
+    for(auto p : property_map) {
+      std::vector<unsigned> locations;
+      fixedpoint_assertions(locations, p.second.location_number);
+
+      for(auto l: locations) {
+        reachable_assertions[p.second.location_number].insert(l);
+      }
+
+
+
+      /* Map from location -> reachable assertion locations */
+
+//      Output test.
+//      std::sort (std::begin(locations), std::end(locations));
+//      std::cout << "Assertion at " << p.second.location_number << ":\n";
+//      for(auto a: locations) {
+//        std::cout << a << ", ";
+//      }
+//      std::cout << "\n";
+    }
+
+
+  }
+
+
+  std::map<unsigned, std::set<unsigned>> reachable_assertions;
+
+protected:
+  struct reach_entryt
+  {
+    reach_entryt():reaches_assertion(false)
+    {
+    }
+
+    bool reaches_assertion;
+  };
+
+  typedef cfg_baset<reach_entryt> cfgt;
+  cfgt cfg;
+
+  typedef std::stack<cfgt::entryt> queuet;
+
+  void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
+};
+
 #endif
+

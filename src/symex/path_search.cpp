@@ -18,6 +18,18 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <analyses/cfg_dominators.h>
 
 
+//
+
+#include <stack>
+
+#include <util/i2string.h>
+
+#include <goto-programs/remove_skip.h>
+#include <goto-programs/remove_unreachable.h>
+#include <goto-programs/cfg.h>
+
+//
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -45,8 +57,13 @@ path_searcht::resultt path_searcht::operator()(
   
   queue.push_back(initial_state(var_map, locs, history));
 
+  initialize_property_map(goto_functions);
+
   dependence_grapht dependence_graph(ns);
   dependence_graph(goto_functions, ns);
+
+  reachabilityt()(goto_functions, property_map);
+
 
   // set up the statistics
   number_of_dropped_states=0;
@@ -62,8 +79,7 @@ path_searcht::resultt path_searcht::operator()(
   // stop the time
   start_time=current_time();
   
-  initialize_property_map(goto_functions);
-  
+
   while(!queue.empty())
   {
     number_of_steps++;
@@ -494,7 +510,63 @@ void path_searcht::initialize_property_map(
         property_entry.description=source_location.get_comment();
         property_entry.source_location=source_location;
         property_entry.counter_id=counter;
+        property_entry.location_number=it->location_number;
         counter++;
       }
     }    
 }
+
+
+
+/////
+
+/*******************************************************************\
+
+Function: reachability_slicert::fixedpoint_assertions
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void reachabilityt::fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location)
+{
+  queuet queue;
+
+  for(cfgt::entry_mapt::iterator
+      e_it=cfg.entry_map.begin();
+      e_it!=cfg.entry_map.end();
+      e_it++)
+    if(e_it->first->location_number == location) {
+      queue.push(e_it->second);
+      break;
+    }
+  // Should change to
+  //     const cfgt::nodet &e=cfg[cfg.entry_map[i_it]];
+
+  while(!queue.empty())
+  {
+    cfgt::entryt e=queue.top();
+    cfgt::nodet &node=cfg[e];
+    queue.pop();
+
+    if(node.reaches_assertion) continue;
+
+    node.reaches_assertion=true;
+    locations.push_back(node.PC->location_number);
+
+
+
+    for(cfgt::edgest::const_iterator
+        p_it=node.in.begin();
+        p_it!=node.in.end();
+        p_it++)
+    {
+      queue.push(p_it->first);
+    }
+  }
+}
+
