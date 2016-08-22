@@ -160,10 +160,11 @@ public:
 
     for(auto p : property_map) {
       std::vector<unsigned> locations;
+      locations.clear();
       fixedpoint_assertions(locations, p.second.location_number);
 
       for(auto l: locations) {
-        reachable_assertions[p.second.location_number].insert(l);
+        reachable_assertions[l].insert(p.second.location_number);
       }
 
 
@@ -180,10 +181,18 @@ public:
     }
 
 
+//    int i = 0;
+//    for(; i < cfg.entry_map.size(); i++) {
+//      std::cout << i << " reaches :";
+//      for(auto l: reachable_assertions[i]) {
+//        std::cout << l << ", ";
+//      }
+//      std::cout << "\n";
+//    }
+
   }
 
 
-  std::map<unsigned, std::set<unsigned>> reachable_assertions;
 
 protected:
   struct reach_entryt
@@ -200,7 +209,13 @@ protected:
 
   typedef std::stack<cfgt::entryt> queuet;
 
+  std::map<unsigned, std::set<unsigned>> reachable_assertions;
+
   void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
+
+  std::set<unsigned> inline reaches(unsigned l) {
+    return reachable_assertions[l];
+  }
 };
 
 #endif

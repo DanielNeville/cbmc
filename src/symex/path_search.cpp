@@ -539,11 +539,12 @@ void reachabilityt::fixedpoint_assertions(std::vector<unsigned> &locations, unsi
   for(cfgt::entry_mapt::iterator
       e_it=cfg.entry_map.begin();
       e_it!=cfg.entry_map.end();
-      e_it++)
+      e_it++) {
+    cfg[e_it->second].reaches_assertion = false;
     if(e_it->first->location_number == location) {
       queue.push(e_it->second);
-      break;
     }
+  }
   // Should change to
   //     const cfgt::nodet &e=cfg[cfg.entry_map[i_it]];
 
@@ -557,8 +558,6 @@ void reachabilityt::fixedpoint_assertions(std::vector<unsigned> &locations, unsi
 
     node.reaches_assertion=true;
     locations.push_back(node.PC->location_number);
-
-
 
     for(cfgt::edgest::const_iterator
         p_it=node.in.begin();
