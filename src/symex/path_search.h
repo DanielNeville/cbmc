@@ -17,12 +17,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex_state.h>
 
 //
-
 #include <goto-programs/goto_functions.h>
 #include <goto-programs/cfg.h>
-#include <iostream>
-#include <algorithm>    // std::sort
-
 //
 
 class path_searcht:public safety_checkert
