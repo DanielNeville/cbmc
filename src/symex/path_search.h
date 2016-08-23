@@ -21,6 +21,57 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/cfg.h>
 //
 
+
+class reachabilityt
+{
+public:
+  void operator()(const goto_functionst &goto_functions)
+  {
+    cfg(goto_functions);
+    forall_goto_functions(f_it, goto_functions) {
+      forall_goto_program_instructions(it, f_it->second.body) {
+        if(it->is_assert()) {
+          std::vector<unsigned> locations;
+          fixedpoint_assertions(locations, it->location_number);
+
+          for(auto l: locations) {
+            reachable_assertions[l].insert(it->location_number);
+          }
+        }
+      }
+
+    }
+  }
+
+  std::set<unsigned> inline reaches(unsigned l) {
+    return reachable_assertions[l];
+  }
+
+protected:
+  struct reach_entryt
+  {
+    reach_entryt():reaches_assertion(false)
+    {
+    }
+
+    bool reaches_assertion;
+  };
+
+  typedef cfg_baset<reach_entryt> cfgt;
+  cfgt cfg;
+
+  typedef std::stack<cfgt::entryt> queuet;
+
+  std::map<unsigned, std::set<unsigned>> reachable_assertions;
+  /* Map from location -> reachable assertion locations */
+
+  void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
+
+
+};
+
+////
+
 class path_searcht:public safety_checkert
 {
 public:
@@ -89,12 +140,12 @@ public:
     source_locationt source_location;
     unsigned counter_id;
     unsigned location_number;
-    
+
     inline bool is_success() const { return status==SUCCESS; }
     inline bool is_failure() const { return status==FAILURE; }
     inline bool is_not_reached() const { return status==NOT_REACHED; }
   };
-  
+
   inline void set_dfs() { search_heuristic=search_heuristict::DFS; }
   inline void set_bfs() { search_heuristic=search_heuristict::BFS; }
   inline void set_locs() { search_heuristic=search_heuristict::LOCS; }
@@ -148,57 +199,15 @@ protected:
   typedef cfg_baset<empty_cfg_nodet> cfgt;
   cfgt cfg;
 
+  reachabilityt reachability;
+  void calculate_failure_locations(const goto_functionst &goto_functions);
+
 
   // loct vs cfg entry vs unsigned vs iterator.
 };
 
 
 
-class reachabilityt
-{
-public:
-  void operator()(const goto_functionst &goto_functions,
-      path_searcht::property_mapt &property_map)
-  {
-    cfg(goto_functions);
-    for(auto p : property_map) {
-      std::vector<unsigned> locations;
-      locations.clear();
-      fixedpoint_assertions(locations, p.second.location_number);
-
-      for(auto l: locations) {
-        reachable_assertions[l].insert(p.second.location_number);
-      }
-    }
-  }
-
-  std::set<unsigned> inline reaches(unsigned l) {
-    return reachable_assertions[l];
-  }
-
-
-protected:
-  struct reach_entryt
-  {
-    reach_entryt():reaches_assertion(false)
-    {
-    }
-
-    bool reaches_assertion;
-  };
-
-  typedef cfg_baset<reach_entryt> cfgt;
-  cfgt cfg;
-
-  typedef std::stack<cfgt::entryt> queuet;
-
-  std::map<unsigned, std::set<unsigned>> reachable_assertions;
-  /* Map from location -> reachable assertion locations */
-
-  void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
-
-
-};
 
 #endif
 
