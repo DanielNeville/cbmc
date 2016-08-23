@@ -73,11 +73,6 @@ path_searcht::resultt path_searcht::operator()(
 
   calculate_failure_locations(goto_functions);
 
-
-  for(int i = 0; i < in_nodes.size(); i++) {
-    std::cout << i << " - " << (in_nodes[i] > 1 ? "YES" : "NO") << "\n";
-  }
-
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
