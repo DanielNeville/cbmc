@@ -383,7 +383,7 @@ exprt step_wp(
   
 //  std::cout << "STEP IS HIDDEN? " << (step.is_hidden() ? "HIDDEN" : "NOT HIDDEN") << "\n";
 
-  if(!step.is_hidden()) /* !step.is_hidden() */
+  if(!step.hidden) /* !step.is_hidden() */
   {
 
     // wp(assume c, x) = c=>x
