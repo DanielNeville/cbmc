@@ -42,6 +42,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cbmc/version.h>
 
 #include <path-symex/locs.h>
+#include <util/i2string.h>
+#include <util/expr_util.h>
 
 #include "path_search.h"
 #include "symex_parse_options.h"
@@ -235,7 +237,62 @@ int symex_parse_optionst::doit()
 
   if(set_properties())
     return 7;
-    
+
+  if(true) {
+    unsigned properties = 0;
+    bool found_insertion_location = false;
+    goto_programt::targett location;
+    goto_functionst::function_mapt::iterator body_location;
+    Forall_goto_functions(f_it, goto_model.goto_functions) {
+      if(f_it->second.body_available()) {
+        Forall_goto_program_instructions(it, f_it->second.body) {
+          if(it->is_assert())
+            properties++;
+
+          if(f_it->first == "__CPROVER_initialize" && !found_insertion_location) {
+            if(it->is_end_function()) {
+              found_insertion_location = true;
+              body_location = f_it;
+              location = f_it->second.body.instructions.end();
+              location--;
+            }
+          }
+        }
+      }
+    }
+
+    unsigned i;
+    for(i = 0; i < properties; i++) {
+      assert(location->is_end_function());
+      symbolt new_symbol;
+      typet type = unsignedbv_typet(1);
+
+      std::string name = "fails_" + i2string(i);
+      std::string base = "__CPROVER_initialize::";
+      new_symbol.type = type;
+      new_symbol.is_lvalue=true;
+      new_symbol.base_name = name;
+      new_symbol.name = base + name;
+      new_symbol.pretty_name = name;
+
+      goto_model.symbol_table.add(new_symbol);
+
+      goto_programt::targett decl_instruction = body_location->second.body.insert_before(location);
+      decl_instruction->make_decl();
+      code_declt decl_code;
+      decl_code.symbol() = new_symbol.symbol_expr();
+      decl_instruction->code = decl_code;
+
+      goto_programt::targett assign_instruction = body_location->second.body.insert_before(location);
+      code_assignt assign_code;
+      assign_instruction->make_assignment();
+      assign_code.lhs() = new_symbol.symbol_expr();
+      assign_code.rhs() = gen_zero(type);
+      assign_instruction->code = assign_code;
+    }
+  }
+
+
   if(cmdline.isset("show-locs"))
   {
     const namespacet ns(goto_model.symbol_table);
