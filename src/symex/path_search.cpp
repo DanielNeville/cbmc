@@ -116,6 +116,10 @@ path_searcht::resultt path_searcht::operator()(
         debug() << ' ' << s.get_depth();
         
       debug() << eom;
+
+      if(fails[state.get_pc().loc_number].size() > 0) {
+//        handle_fails();
+      }
     
       if(drop_state(state))
       {
@@ -532,8 +536,10 @@ void path_searcht::calculate_failure_locations(const goto_functionst &goto_funct
     std::set<unsigned> reaches = reachability.reaches(e_it->first->location_number);
     cfgt::nodet &node=cfg[e_it->second];
 
-
     std::set<unsigned> all_reaches;
+
+    in_nodes[e_it->first->location_number] = node.in.size();
+
     for(cfgt::edgest::const_iterator
         p_it=node.in.begin();
         p_it!=node.in.end();

@@ -197,6 +197,7 @@ protected:
 
   std::map<unsigned, exprt> assumptions; // BEFORE each instruction.
   std::map<unsigned, std::set<unsigned>> fails; // fails
+  std::map<unsigned, unsigned> in_nodes;
 
   typedef cfg_baset<empty_cfg_nodet> cfgt;
   cfgt cfg;
