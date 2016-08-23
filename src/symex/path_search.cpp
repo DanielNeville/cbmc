@@ -27,7 +27,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/remove_skip.h>
 #include <goto-programs/remove_unreachable.h>
 #include <goto-programs/cfg.h>
-
+#include <iostream>
+#include <algorithm>
 //
 
 #include "path_search.h"
@@ -52,6 +53,10 @@ path_searcht::resultt path_searcht::operator()(
   
   locs.build(goto_functions);
 
+  /* Useful to have CFG too */
+  cfg(goto_functions);
+  /*// */
+
   // this is the container for the history-forest  
   path_symex_historyt history;
   
@@ -62,7 +67,57 @@ path_searcht::resultt path_searcht::operator()(
   dependence_grapht dependence_graph(ns);
   dependence_graph(goto_functions, ns);
 
-  reachabilityt()(goto_functions, property_map);
+  reachabilityt reachability;
+  reachability(goto_functions, property_map);
+
+
+
+  for(cfgt::entry_mapt::iterator
+      e_it=cfg.entry_map.begin();
+      e_it!=cfg.entry_map.end();
+      e_it++) {
+    std::set<unsigned> reaches = reachability.reaches(e_it->first->location_number);
+    cfgt::nodet &node=cfg[e_it->second];
+
+
+    std::set<unsigned> all_reaches;
+    for(cfgt::edgest::const_iterator
+        p_it=node.in.begin();
+        p_it!=node.in.end();
+        p_it++) {
+      std::set<unsigned> in_reaches = reachability.reaches(cfg[p_it->first].PC->location_number);
+      for(auto i : in_reaches) {
+        all_reaches.insert(i);
+      }
+    }
+
+    std::set<int> result;
+    std::set_difference(all_reaches.begin(), all_reaches.end(), reaches.begin(), reaches.end(),
+        std::inserter(fails[e_it->first->location_number], fails[e_it->first->location_number].end()));
+  }
+//
+//
+//      for(cfgt::edgest::const_iterator
+//          p_it=node.in.begin();
+//          p_it!=node.in.end();
+//          p_it++)
+//      {
+//        const cfgt::entryt &entry = p_it->first;
+//
+//        //        std::set<unsigned> in_reaches = reachability.reaches(p_it->);
+//
+//      }
+//
+//    }
+//
+//  }
+//
+
+
+
+
+
+
 
 
   // set up the statistics

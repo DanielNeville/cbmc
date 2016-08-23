@@ -141,6 +141,15 @@ protected:
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
+
+  std::map<unsigned, exprt> assumptions; // BEFORE each instruction.
+  std::map<unsigned, std::set<unsigned>> fails; // fails
+
+  typedef cfg_baset<empty_cfg_nodet> cfgt;
+  cfgt cfg;
+
+
+  // loct vs cfg entry vs unsigned vs iterator.
 };
 
 
@@ -161,6 +170,10 @@ public:
         reachable_assertions[l].insert(p.second.location_number);
       }
     }
+  }
+
+  std::set<unsigned> inline reaches(unsigned l) {
+    return reachable_assertions[l];
   }
 
 
@@ -184,9 +197,7 @@ protected:
 
   void fixedpoint_assertions(std::vector<unsigned> &locations, unsigned location);
 
-  std::set<unsigned> inline reaches(unsigned l) {
-    return reachable_assertions[l];
-  }
+
 };
 
 #endif
