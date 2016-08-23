@@ -282,13 +282,6 @@ int symex_parse_optionst::doit()
       code_declt decl_code;
       decl_code.symbol() = new_symbol.symbol_expr();
       decl_instruction->code = decl_code;
-
-      goto_programt::targett assign_instruction = body_location->second.body.insert_before(location);
-      code_assignt assign_code;
-      assign_instruction->make_assignment();
-      assign_code.lhs() = new_symbol.symbol_expr();
-      assign_code.rhs() = gen_zero(type);
-      assign_instruction->code = assign_code;
     }
   }
 
