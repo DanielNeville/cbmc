@@ -602,3 +602,14 @@ void reachabilityt::fixedpoint_assertions(std::vector<unsigned> &locations, unsi
   }
 }
 
+
+void reachabilityt::output(std::ostream &out) {
+  for(int i = 0; i < reachable_assertions.size(); i++) {
+    out << i << " reaches :";
+    for(auto l: reachable_assertions[i]) {
+      out << l << ", ";
+    }
+    out << "\n";
+  }
+
+}

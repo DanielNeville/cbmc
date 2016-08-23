@@ -295,7 +295,10 @@ int symex_parse_optionst::doit()
     return 0;
   }
 
+
   // do actual Symex
+
+  goto_model.goto_functions.update();
 
   try
   {

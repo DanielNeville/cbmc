@@ -43,6 +43,8 @@ public:
     }
   }
 
+  void output(std::ostream &out);
+
   std::set<unsigned> inline reaches(unsigned l) {
     return reachable_assertions[l];
   }
