@@ -25,12 +25,14 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <stack>
 
 #include <util/i2string.h>
+#include <util/simplify_expr.h>
 
 #include <goto-programs/remove_skip.h>
 #include <goto-programs/remove_unreachable.h>
 #include <goto-programs/cfg.h>
 #include <iostream>
 #include <algorithm>
+#include <path-symex/step_wp.h>
 //
 
 #include "path_search.h"
@@ -50,13 +52,15 @@ Function: path_searcht::operator()
 path_searcht::resultt path_searcht::operator()(
   const goto_functionst &goto_functions)
 {
-  locst locs(ns);
   var_mapt var_map(ns);
   
   locs.build(goto_functions);
 
   /* Useful to have CFG too */
   cfg(goto_functions);
+  for(int i = 0; i < locs.size(); i++) {
+    assumptions[i] = nil_exprt();
+  }
   /*// */
 
   // this is the container for the history-forest  
@@ -118,7 +122,7 @@ path_searcht::resultt path_searcht::operator()(
       debug() << eom;
 
       if(fails[state.get_pc().loc_number].size() > 0) {
-//        handle_fails();
+        handle_fails(state, goto_functions);
       }
     
       if(drop_state(state))
@@ -553,6 +557,59 @@ void path_searcht::calculate_failure_locations(const goto_functionst &goto_funct
     std::set<int> result;
     std::set_difference(all_reaches.begin(), all_reaches.end(), reaches.begin(), reaches.end(),
         std::inserter(fails[e_it->first->location_number], fails[e_it->first->location_number].end()));
+  }
+}
+
+void path_searcht::handle_fails(statet &state, const goto_functionst &goto_functions) {
+  assert(fails[state.get_instruction()->location_number].size() > 0);
+  for(auto f : triggered_assertion_failures) { // Could change to find.  Barely matters.
+    if(f == state.get_instruction()->location_number)
+      return; // Just trigger once for now.
+  }
+
+  triggered_assertion_failures.push_back(state.get_instruction()->location_number);
+  unsigned assertion_failure = *fails[state.get_instruction()->location_number].begin();
+  // Just get the first for now.
+
+  std::cout << "********** Failed assert: " << assertion_failure << " **********\n";
+
+  unsigned property_id = 0; // property ids are from 1..n;
+
+  for(auto p:property_map) {
+    if(p.second.location_number == assertion_failure) {
+      property_id = p.second.counter_id;
+      break;
+    }
+  }
+  assert(property_id); // Must be non-zero.
+  symbolt symbol = ns.lookup("__CPROVER_initialize::fails_" + i2string(property_id));
+
+  exprt assumption = not_exprt(symbol.symbol_expr());
+
+  path_symex_step_reft history_step = state.history;
+
+  while(!history_step.is_nil()) {
+    unsigned loc = history_step->pc.loc_number;
+
+    std::cout << "Hoisting to " << loc << "\n";
+
+    if(locs[history_step->pc].target->is_assert()) {
+      /* Must handle assertion case, manual weakest pre. */
+      assumption = implies_exprt(state.read_no_propagate(locs[history_step->pc].target->guard), assumption);
+    } else {
+      assert(!locs[history_step->pc].target->is_assert());
+      assumption = step_wp(*history_step, assumption, ns);
+    }
+
+    if(assumptions[loc].is_nil()) {
+      assumptions[loc] = simplify_expr(assumption, ns);
+    } else {
+      assumptions[loc] = simplify_expr(and_exprt(assumptions[loc], assumption), ns);
+    }
+
+    std::cout << "--" << loc << "--\n\n" <<  assumptions[loc].pretty() << "\n";
+
+    history_step.operator --(); // previous
   }
 }
 

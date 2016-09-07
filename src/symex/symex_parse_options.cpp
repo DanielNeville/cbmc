@@ -44,6 +44,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/locs.h>
 #include <util/i2string.h>
 #include <util/expr_util.h>
+#include <util/simplify_expr.h>
+
 
 #include "path_search.h"
 #include "symex_parse_options.h"
@@ -238,9 +240,12 @@ int symex_parse_optionst::doit()
   if(set_properties())
     return 7;
 
+
+  /* To move to function. */
   if(true) {
     unsigned properties = 0;
     bool found_insertion_location = false;
+
     goto_programt::targett location;
     goto_functionst::function_mapt::iterator body_location;
     Forall_goto_functions(f_it, goto_model.goto_functions) {
@@ -261,11 +266,13 @@ int symex_parse_optionst::doit()
       }
     }
 
+    exprt initial_assumption = false_exprt();
+
     unsigned i;
-    for(i = 0; i < properties; i++) {
+    for(i = 1; i <= properties; i++) {
       assert(location->is_end_function());
       symbolt new_symbol;
-      typet type = unsignedbv_typet(1);
+      typet type = bool_typet();
 
       std::string name = "fails_" + i2string(i);
       std::string base = "__CPROVER_initialize::";
@@ -282,7 +289,13 @@ int symex_parse_optionst::doit()
       code_declt decl_code;
       decl_code.symbol() = new_symbol.symbol_expr();
       decl_instruction->code = decl_code;
+
+      initial_assumption = or_exprt(initial_assumption,  not_exprt(new_symbol.symbol_expr()));
     }
+
+    goto_programt::targett assume_instruction = body_location->second.body.insert_before(location);
+    namespacet ns(goto_model.symbol_table);
+    assume_instruction->make_assumption(simplify_expr(initial_assumption, ns));
   }
 
 

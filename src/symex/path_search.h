@@ -85,6 +85,7 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
+    locs(_ns),
     search_heuristic(search_heuristict::DFS)
   {
   }
@@ -192,18 +193,22 @@ protected:
   unsigned branch_bound;
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
+  locst locs;
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 
   std::map<unsigned, exprt> assumptions; // BEFORE each instruction.
   std::map<unsigned, std::set<unsigned>> fails; // fails
   std::map<unsigned, unsigned> in_nodes;
+  std::vector<unsigned> triggered_assertion_failures;
 
   typedef cfg_baset<empty_cfg_nodet> cfgt;
   cfgt cfg;
 
   reachabilityt reachability;
   void calculate_failure_locations(const goto_functionst &goto_functions);
+
+  void handle_fails(statet &state, const goto_functionst &goto_functions);
 
 
   // loct vs cfg entry vs unsigned vs iterator.
