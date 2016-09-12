@@ -290,7 +290,7 @@ int symex_parse_optionst::doit()
       decl_code.symbol() = new_symbol.symbol_expr();
       decl_instruction->code = decl_code;
 
-      initial_assumption = or_exprt(initial_assumption,  not_exprt(new_symbol.symbol_expr()));
+      initial_assumption = or_exprt(initial_assumption,  new_symbol.symbol_expr());
     }
 
     goto_programt::targett assume_instruction = body_location->second.body.insert_before(location);

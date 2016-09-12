@@ -172,7 +172,9 @@ path_searcht::resultt path_searcht::operator()(
 
       // execute
       path_symex(state, tmp_queue);
-      
+
+      state.history->learnt_clause = assumptions[state.history->pc.loc_number];
+
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
     }
@@ -584,14 +586,12 @@ void path_searcht::handle_fails(statet &state, const goto_functionst &goto_funct
   assert(property_id); // Must be non-zero.
   symbolt symbol = ns.lookup("__CPROVER_initialize::fails_" + i2string(property_id));
 
-  exprt assumption = not_exprt(symbol.symbol_expr());
+  exprt assumption = state.read_no_propagate(not_exprt(symbol.symbol_expr()));
 
   path_symex_step_reft history_step = state.history;
 
   while(!history_step.is_nil()) {
     unsigned loc = history_step->pc.loc_number;
-
-    std::cout << "Hoisting to " << loc << "\n";
 
     if(locs[history_step->pc].target->is_assert()) {
       /* Must handle assertion case, manual weakest pre. */
@@ -601,15 +601,19 @@ void path_searcht::handle_fails(statet &state, const goto_functionst &goto_funct
       assumption = step_wp(*history_step, assumption, ns);
     }
 
-    if(assumptions[loc].is_nil()) {
-      assumptions[loc] = simplify_expr(assumption, ns);
-    } else {
-      assumptions[loc] = simplify_expr(and_exprt(assumptions[loc], assumption), ns);
+//    std::cout << "\n\n--" << loc << "--\n\n" <<  assumption.pretty() << "\n\n\n** SIMPLIFIES TO **\n\n" << simplify_expr(assumption, ns).pretty();
+
+    if(state.get_instruction()->is_goto()) {
+      if(assumptions[loc].is_nil()) {
+        assumptions[loc] = simplify_expr(assumption, ns);
+      } else {
+        assumptions[loc] = simplify_expr(and_exprt(assumptions[loc], assumption), ns);
+      }
     }
 
-    std::cout << "--" << loc << "--\n\n" <<  assumptions[loc].pretty() << "\n";
 
-    history_step.operator --(); // previous
+
+    --history_step; //previous
   }
 }
 

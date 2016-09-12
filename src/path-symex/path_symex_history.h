@@ -101,6 +101,7 @@ public:
 
   exprt guard, ssa_rhs;
   exprt full_lhs;
+  exprt learnt_clause;
   symbol_exprt ssa_lhs;
 
   bool hidden; 
