@@ -296,6 +296,7 @@ int symex_parse_optionst::doit()
     goto_programt::targett assume_instruction = body_location->second.body.insert_before(location);
     namespacet ns(goto_model.symbol_table);
     assume_instruction->make_assumption(simplify_expr(initial_assumption, ns));
+    assume_instruction->code.set(ID_hoist, ID_hoist);
   }
 
 
@@ -308,6 +309,25 @@ int symex_parse_optionst::doit()
     return 0;
   }
 
+
+//  Forall_goto_functions(it, goto_model.goto_functions) {
+//    std::cout << it->first << ":\n";
+//
+//    if(!it->second.body_available())
+//      continue;
+//
+//    Forall_goto_program_instructions(it_p, it->second.body) {
+//
+//      std::cout << it_p->location_number << ":" << it_p->type << ": " << it_p->code.pretty() << "\n\n";
+//      std::cout << "Guard: " << it_p->guard.pretty() << "\n";
+//      if(it_p->is_goto()) {
+//        std::cout <<  "\n Jumping to: " << it_p->target_number << "\n";
+//      }
+//    }
+//
+//  }
+//
+//  return 0;
 
   // do actual Symex
 
