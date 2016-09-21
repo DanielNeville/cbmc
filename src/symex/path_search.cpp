@@ -128,7 +128,7 @@ path_searcht::resultt path_searcht::operator()(
         handle_fails(state, goto_functions);
       }
     
-      if(drop_state(state))
+      if(drop_state(state) || introduced_assume == false)
       {
         number_of_dropped_states++;
         number_of_paths++;
@@ -150,6 +150,10 @@ path_searcht::resultt path_searcht::operator()(
         continue;
       }
       
+      if(introduced_assume == false) {
+        std::cout << "PROGRAM ANALYSIS COMPLETE!!\n";
+      }
+
       if(number_of_steps%1000==0)
       {
         status() << "Queue " << queue.size()
@@ -475,7 +479,7 @@ Function: path_searcht::is_feasible
 
 bool path_searcht::is_feasible(statet &state)
 {
-  status() << "Feasibility check" << eom;
+  status() << "Feasibility check at " << state.pc().loc_number << eom;
 
   // take the time
   absolute_timet sat_start_time=current_time();
@@ -579,9 +583,22 @@ void path_searcht::handle_fails(statet &state, const goto_functionst &goto_funct
   unsigned assertion_failure = *fails[state.get_instruction()->location_number].begin();
   // Just get the first for now.
 
-  std::cout << "********** Failed assert: " << assertion_failure << " **********\n";
+  std::cout << "********** Successful assert: " << assertion_failure << " **********\nPath: ";
+
+  std::vector<path_symex_step_reft> dest;
+  state.history.build_history(dest);
+  std::set<unsigned> path;
+  for(auto i: dest) {
+    path.insert(i->pc.loc_number);
+//    std::cout << i->pc << "\n"
+//        "guard:" << i->guard.pretty() << "\nssa:" << equal_exprt(i->ssa_lhs, i->ssa_rhs).pretty() <<"\n\n\n\n" ;
+  }
+  std::cout <<"\n";
 
   unsigned property_id = 0; // property ids are from 1..n;
+
+
+
 
   for(auto p:property_map) {
     if(p.second.location_number == assertion_failure) {
@@ -594,22 +611,129 @@ void path_searcht::handle_fails(statet &state, const goto_functionst &goto_funct
 
   exprt assumption = state.read_no_propagate(not_exprt(symbol.symbol_expr()));
 
+  exprt old_assumption = assumption;
+
+  exprt initial_assumption = assumption;
+
   path_symex_step_reft history_step = state.history;
 
+  std::vector<unsigned> function_entry_locs; // probably a nicer way.
+
+  forall_goto_functions(it, goto_functions) {
+    if(it->second.body_available() && it->second.body.instructions.size() > 0) {
+      function_entry_locs.push_back(it->second.body.instructions.begin()->location_number);
+    }
+  }
+
+  std::set<goto_programt::const_targett> data_dependencies;
+
   while(!history_step.is_nil()) {
+
+    old_assumption = assumption;
+
     unsigned loc = history_step->pc.loc_number;
+    std::cout << loc;
 
     if(locs[history_step->pc].target->is_assert()) {
       /* Must handle assertion case, manual weakest pre. */
       assumption = implies_exprt(state.read_no_propagate(locs[history_step->pc].target->guard), assumption);
+      initial_assumption = assumption;
+
+
+      bool change = true;
+      data_dependencies.insert(dependence_graph[locs[history_step->pc].target].data_deps.begin(),
+          dependence_graph[locs[history_step->pc].target].data_deps.end());
+      while(change) {
+        unsigned size = data_dependencies.size();
+
+        std::cout << "SIZE: " << size << "\n";
+        for(auto i: data_dependencies) {
+          data_dependencies.insert(dependence_graph[i].data_deps.begin(),
+              dependence_graph[i].data_deps.end());
+        }
+
+        change = data_dependencies.size() > size;
+        std::cout << "NEW SIZE: " << data_dependencies.size() << "\n";
+        /* Really ugly/slow method, but good enough for testing. */
+      }
     } else {
       assert(!locs[history_step->pc].target->is_assert());
-      assumption = step_wp(*history_step, assumption, ns);
+
+      bool other_path_affects_assertion = false;
+
+      if(history_step->guard.is_not_nil() &&
+          locs[history_step->pc].target->code.get(ID_hoist) == ID_hoist) {
+        assumption = simplify_expr(and_exprt(history_step->guard, assumption), ns);
+
+        if(assumption.is_false()) {
+          std::cout << "FALSE!!!\n";
+          introduced_assume = false;
+
+        }
+
+      } else if(history_step->guard.is_not_nil() &&
+          locs[history_step->pc].target->code.get(ID_hoist) != ID_hoist)
+      {
+        // special case.  this is the fails_1 && ... assume.
+
+        unsigned path_loc;
+        // find instruction
+        if(history_step->guard == locs[history_step->pc].target->guard) {
+          // taken, that means the instruction went to the target.
+          // therefore, we are interested in the sequential instruction.
+          path_loc = history_step->pc.loc_number;
+          path_loc++;
+          // should probably check not end of function.
+        } else {
+         // not taken, therefore we are interested in the target (it went sequentially.)
+          path_loc = locs[history_step->pc].target->location_number;
+        }
+
+        // while path_loc NOT in path
+        while(std::find(path.begin(), path.end(), path_loc) == path.end() &&
+            !other_path_affects_assertion)
+        {
+          for(auto ptr : data_dependencies) {
+            if(ptr->location_number == path_loc) {
+              other_path_affects_assertion = true;
+            }
+          }
+
+          std::cout << "Visited: " << path_loc << "\n";
+          path_loc++;
+        }
+
+        std::cout << "other_path_affects_assertion" <<
+            (other_path_affects_assertion ? "TRUE" : "FALSE");
+
+        if(other_path_affects_assertion) {
+          /* Do WP */
+
+          assumption = step_wp(*history_step, assumption, ns);
+        }
+        // calculate effects.
+        /* For now only consider straight-line code, massive limitation. */
+      } else {
+        /* Do WP */
+        assumption = step_wp(*history_step, assumption, ns);
+      }
+
+
     }
 
-//    std::cout << "\n\n--" << loc << "--\n\n" <<  assumption.pretty() << "\n\n\n** SIMPLIFIES TO **\n\n" << simplify_expr(assumption, ns).pretty();
 
-    if(state.get_instruction()->is_goto()) {
+    bool is_function_entry =
+        std::find(function_entry_locs.begin(), function_entry_locs.end(), locs[loc].target->location_number) != function_entry_locs.end();
+//
+//    if(assumption == old_assumption) {
+//      std::cout << "SAME!\n";
+//    } else {
+//      std::cout << "Writing information to " << loc << ":\n"
+//          << assumption.pretty() << "\n SIMPLIFIES TO " << simplify_expr(assumption, ns).pretty() << "\n\n\n";
+//
+//    }
+
+    if(/*locs[loc].target->is_goto() || is_function_entry*/ true) {
       if(assumptions[loc].is_nil()) {
         assumptions[loc] = simplify_expr(assumption, ns);
       } else {
