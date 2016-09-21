@@ -14,6 +14,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/namespace.h>
 #include <util/type.h>
+#include "path_symex_taint_analysis.h"
 
 class var_mapt
 {
@@ -41,6 +42,8 @@ public:
     // the type of the identifier (struct member or array)
     typet type;
     
+    path_symex_simple_taint_analysis_domaint::taintt taint;
+
     unsigned ssa_counter;
     
     var_infot():kind(SHARED), number(0), ssa_counter(0)
