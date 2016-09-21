@@ -214,6 +214,8 @@ protected:
 
   void handle_fails(statet &state, const goto_functionst &goto_functions);
 
+  bool introduced_assume = true;
+
 
   // loct vs cfg entry vs unsigned vs iterator.
 };
