@@ -27,6 +27,11 @@ public:
   {
   }
 
+
+  typedef std::set<goto_programt::const_targett> depst;
+  depst control_deps, data_deps;
+
+
   bool merge(
     const dep_graph_domaint &src,
     goto_programt::const_targett from,
@@ -55,9 +60,6 @@ public:
 
 protected:
   unsigned node_id;
-
-  typedef std::set<goto_programt::const_targett> depst;
-  depst control_deps, data_deps;
 
   void control_dependencies(
     goto_programt::const_targett from,
