@@ -24,6 +24,14 @@ Author:
 //  // get
 //};
 
+// TODO: consider arrays, structs, member, index, dereference, if, array, vector, string constant,
+// TODO: how to introduce / remove taint
+// TODO: get
+// TODO: JSON parser
+// TODO: basic extensibility for different domains.
+// TODO: function call considerations.
+
+
 class path_symex_simple_taint_analysis_domaint
 {
 public:

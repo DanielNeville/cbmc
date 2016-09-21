@@ -42,11 +42,12 @@ public:
     // the type of the identifier (struct member or array)
     typet type;
     
-    path_symex_simple_taint_analysis_domaint::taintt taint;
-
     unsigned ssa_counter;
+
+    path_symex_simple_taint_analysis_domaint::taintt taint;
     
-    var_infot():kind(SHARED), number(0), ssa_counter(0)
+    var_infot():kind(SHARED), number(0), ssa_counter(0),
+        taint(path_symex_simple_taint_analysis_domaint::taintt::UNTAINTED)
     {
     }
     
