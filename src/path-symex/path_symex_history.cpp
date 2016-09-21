@@ -14,6 +14,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "path_symex_history.h"
 
+#include <iostream>
+
 /*******************************************************************\
 
 Function: path_symex_stept::output
@@ -62,11 +64,17 @@ void path_symex_stept::convert(decision_proceduret &dest) const
   if(ssa_rhs.is_not_nil())
     dest << equal_exprt(ssa_lhs, ssa_rhs);
 
-  if(guard.is_not_nil())
+  if(guard.is_not_nil()) {
     dest << guard;
+//    std::cout << "Picked up guard.\n" << guard.pretty() << "\n\n";
 
-  if(learnt_clause.is_not_nil())
-    dest << learnt_clause;
+  }
+
+
+  if(learnt_clause.is_not_nil()) {
+//    dest << learnt_clause;
+//    std::cout << "Picked up learnt clause at " << pc <<  ".\n" << learnt_clause.pretty() << "\n\n";
+  }
 }
 
 /*******************************************************************\
