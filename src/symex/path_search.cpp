@@ -180,6 +180,9 @@ path_searcht::resultt path_searcht::operator()(
 
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
+//
+//      if(state.pc().loc_number < 20)
+//      std::cin.ignore();
     }
     catch(const std::string &e)
     {
