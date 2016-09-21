@@ -70,8 +70,10 @@ path_searcht::resultt path_searcht::operator()(
 
   initialize_property_map(goto_functions);
 
-  dependence_grapht dependence_graph(ns);
+
   dependence_graph(goto_functions, ns);
+
+  dependence_graph.output(ns, goto_functions, std::cout);
 
   reachability(goto_functions);
 

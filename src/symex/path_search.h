@@ -19,6 +19,8 @@ Author: Daniel Kroening, kroening@kroening.com
 //
 #include <goto-programs/goto_functions.h>
 #include <goto-programs/cfg.h>
+#include <analyses/dependence_graph.h>
+
 //
 
 
@@ -86,7 +88,8 @@ public:
     unwind_limit_set(false),
     branch_bound_set(false),
     locs(_ns),
-    search_heuristic(search_heuristict::DFS)
+    search_heuristic(search_heuristict::DFS),
+    dependence_graph(_ns)
   {
   }
 
@@ -204,6 +207,7 @@ protected:
 
   typedef cfg_baset<empty_cfg_nodet> cfgt;
   cfgt cfg;
+  dependence_grapht dependence_graph;
 
   reachabilityt reachability;
   void calculate_failure_locations(const goto_functionst &goto_functions);
