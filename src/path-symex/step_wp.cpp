@@ -386,7 +386,7 @@ exprt step_wp(
   if(!step.hidden) /* !step.is_hidden() */
   {
 
-    // wp(assume c, x) = c=>x
+    // wp(assume c, x) = c=>x as ~c v x.
     if(step.guard.is_not_nil())
     {
       exprt negated_guard=not_exprt(step.guard);
