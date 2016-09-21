@@ -72,6 +72,7 @@ path_searcht::resultt path_searcht::operator()(
 
 
   dependence_graph(goto_functions, ns);
+  // TODO Known limitation.  Must use dependency analysis over traversed paths to add power.
 
 //  dependence_graph.output(ns, goto_functions, std::cout);
 
@@ -681,18 +682,25 @@ void path_searcht::handle_fails(statet &state, const goto_functionst &goto_funct
         if(history_step->guard == locs[history_step->pc].target->guard) {
           // taken, that means the instruction went to the target.
           // therefore, we are interested in the sequential instruction.
+          std::cout << "Guard was previously taken.\n";
           path_loc = history_step->pc.loc_number;
           path_loc++;
           // should probably check not end of function.
         } else {
          // not taken, therefore we are interested in the target (it went sequentially.)
-          path_loc = locs[history_step->pc].target->location_number;
+          std::cout << "Guard was previously NOT taken.\n";
+
+          path_loc = locs[history_step->pc].target->target_number;
         }
 
+        std::cout << "Entering path calcs \n";
+
         // while path_loc NOT in path
+        // TODO:  Known error in path exploration.  Needs rewriting.
         while(std::find(path.begin(), path.end(), path_loc) == path.end() &&
             !other_path_affects_assertion)
         {
+          std::cout << "Entered loop.\n";
           for(auto ptr : data_dependencies) {
             if(ptr->location_number == path_loc) {
               other_path_affects_assertion = true;
