@@ -116,6 +116,7 @@ path_searcht::resultt path_searcht::operator()(
       loc_data[state.get_pc().loc_number].visited=true;
 
       debug() << "Loc: #" << state.get_pc().loc_number
+              << " " << state.get_instruction()->type
               << ", queue: " << queue.size()
               << ", depth: " << state.get_depth();
       for(const auto & s : queue)
