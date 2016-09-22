@@ -61,12 +61,10 @@ public:
   }
 
   inline taintt parser(std::string input) {
-    switch(input) {
-    case "untainted":
+    if(input == "untainted")
       return taintt::UNTAINTED;
-    case "tainted":
+    if(input == "tainted")
       return taintt::TAINTED;
-    }
     throw "Taint type not recognised";
   }
 
