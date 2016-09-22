@@ -45,13 +45,21 @@ public:
     exprt value;
     symbol_exprt ssa_symbol;
     
+    // record taint
+    taintt taint;
+
     // for uninterpreted functions or arrays we maintain an index set
     typedef std::set<exprt> index_sett;
     index_sett index_set;
 
+    // record taint for arrays.
+    typedef std::set<taintt> taint_index_sett;
+    taint_index_sett taint_index_set;
+
     var_statet():
       value(nil_exprt()),
-      ssa_symbol(irep_idt())
+      ssa_symbol(irep_idt()),
+      taint(taintt::UNTAINTED)
     {
     }
   };
