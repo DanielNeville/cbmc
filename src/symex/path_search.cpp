@@ -151,13 +151,16 @@ path_searcht::resultt path_searcht::operator()(
       
       std::cout << "Current state of the internal variable map: \n";
 
-      for(auto i: state.var_map.id_map) {
-        std::cout << i.first << " -- " << taint_engine.parser(state.get_var_state(i.second).taint) <<  "\n";
+      if(state.pc().loc_number > 16) {
+        for(auto i: state.var_map.id_map) {
+          std::cout << i.first << " -- " << taint_engine.parser(state.get_var_state(i.second).taint) <<  "\n";
+        }
+
+        std::cout << "END ****\n";
+
+        std::cin.ignore();
       }
 
-      std::cout << "END ****\n";
-
-      std::cin.ignore();
 
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
