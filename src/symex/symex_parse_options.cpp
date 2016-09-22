@@ -42,6 +42,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cbmc/version.h>
 
 #include <path-symex/locs.h>
+#include <path-symex/path_symex_taint_parser.h>
 
 #include "path_search.h"
 #include "symex_parse_options.h"
@@ -285,6 +286,13 @@ int symex_parse_optionst::doit()
 
     if(cmdline.isset("taint")) {
       path_search.set_taint(true, cmdline.get_value("taint"));
+      parse_taint_file(cmdline.get_value("taint"), *message_handler, path_search.taint_data);
+
+      if(cmdline.isset("show-taint-data")) {
+        std::cout << "Taint data:\n";
+        path_search.taint_data.output(std::cout);
+        return 0;
+      }
     }
 
     path_search.eager_infeasibility=

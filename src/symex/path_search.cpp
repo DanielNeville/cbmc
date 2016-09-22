@@ -38,65 +38,9 @@ path_searcht::resultt path_searcht::operator()(
   locs.build(goto_functions);
 
   if(taint_set) {
-
-    // TODO:  Move parser to different file.
-
-    jsont json;
-    bool error_ = false;
-
-    if(parse_json(taint_file, *message_handler, json))
-    {
-      error() << "input location file is not a valid json file"
-          << messaget::eom;
-      error_ = true;
+    if(taint_data.check_rules(locs, warning())) {
+      error() << "Rules inconsistent." << eom;
     }
-
-    if(!json.is_array())
-    {
-      error() << "expecting an array in the input location file, but got "
-          << json << messaget::eom;
-      error_ = true;
-    }
-
-    for(jsont::arrayt::const_iterator
-        it=json.array.begin();
-        it!=json.array.end();
-        it++)
-    {
-      if(!it->is_object())
-      {
-        error() << "expecting an array of objects in the input location file, but got "
-            << *it << messaget::eom;
-        error_ = true;
-      }
-
-      const std::string taint_string =(*it)["taint"].value;
-      const std::string loc_string =(*it)["loc"].value;
-
-      taintt taint;
-      unsigned int loc = -1;
-
-      try {
-        taint =  taint_engine.parser(taint_string);
-      } catch(...) {
-        error() << "Taint type not recognised."
-            << messaget::eom;
-        error_ = true;
-      }
-
-      if(loc_string.empty()) {
-        error() << "location must have \"unsigned int\""
-            << messaget::eom;
-        error_ = true;
-      } else {
-        loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
-      }
-
-      taint_data.add(loc, taint);
-    }
-
-    status() << "Rules:\n";
-    taint_data.output(status());
   }
 
   // this is the container for the history-forest  

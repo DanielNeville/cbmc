@@ -17,10 +17,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex_state.h>
 
 // TODO: Move include to appropriate location.
+#include <path-symex/path_symex_taint_data.h>
 #include <path-symex/path_symex_taint_analysis.h>
-#include <path-symex/path_symex_taint_parser.h>
 #include <json/json_parser.h>
-
 
 class path_searcht:public safety_checkert
 {
@@ -110,6 +109,8 @@ public:
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
+  taint_datat taint_data;
+
 protected:
   typedef path_symex_statet statet;
 
@@ -150,7 +151,6 @@ protected:
 
   bool taint_set;
   std::string taint_file;
-  taint_datat taint_data;
   // TODO: Templating support.
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;

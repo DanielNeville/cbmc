@@ -1045,6 +1045,9 @@ void path_symext::operator()(
       {
         // just needs to be recorded
       }
+      else if(statement==ID_output) {
+        // ignore for now.  new semantics?
+      }
       else
         throw "unexpected OTHER statement: "+id2string(statement);
     }
