@@ -15,6 +15,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/safety_checker.h>
 
 #include <path-symex/path_symex_state.h>
+#include <path-symex/path_symex_taint_analysis.h>
 
 class path_searcht:public safety_checkert
 {
@@ -27,6 +28,7 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
+    taint(false),
     search_heuristic(search_heuristict::DFS)
   {
   }
@@ -57,6 +59,14 @@ public:
     unwind_limit_set=true;
     unwind_limit=limit;
   }
+
+  void set_taint(path_symex_simple_taint_analysis_domaint& taint_engine_) {
+    taint = true;
+    taint_engine = taint_engine_;
+    taint_engine.taintt::TAINTED;
+  }
+
+  path_symex_simple_taint_analysis_domaint taint_engine;
 
   bool show_vcc;
   bool eager_infeasibility;
@@ -133,7 +143,11 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
+  bool taint;
+
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
+
+//  class path_symex_taint_analysis_domaint taint_engine;
 };
 
 #endif
