@@ -107,10 +107,7 @@ protected:
     }
 
     forall_operands(it, expr) {
-        std::cout << "Entering ELSE branch.\n";
-        taintt new_taint = taintt::UNTAINTED;
-        find_taint(*it, new_taint, state);
-        taint = taint_analysis.meet(expr.id(), taint, new_taint);
+        find_taint(*it, taint, state);
     }
   }
 

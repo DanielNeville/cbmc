@@ -396,8 +396,10 @@ void path_symext::assign_rec(
 
       taintt taint = taintt::UNTAINTED;
 
-      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
+//      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
       find_taint(ssa_rhs, taint, state);
+
+      var_state.taint = taint;
 
       std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";
 
