@@ -163,6 +163,14 @@ public:
     threads[current_thread].pc=new_pc;
   }
   
+  inline bool inst_enforces_taint() {
+    return locs[pc()].enforced_taint;
+  }
+
+  inline taintt get_enforced_taint() {
+    return locs[pc()].taint;
+  }
+
   // output  
   void output(std::ostream &out) const;
   void output(const threadt &thread, std::ostream &out) const;

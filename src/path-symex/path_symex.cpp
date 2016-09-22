@@ -21,6 +21,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "path_symex_class.h"
 
 //#define DEBUG
+// TODO: Remove debug IOSTREAM
+#include <iostream>
 
 #ifdef DEBUG
 #include <iostream>
@@ -352,6 +354,16 @@ void path_symext::assign_rec(
     {
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=nil_exprt();
+
+      // Non-det represents not tainted by the user (for now.)
+      var_state.taint=taintt::UNTAINTED;
+
+      if(state.inst_enforces_taint()) {
+        var_state.taint = state.get_enforced_taint();
+        path_symex_simple_taint_analysist taint_engine;
+//        std::cout << state.pc().loc_number << ": Setting taint value of " << ssa_lhs.pretty() << " to " << taint_engine.parser(state.get_enforced_taint()) << "\n";
+        // TODO: Taint on/off flag.
+      }
     }
     else
     {
@@ -377,6 +389,13 @@ void path_symext::assign_rec(
       // propagate the rhs?
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
+
+      path_symex_simple_taint_analysist taint_engine;
+//      var_state.taint=taint_engine.meet()
+
+      if(state.inst_enforces_taint()) {
+        var_state.taint = state.get_enforced_taint();
+      }
     }
   }
   else if(ssa_lhs.id()==ID_member)
@@ -903,6 +922,7 @@ void path_symext::operator()(
 {
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
+
     
   #ifdef DEBUG
   std::cout << "path_symext::operator(): "
@@ -1010,6 +1030,7 @@ void path_symext::operator()(
     
   case ASSIGN:
     assign(state, to_code_assign(instruction.code));
+    //handle_taint
     state.next_pc();
     break;
     

@@ -33,7 +33,8 @@ public:
   loc_reft branch_target;
 
   /* taint code */
-  taintt enforced_taint;
+  taintt taint;
+  bool enforced_taint = false;
 };
 
 class locst

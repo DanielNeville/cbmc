@@ -45,7 +45,8 @@ path_searcht::resultt path_searcht::operator()(
     for(auto rule : taint_data.data) {
       loc_reft loc;
       loc.loc_number = rule.loc;
-      locs[loc].enforced_taint = rule.taint;
+      locs[loc].enforced_taint = true;
+      locs[loc].taint = rule.taint;
       // To enable access to the rules.
     }
   }
@@ -148,6 +149,16 @@ path_searcht::resultt path_searcht::operator()(
       // execute
       path_symex(state, tmp_queue);
       
+      std::cout << "Current state of the internal variable map: \n";
+
+      for(auto i: state.var_map.id_map) {
+        std::cout << i.first << " -- " << taint_engine.parser(state.get_var_state(i.second).taint) <<  "\n";
+      }
+
+      std::cout << "END ****\n";
+
+      std::cin.ignore();
+
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
     }
