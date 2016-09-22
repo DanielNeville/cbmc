@@ -56,7 +56,11 @@ public:
   typedef simple_taint_domaint taintt;
   /* Use the simple domain, typedef for internal use */
 
-  inline taintt meet(taintt taint_one, taintt taint_two) {
+  inline taintt meet(irep_idt id, taintt taint_one, taintt taint_two) {
+
+    std::cout << "*** MEET HAS BEEN CALLED\n";
+    std::cout << "Parameters: 1: " << parser(taint_one) << "  -- 2: " << parser(taint_two) << "\n";
+
     return (taint_one == taintt::TAINTED || taint_two == taintt::TAINTED)
         ? taintt::TAINTED : taintt::UNTAINTED;
   }

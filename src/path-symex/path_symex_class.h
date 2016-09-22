@@ -88,6 +88,32 @@ protected:
     const exprt &ssa_lhs, // instantiated, recursion here
     const exprt &ssa_rhs); // instantiated
 
+
+
+
+  inline void find_taint(const exprt &expr, taintt &taint, path_symex_statet &state) {
+    path_symex_simple_taint_analysist taint_analysis;
+
+    std::cout << "Find_taint ENTERED!  Operand count : " << expr.operands().size() << "\n";
+
+    if(expr.id() == ID_symbol) {
+      std::cout << "Entering symbol branch.\n";
+      symbol_exprt symbol = to_symbol_expr(expr);
+      const irep_idt &full_identifier=symbol.get(ID_C_full_identifier);
+      var_mapt::var_infot &var_info=state.var_map[full_identifier];
+      assert(var_info.full_identifier==full_identifier);
+      path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
+      taint = taint_analysis.meet(expr.id(), taint, var_state.taint);
+    }
+
+    forall_operands(it, expr) {
+        std::cout << "Entering ELSE branch.\n";
+        taintt new_taint = taintt::UNTAINTED;
+        find_taint(*it, new_taint, state);
+        taint = taint_analysis.meet(expr.id(), taint, new_taint);
+    }
+  }
+
   static bool propagate(const exprt &src);
 };
 
