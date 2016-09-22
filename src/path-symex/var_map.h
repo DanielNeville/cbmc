@@ -44,10 +44,10 @@ public:
     
     unsigned ssa_counter;
 
-    path_symex_simple_taint_analysis_domaint::taintt taint;
+//    path_symex_taint_analysist::taintt taint;
     
-    var_infot():kind(SHARED), number(0), ssa_counter(0),
-        taint(path_symex_simple_taint_analysis_domaint::taintt::UNTAINTED)
+    var_infot():kind(SHARED), number(0), ssa_counter(0)
+//        taint(path_symex_simple_taint_analysis_domaint::taintt::UNTAINTED)
     {
     }
     

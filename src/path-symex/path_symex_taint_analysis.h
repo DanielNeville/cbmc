@@ -35,7 +35,6 @@ public:
   /* Meet of a single taint is simply the taint itself. */
 
 
-
   // introduction
   // remove
   // get
@@ -44,25 +43,28 @@ public:
 /* End Base Interface */
 
 
+
+
 enum class simple_taint_domaint {
   UNTAINTED, TAINTED
 };
 
-class path_symex_simple_taint_analysis_domaint:
+
+
+
+class path_symex_simple_taint_analysist:
     public path_symex_taint_analysist<simple_taint_domaint>
 {
 public:
-  path_symex_simple_taint_analysis_domaint() : path_symex_taint_analysist() {}
-
-
   inline taintt meet(taintt taint_one, taintt taint_two) {
-    return taint_one > taint_two ? taint_one : taint_two;
+    return (taint_one == taintt::TAINTED || taint_two == taintt::TAINTED)
+        ? taintt::TAINTED : taintt::UNTAINTED;
   }
 
   inline std::string output(taintt taint) {
     switch(taint) {
     case taintt::TAINTED:
-      return "tainted.";
+      return "tainted";
     case taintt::UNTAINTED:
       return "untainted";
     }

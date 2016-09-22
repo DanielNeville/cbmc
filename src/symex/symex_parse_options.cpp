@@ -283,8 +283,7 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
-    path_symex_simple_taint_analysis_domaint taint_engine;
-//    taint_engine.meet()
+    path_symex_simple_taint_analysist taint_engine;
     path_search.set_taint(taint_engine);
 
 //    if(cmdline.isset("taint")) {

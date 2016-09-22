@@ -28,7 +28,7 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
-    taint(false),
+    taint_set(false),
     search_heuristic(search_heuristict::DFS)
   {
   }
@@ -60,13 +60,12 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(path_symex_simple_taint_analysis_domaint& taint_engine_) {
-    taint = true;
-    taint_engine = taint_engine_;
-    taint_engine.taintt::TAINTED;
+  void set_taint(class path_symex_taint_analysist& taint_engine_) {
+    taint_set = true;
+//    taint_engine = taint_engine_;
   }
 
-  path_symex_simple_taint_analysis_domaint taint_engine;
+//  path_symex_simple_taint_analysis_domaint taint_engine;
 
   bool show_vcc;
   bool eager_infeasibility;
@@ -143,7 +142,7 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
-  bool taint;
+  bool taint_set;
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 
