@@ -283,7 +283,9 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
-    path_search.set_taint(true);
+    if(cmdline.isset("taint")) {
+      path_search.set_taint(true, cmdline.get_value("taint"));
+    }
 
     path_search.eager_infeasibility=
       cmdline.isset("eager-infeasibility");
