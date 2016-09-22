@@ -94,6 +94,9 @@ path_searcht::resultt path_searcht::operator()(
 
       taint_data.add(loc, taint);
     }
+
+    status() << "Rules:\n";
+    taint_data.output(status());
   }
 
   // this is the container for the history-forest  
