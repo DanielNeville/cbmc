@@ -60,12 +60,11 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(class path_symex_taint_analysist& taint_engine_) {
-    taint_set = true;
-//    taint_engine = taint_engine_;
+  void set_taint(bool value) {
+    taint_set = value;
   }
 
-//  path_symex_simple_taint_analysis_domaint taint_engine;
+  path_symex_simple_taint_analysist taint_engine;
 
   bool show_vcc;
   bool eager_infeasibility;

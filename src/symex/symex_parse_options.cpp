@@ -283,16 +283,7 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
-    path_symex_simple_taint_analysist taint_engine;
-    path_search.set_taint(taint_engine);
-
-//    if(cmdline.isset("taint")) {
-//      switch(cmdline.get_value("taint")) {
-//      case "simple":
-//        path_search.taint_engine = ...
-//        path_search.taint = true;
-//      }
-//    }
+    path_search.set_taint(true);
 
     path_search.eager_infeasibility=
       cmdline.isset("eager-infeasibility");
