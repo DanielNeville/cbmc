@@ -34,6 +34,9 @@ public:
   inline taintt meet(taintt taint_one) { return taint_one; }
   /* Meet of a single taint is simply the taint itself. */
 
+  inline taintt parser(std::string input);
+  // Parses JSON strings -> items in taint domain.
+
 
   // introduction
   // remove
@@ -70,6 +73,8 @@ public:
     }
     return "unknown";
   }
+
+  //inline taintt parser(std::string input);
 
   inline void hello() { std::cout << "Hello\n"; }
 };
