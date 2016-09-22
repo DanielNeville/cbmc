@@ -85,4 +85,6 @@ public:
   inline std::string taint_engine() { return "Simple taint domain."; }
 };
 
+typedef path_symex_simple_taint_analysist::taintt taintt;
+
 #endif
