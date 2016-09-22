@@ -64,8 +64,15 @@ bool parse_taint_file(
     const std::string taint_string =(*it)["taint"].value;
     const std::string loc_string =(*it)["loc"].value;
 
+    const std::string array_index_string =(*it)["ai"].value;
+    const std::string struct_index =(*it)["si"].value;
+
     taintt taint;
     unsigned int loc;
+    unsigned int array_index;
+
+    bool array_index_flag = false;
+    bool struct_index_flag = false;
 
     try {
       path_symex_simple_taint_analysist taint_engine;
@@ -86,7 +93,16 @@ bool parse_taint_file(
       loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    taint_data.add(loc, taint);
+    if(!array_index_string.empty()) {
+      array_index = safe_string2unsigned(std::string(array_index_string, 0, std::string::npos));
+      array_index_flag = true;
+    }
+
+    if(!struct_index.empty()) {
+      struct_index_flag = true;
+    }
+
+    taint_data.add(loc, taint, array_index, array_index_flag, struct_index, struct_index_flag);
   }
 
   return false;

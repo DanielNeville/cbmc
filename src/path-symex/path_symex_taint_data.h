@@ -20,6 +20,10 @@ public:
     // TODO : Consider get / set / operator
     unsigned int loc;
     taintt taint;
+    unsigned array_index;
+    bool array_index_flag;
+    std::string struct_index;
+    bool struct_index_flag;
 
     inline void output(std::ostream &out) const {
       path_symex_simple_taint_analysist taint_engine;
@@ -37,10 +41,21 @@ public:
   typedef std::vector<taint_rulet> datat;
   datat data;
 
-  inline void add(unsigned loc, taintt taint) {
+  inline void add(
+      unsigned loc,
+      taintt taint,
+      unsigned array_index,
+      bool array_index_flag,
+      std::string struct_index,
+      bool struct_index_flag) {
+
     taint_rulet rule;
     rule.loc = loc;
     rule.taint = taint;
+    rule.array_index = array_index;
+    rule.array_index_flag = array_index_flag;
+    rule.struct_index = struct_index;
+    rule.struct_index_flag = struct_index_flag;
     data.push_back(rule);
   }
 
