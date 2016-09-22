@@ -54,13 +54,16 @@ class path_symex_simple_taint_analysist
 {
 public:
   typedef simple_taint_domaint taintt;
+  /* Use the simple domain, typedef for internal use */
 
   inline taintt meet(taintt taint_one, taintt taint_two) {
     return (taint_one == taintt::TAINTED || taint_two == taintt::TAINTED)
         ? taintt::TAINTED : taintt::UNTAINTED;
   }
+  /* If either is TAINTED, the output is TAINTED. */
 
   inline taintt parser(std::string input) {
+    /* Parse from strings -> taint types */
     if(input == "untainted")
       return taintt::UNTAINTED;
     if(input == "tainted")
@@ -69,6 +72,7 @@ public:
   }
 
   inline std::string parser(taintt input) {
+    /* Parse from taint -> strings types */
     switch(input) {
     case taintt::UNTAINTED:
       return "untainted";

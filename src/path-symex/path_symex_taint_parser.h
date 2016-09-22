@@ -12,16 +12,69 @@ Author:
 #include <util/message.h>
 
 /*******************************************************************\
-Function: taint_parser
+Function: taint_datat
   Inputs:
  Outputs:
  Purpose:
 \*******************************************************************/
 
+typedef path_symex_simple_taint_analysist::taintt taintt;
+// TODO:  Remove this when templated.
+
+
+class taint_datat
+{
+public:
+
+  class taint_rulet
+  {
+  public:
+    // TODO : Consider get / set / operator
+    unsigned int loc;
+    taintt taint;
+
+    inline void output(std::ostream &out) const {
+      path_symex_simple_taint_analysist taint_engine;
+
+      out << "Location: " << loc << " set to " <<
+          taint_engine.parser(taint);
+    }
+
+    inline taint_rulet(): loc(0), taint(UNTAINTED)
+    {
+
+    }
+  };
+
+  typedef std::set<taint_rulet> datat;
+  datat data;
+
+  inline void add(unsigned loc, taintt taint) {
+    taint_rulet rule;
+    rule.loc = loc;
+    rule.taint = taint;
+    data.insert(rule);
+  }
+
+  inline void output(std::ostream &out) const {
+    // TODO Templated later.
+
+    int i = 0;
+    for(auto taint: data) {
+      out << ++i << ": ";
+      taint.output(out);
+      out << "\n";
+      // TODO EOM.
+    }
+  }
+};
+
 bool parse_input_locations(
     const std::string &file_name,
-    input_location_parse_treet &dest,
-    message_handlert &message_handler)
+    path_symex_simple_taint_analysist &taint_engine,
+    message_handlert &message_handler,
+    taint_datat &taint_data
+)
 {
   /* Format
   Array of Objects.
@@ -61,113 +114,42 @@ bool parse_input_locations(
       return true;
     }
 
-    input_location_parse_treet::rulet rule;
+    const std::string taint_string =(*it)["taint"].value;
+    const std::string loc_string =(*it)["loc"].value;
 
-    const std::string taint=(*it)["taint"].value;
-    const std::string flow=(*it)["flow"].value;
-    const std::string loc=(*it)["loc"].value;
-    const std::string message=(*it)["message"].value;
+    taintt taint;
+    unsigned int loc;
 
-    if(taint=="complete")
-      rule.taint=input_location_parse_treet::rulet::COMPLETE;
-    else if(taint=="constant")
-      rule.taint=input_location_parse_treet::rulet::CONSTANT;
-    else if(taint=="other")
-      rule.taint=input_location_parse_treet::rulet::OTHER;
-    else
-    {
+    try {
+      taint =  taint_engine.parser(taint_string);
+    } catch(...) {
       messaget message(message_handler);
-      message.error() << "taint rule must have \"kind\" which is "
-          "\"complete\" or \"constant\" or \"none\""
+      message.error() << "Taint type not recognised."
           << messaget::eom;
-      return true;
     }
 
-    if(flow=="input")
-      rule.flow=input_location_parse_treet::rulet::INPUT;
-    else if(flow=="output")
-      rule.flow=input_location_parse_treet::rulet::OUTPUT;
-    else if(flow=="none")
-      rule.flow=input_location_parse_treet::rulet::NONE;
-    else
-    {
-      messaget message(message_handler);
-      message.error() << "FLOW rule must have \"kind\" which is "
-          "\"input\" or \"output\" or \"none\""
-          << messaget::eom;
-      return true;
-    }
-
-    if(loc.empty()) {
+    if(loc_string.empty()) {
       messaget message(message_handler);
       message.error() << "location must have \"unsigned int\""
           << messaget::eom;
       return true;
     } else {
-      rule.loc = safe_string2unsigned(std::string(loc, 0, std::string::npos));
-
+      loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    rule.message=message;
-
-    dest.rules.push_back(rule);
+    taint_data.add(loc, taint);
   }
 
   return false;
 }
 
-/*******************************************************************\
-Function: taint_parse_treet::rulet::output
-  Inputs:
- Outputs:
- Purpose:
-\*******************************************************************/
-
-void input_location_parse_treet::rulet::output(std::ostream &out) const
-{
-  out << "pc loc " << loc << ":";
-
-  switch(taint)
-  {
-  case COMPLETE: out << " complete "; break;
-  case CONSTANT: out << " constant "; break;
-  case NONE: out << " none "; break;
-  }
-
-  out << "taint on ";
-
-  switch(flow)
-  {
-  case INPUT: out << "input"; break;
-  case OUTPUT: out << "output"; break;
-  case NONE: out << "none"; break;
-  }
-
-  out << "\n";
-}
-
-/*******************************************************************\
-Function: taint_parse_treet::output
-  Inputs:
- Outputs:
- Purpose:
-\*******************************************************************/
-
-void input_location_parse_treet::output(std::ostream &out) const
-{
-  for(const auto & rule : rules)
-    rule.output(out);
-}
-
 
 
 bool check_rules(
-    input_location_parse_treet::rulest &rules,
+    taint_datat &rules,
     locst &locs,
     std::ostream & warnings,
-    bool errors,
-    locationst &input_locations,
-    locationst &output_locations) {
+    bool errors) {
 
   bool found_error = false;
 
@@ -193,10 +175,6 @@ bool check_rules(
           warnings << "Following rule refers to function call with nil left-hand side:" << "\n";
           rule.output(warnings);
           warnings << "\n";
-
-          if(errors) {
-            return false;
-          }
         }
       }
     } else
@@ -208,54 +186,7 @@ bool check_rules(
       found_error = true;
     }
 
-    if(rule.flow == input_location_parse_treet::rulet::INPUT) {
-      input_locations.push_back(rule.loc);
-    }
-    if(rule.flow  == input_location_parse_treet::rulet::OUTPUT) {
-      output_locations.push_back(rule.loc);
-    }
   }
 
-  return !(errors && found_error);
-}
-
-bool parse_entry_locations(
-    const std::string &entry_location_file,
-    locationst &entry_locations,
-    message_handlert &message_handler) {
-
-  jsont json;
-
-  if(parse_json(entry_location_file, message_handler, json))
-  {
-    messaget message(message_handler);
-    message.error() << "input location file is not a valid json file"
-        << messaget::eom;
-    return true;
-  }
-
-  if(!json.is_array())
-  {
-    messaget message(message_handler);
-    message.error() << "expecting an array in the input location file, but got "
-        << json << messaget::eom;
-    return true;
-  }
-
-  for(jsont::arrayt::const_iterator
-      it=json.array.begin();
-      it!=json.array.end();
-      it++)
-  {
-    if(!it->is_object())
-    {
-      messaget message(message_handler);
-      message.error() << "expecting an array of objects in the input location file, but got "
-          << *it << messaget::eom;
-      return true;
-    }
-    unsigned int location = safe_string2unsigned(std::string((*it)["loc"].value, 0, std::string::npos));
-    entry_locations.push_back(location);
-  }
-  return false;
+  return found_error;
 }
