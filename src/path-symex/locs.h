@@ -12,6 +12,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 
 #include <goto-programs/goto_functions.h>
+#include <path-symex/path_symex_taint_analysis.h>
 
 #include "loc_ref.h"
 
@@ -30,6 +31,9 @@ public:
   
   // we only support a single branch target
   loc_reft branch_target;
+
+  /* taint code */
+  taintt enforced_taint;
 };
 
 class locst

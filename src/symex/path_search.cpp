@@ -41,6 +41,13 @@ path_searcht::resultt path_searcht::operator()(
     if(taint_data.check_rules(locs, warning())) {
       error() << "Rules inconsistent." << eom;
     }
+
+    for(auto rule : taint_data.data) {
+      loc_reft loc;
+      loc.loc_number = rule.loc;
+      locs[loc].enforced_taint = rule.taint;
+      // To enable access to the rules.
+    }
   }
 
   // this is the container for the history-forest  
