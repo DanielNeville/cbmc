@@ -46,14 +46,9 @@ public:
 /* End Base Interface */
 
 
-
-
 enum class simple_taint_domaint {
   UNTAINTED, TAINTED
 };
-
-
-
 
 class path_symex_simple_taint_analysist:
     public path_symex_taint_analysist<simple_taint_domaint>
@@ -78,7 +73,5 @@ public:
 
   inline void hello() { std::cout << "Hello\n"; }
 };
-
-
 
 #endif
