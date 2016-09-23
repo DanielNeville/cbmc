@@ -59,7 +59,7 @@ public:
     var_statet():
       value(nil_exprt()),
       ssa_symbol(irep_idt()),
-      taint(taintt::UNTAINTED)
+      taint(0)
     {
     }
   };

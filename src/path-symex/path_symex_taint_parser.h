@@ -20,7 +20,8 @@
 bool parse_taint_file(
     const std::string &file_name,
     message_handlert &message_handler,
-    taint_datat &taint_data
+    taint_datat &taint_data, // TODO: Add engine.,
+    path_symex_taint_analysist &taint_engine
 )
 {
   /* Format
@@ -66,13 +67,17 @@ bool parse_taint_file(
     const std::string taint_string =(*it)["taint"].value;
     const std::string loc_string =(*it)["loc"].value;
 
-    taintt taint;
-    unsigned int loc;
+    taintt taint = 0;
+    unsigned int loc = 0;
+    unsigned array_index = 0;
+    dstring struct_member = "";
+    bool array_index_flag = false;
+    bool struct_member_flag = false;
+
 
     try {
-      path_symex_simple_taint_analysist taint_engine;
       // TODO: Handle catch better.  Add templating.
-      taint =  taint_engine.parser(taint_string);
+      taint =  taint_engine.parse_taint(taint_string);
     } catch(...) {
       messaget message(message_handler);
       message.error() << "Taint type not recognised." << messaget::eom;
@@ -87,7 +92,7 @@ bool parse_taint_file(
       loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    taint_data.add(loc, taint);
+    taint_data.add(loc, taint, array_index_flag, array_index, struct_member_flag, struct_member);
   }
 
   return false;

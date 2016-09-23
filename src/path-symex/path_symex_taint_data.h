@@ -35,19 +35,19 @@ public:
 		bool struct_member_flag;
 
 		// The member that must be associated with a taint state.
-		std::string struct_member;
+		dstring struct_member;
 
 
 		inline void output(path_symex_taint_analysist &taint_analysis, std::ostream &out) const {
 
 			out << "Location: " << loc << " set to " <<
-					taint_analysis.get_taint_state_name(taint_state);
+					taint_analysis.get_taint_name(taint_state);
 		}
 
-		inline taint_rulet(path_symex_taint_analysist &taint_analysis)
+		inline taint_rulet()
 		{
 			loc = 0;
-			taint_state = taint_analysis.get_top_position();
+			taint_state = 0; // 0 = maximal.
 			array_index_flag = false;
 			array_index = 0;
 			struct_member_flag = false;
@@ -78,7 +78,7 @@ public:
 			bool array_index_flag,
 			unsigned array_index,
 			bool struct_member_flag,
-			std::string struct_member) {
+			dstring struct_member) {
 
 		taint_rulet rule;
 		rule.loc = loc;
