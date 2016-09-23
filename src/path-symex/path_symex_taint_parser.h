@@ -25,8 +25,6 @@ bool parse_taint_file(
 {
   /* Format
 
-  Taint Analysis Option.
-
   Array of Objects.
   Each Object:
   Loc: <Program location s.t. LHS is tainted>
@@ -70,7 +68,6 @@ bool parse_taint_file(
 
     taintt taint;
     unsigned int loc;
-
 
     try {
       path_symex_simple_taint_analysist taint_engine;

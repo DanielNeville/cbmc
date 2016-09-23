@@ -31,22 +31,22 @@ class path_symex_taint_analysist{
 
 public:
 
+	virtual ~path_symex_taint_analysist(){};
+
 	// Returns the maximal element of the lattice.
-	virtual taintt get_top_position() = 0;
+	virtual taintt get_max_elem() = 0;
 
-	// Given two taint states, the meet of the two is returned.
-	virtual taintt meet(irep_idt id, taintt taint_state1, taintt taint_state2) = 0;
+	// Given two taint types, the meet of the two is returned.
+	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) = 0;
 
-	// Returns the name of the taint analysis
-	virtual std::string get_taint_analysis_name(taintt taint_state) = 0;
+	// Returns the name of the taint analysis engine
+	virtual std::string get_taint_analysis_name() = 0;
 
-	// Returns the taint state of
-	virtual taintt parse_taint_state(std::string input) = 0;
+	// Returns the taint type corresponding to the string
+	virtual taintt parse_taint(std::string taint_name) = 0;
 
-	// Returns the name of a given taint state
-	virtual std::string get_taint_state_name(taintt input) = 0;
-
-
+	// Returns the name of a given taint type
+	virtual std::string get_taint_name(taintt taint) = 0;
 };
 
 class path_symex_simple_taint_analysist: public path_symex_taint_analysist
@@ -57,42 +57,44 @@ public:
 	static const taintt UNTAINTED = 0;
 	static const taintt TAINTED = 1;
 
-	inline taintt get_top_position(){
+	~path_symex_simple_taint_analysist() {}
+
+	inline taintt get_max_elem(){
 		return UNTAINTED;
 	}
 
+	taintt meet(irep_idt id, taintt taint1, taintt taint2) {
 
-   taintt meet(irep_idt id, taintt taint_one, taintt taint_two) {
+		std::cout << "*** MEET HAS BEEN CALLED\n";
+		std::cout << "Parameters: 1: " << get_taint_name(taint1) << "  -- 2: " << get_taint_name(taint2) << "\n";
 
-    std::cout << "*** MEET HAS BEEN CALLED\n";
-    std::cout << "Parameters: 1: " << get_taint_state_name(taint_one) << "  -- 2: " << get_taint_state_name(taint_two) << "\n";
+		// If either one of the taint states is tainted, then the result is tainted.
+		return (taint1 == TAINTED || taint2 == TAINTED)
+				? TAINTED : UNTAINTED;
+	}
 
-    // If either one of the taint states is tainted, then the result is tainted.
-    return (taint_one == TAINTED || taint_two == TAINTED)
-        ? TAINTED : UNTAINTED;
-  }
+	inline std::string get_taint_analysis_name() { return "Simple taint domain."; }
 
-  inline taintt parse_taint_state(std::string input) {
-    /* Parse from strings -> taint types */
-    if(input == "untainted")
-      return UNTAINTED;
-    if(input == "tainted")
-      return TAINTED;
-    throw "Taint type not recognised";
-  }
+	inline taintt parse_taint(std::string taint_name) {
+		/* Parse from strings -> taint types */
+		if(taint_name == "untainted")
+			return UNTAINTED;
+		if(taint_name == "tainted")
+			return TAINTED;
+		throw "Taint type not recognised";
+	}
 
-  inline std::string get_taint_state_name(taintt input) {
-    /* Parse from taint -> strings types */
-    switch(input) {
-    case UNTAINTED:
-      return "untainted";
-    case TAINTED:
-      return "tainted";
-    }
-    throw "Taint type not recognised";
-  }
+	inline std::string get_taint_name(taintt taint) {
+		/* Parse from taint -> strings types */
+		switch(taint) {
+		case UNTAINTED:
+			return "untainted";
+		case TAINTED:
+			return "tainted";
+		}
+		throw "Taint type not recognised";
+	}
 
-  inline std::string get_taint_analysis_name() { return "Simple taint domain."; }
 };
 
 #endif
