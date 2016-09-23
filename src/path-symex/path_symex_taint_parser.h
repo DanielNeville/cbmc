@@ -2,7 +2,7 @@
  * path_symex_taint_parser.h
  *
  *  Created on: 22 Sep 2016
- *      Author: dan
+ *  Author: Daniel Neville
  */
 
 #ifndef PATH_SYMEX_PATH_SYMEX_TAINT_PARSER_H_
@@ -24,6 +24,9 @@ bool parse_taint_file(
 )
 {
   /* Format
+
+  Taint Analysis Option.
+
   Array of Objects.
   Each Object:
   Loc: <Program location s.t. LHS is tainted>
@@ -32,14 +35,15 @@ bool parse_taint_file(
 
   jsont json;
 
+  // First parse the file.
   if(parse_json(file_name, message_handler, json))
   {
     messaget message(message_handler);
-    message.error() << "input location file is not a valid json file"
-        << messaget::eom;
+    message.error() << "input location file is not a valid json file" << messaget::eom;
     return true;
   }
 
+  // Perform array check.
   if(!json.is_array())
   {
     messaget message(message_handler);
@@ -64,15 +68,9 @@ bool parse_taint_file(
     const std::string taint_string =(*it)["taint"].value;
     const std::string loc_string =(*it)["loc"].value;
 
-    const std::string array_index_string =(*it)["ai"].value;
-    const std::string struct_index =(*it)["si"].value;
-
     taintt taint;
     unsigned int loc;
-    unsigned int array_index;
 
-    bool array_index_flag = false;
-    bool struct_index_flag = false;
 
     try {
       path_symex_simple_taint_analysist taint_engine;
@@ -80,8 +78,7 @@ bool parse_taint_file(
       taint =  taint_engine.parser(taint_string);
     } catch(...) {
       messaget message(message_handler);
-      message.error() << "Taint type not recognised."
-          << messaget::eom;
+      message.error() << "Taint type not recognised." << messaget::eom;
     }
 
     if(loc_string.empty()) {
@@ -93,16 +90,7 @@ bool parse_taint_file(
       loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    if(!array_index_string.empty()) {
-      array_index = safe_string2unsigned(std::string(array_index_string, 0, std::string::npos));
-      array_index_flag = true;
-    }
-
-    if(!struct_index.empty()) {
-      struct_index_flag = true;
-    }
-
-    taint_data.add(loc, taint, array_index, array_index_flag, struct_index, struct_index_flag);
+    taint_data.add(loc, taint);
   }
 
   return false;
