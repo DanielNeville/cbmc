@@ -706,7 +706,7 @@ public:
 
 static inline const code_function_callt &to_code_function_call(const codet &code)
 {
-  assert(code.get_statement()== ID_function_call);
+  assert(code.get_statement()==ID_function_call);
   return static_cast<const code_function_callt &>(code);
 }
 
