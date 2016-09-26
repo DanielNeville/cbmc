@@ -43,7 +43,7 @@ path_symex_statet initial_state(
   var_mapt &var_map,
   const locst &locs,
   path_symex_historyt &path_symex_history,
-  path_symex_taint_analysist &taint_engine)
+  taint_enginet &taint_engine)
 {
   path_symex_statet s(var_map, locs, path_symex_history, taint_engine);
   

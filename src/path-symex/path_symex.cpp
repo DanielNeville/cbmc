@@ -352,17 +352,15 @@ void path_symext::assign_rec(
     // rhs nil means non-det assignment
     if(ssa_rhs.is_nil())
     {
+      // Propagate/instantiate taint.
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=nil_exprt();
 
       // Non-det represents not tainted by the user (for now.)
-      var_state.taint=0; // TODO: Use enum
+      var_state.taint=taint_enginet::get_max_elem();
 
       if(state.inst_enforces_taint()) {
         var_state.taint = state.get_enforced_taint();
-        path_symex_simple_taint_analysist taint_engine;
-//        std::cout << state.pc().loc_number << ": Setting taint value of " << ssa_lhs.pretty() << " to " << taint_engine.parser(state.get_enforced_taint()) << "\n";
-        // TODO: Taint on/off flag.
       }
     }
     else
@@ -390,15 +388,14 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
-      std::cout << ssa_rhs.pretty() << "\n\n\n";
-      //
-      path_symex_simple_taint_analysist taint_engine;
 
-      taintt taint = 0; // TODO: Use enum
+
+      std::cout << ssa_rhs.pretty() << "\n\n\n";
 
 //      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
-      find_taint(ssa_rhs, taint, state);
 
+      taintt taint = state.taint_engine.get_max_elem();
+      find_taint(ssa_rhs, taint, state);
       var_state.taint = taint;
 
 //      std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";

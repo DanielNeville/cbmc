@@ -19,6 +19,7 @@ Author:
 // TODO: JSON parser
 // TODO: basic extensibility for different domains.
 // TODO: function call considerations.
+// TODO: const
 //
 
 // We represent positions in a taint lattice as unsigned short value.
@@ -28,20 +29,20 @@ typedef unsigned short taintt;
 /**
  * 	Interface for taint analysis, which differ in their considered domains.
  */
-class path_symex_taint_analysist{
+class path_symex_taint_analysis_enginet {
 
 public:
 
-	virtual ~path_symex_taint_analysist(){};
+	virtual ~path_symex_taint_analysis_enginet(){};
 
 	// Returns the maximal/top element of the lattice.
-	virtual taintt get_max_elem() = 0;
+	inline static taintt get_max_elem() { return 0; }
 
 	// Returns the minimal/lowest element of the lattice.
 	virtual taintt get_min_elem() = 0;
 
 	// Given two taint types, the meet of the two is returned.
-	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) = 0;
+	virtual taintt meet(irep_idt id, taintt taint_1, taintt taint_2) = 0;
 
 	// Returns the name of the taint analysis engine
 	virtual std::string get_taint_analysis_name() = 0;
@@ -53,20 +54,21 @@ public:
 	virtual std::string get_taint_name(taintt taint) = 0;
 };
 
-class path_symex_no_taint_analysist: public path_symex_taint_analysist
+typedef path_symex_taint_analysis_enginet taint_enginet;
+
+class path_symex_no_taint_analysist: public taint_enginet
 {
 public:
-  inline taintt get_max_elem() { return 0; }
   inline taintt get_min_elem() { return 0; }
-  inline taintt meet(irep_idt id, taintt taint1, taintt taint2) { return 0; }
+  inline taintt meet(irep_idt id, taintt taint_1, taintt taint_2) { return 0; }
   inline std::string get_taint_analysis_name() { return "None"; }
   inline taintt parse_taint(std::string taint_name) { return 0; }
   inline std::string get_taint_name(taintt taint) { return ""; }
 };
 
-typedef path_symex_taint_analysist taint_enginet; // TODO - Everywhere
 
-class path_symex_simple_taint_analysist: public path_symex_taint_analysist
+class path_symex_simple_taint_analysis_enginet:
+    public taint_enginet
 {
 public:
 
@@ -74,11 +76,7 @@ public:
 	static const taintt UNTAINTED = 0;
 	static const taintt TAINTED = 1;
 
-	~path_symex_simple_taint_analysist() {}
-
-	inline taintt get_max_elem(){
-		return UNTAINTED;
-	}
+	~path_symex_simple_taint_analysis_enginet() {}
 
   inline taintt get_min_elem(){
     return TAINTED;

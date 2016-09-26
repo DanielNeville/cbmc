@@ -22,7 +22,7 @@ public:
     var_mapt &_var_map,
     const locst &_locs,
     path_symex_historyt &_path_symex_history,
-    path_symex_taint_analysist &_taint_engine):
+    taint_enginet &_taint_engine):
     var_map(_var_map),
     locs(_locs),
     taint_engine(_taint_engine),
@@ -41,7 +41,7 @@ public:
   // and a particular program.
   var_mapt &var_map;
   const locst &locs;
-  path_symex_taint_analysist &taint_engine;
+  taint_enginet &taint_engine;
 
   // the value of a variable
   struct var_statet
@@ -64,7 +64,7 @@ public:
     var_statet():
       value(nil_exprt()),
       ssa_symbol(irep_idt()),
-      taint(0)
+      taint(taint_enginet::get_max_elem())
     {
     }
   };
@@ -260,6 +260,6 @@ path_symex_statet initial_state(
   var_mapt &var_map,
   const locst &locs,
   path_symex_historyt &,
-  path_symex_taint_analysist &);
+  taint_enginet &);
   
 #endif

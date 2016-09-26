@@ -17,7 +17,7 @@ public:
   inline path_symext()
   {
   }
-  
+
   virtual void operator()(
     path_symex_statet &state,
     std::list<path_symex_statet> &furter_states);
@@ -90,10 +90,8 @@ protected:
 
 
 
-
+// TODO rename to better name
   inline void find_taint(const exprt &expr, taintt &taint, path_symex_statet &state) {
-    path_symex_simple_taint_analysist taint_analysis;
-
     std::cout << "Find_taint ENTERED!  Operand count : " << expr.operands().size() << "\n";
 
     if(expr.id() == ID_symbol) {
@@ -103,7 +101,7 @@ protected:
       var_mapt::var_infot &var_info=state.var_map[full_identifier];
       assert(var_info.full_identifier==full_identifier);
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
-      taint = taint_analysis.meet(expr.id(), taint, var_state.taint);
+      taint = state.taint_engine.meet(expr.id(), taint, var_state.taint);
     }
 
     forall_operands(it, expr) {

@@ -286,7 +286,9 @@ int symex_parse_optionst::doit()
 
     if(cmdline.isset("taint")) {
 
-      path_symex_simple_taint_analysist taint_engine;
+      // TODO IF.
+
+      path_symex_simple_taint_analysis_enginet taint_engine;
 
       path_search.set_taint(true, cmdline.get_value("taint"), taint_engine);
       parse_taint_file(cmdline.get_value("taint"), *message_handler,

@@ -38,7 +38,7 @@ public:
 		dstring struct_member;
 
 
-		inline void output(path_symex_taint_analysist &taint_engine, std::ostream &out) const {
+		inline void output(taint_enginet &taint_engine, std::ostream &out) const {
 
 			out << "Location: " << loc << " set to " <<
 			    taint_engine.get_taint_name(taint_state);
@@ -122,7 +122,7 @@ public:
 	inline bool check_rules(
 			locst &locs,
 			std::ostream & warning,
-			path_symex_taint_analysist &taint_engine) {
+			taint_enginet &taint_engine) {
 
 		for(auto rule : data) {
 			// Check whether the rule is outside program.
@@ -179,8 +179,7 @@ public:
 
   \*******************************************************************/
 
-	inline void output(std::ostream &out, path_symex_taint_analysist &taint_engine) const {
-
+	inline void output(std::ostream &out, taint_enginet &taint_engine) const {
 		int i = 0;
 		for(auto taint_rule : data) {
 			out << ++i << ": ";

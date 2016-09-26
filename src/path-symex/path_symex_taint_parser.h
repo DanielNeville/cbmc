@@ -22,7 +22,7 @@ bool parse_taint_file(
     const std::string &file_name,
     message_handlert &message_handler,
     taint_datat &taint_data, // TODO: Add engine.,
-    path_symex_taint_analysist &taint_engine
+    taint_enginet &taint_engine
 )
 {
 	/* Format

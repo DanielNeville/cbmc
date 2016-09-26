@@ -25,10 +25,8 @@ class path_searcht:public safety_checkert
 {
 public:
   explicit inline path_searcht(const namespacet &_ns
-//      path_symex_taint_analysist &_taint_engine
   ):
     safety_checkert(_ns),
-//    taint_engine(_taint_engine),
     show_vcc(false),
     eager_infeasibility(false),
     depth_limit_set(false), // no limit
@@ -68,7 +66,7 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(bool value, std::string file, path_symex_taint_analysist &_taint_engine) {
+  void set_taint(bool value, std::string file, taint_enginet &_taint_engine) {
     taint_set = value;
     taint_file = file;
     taint_engine = &_taint_engine;
@@ -77,7 +75,7 @@ public:
     std::cout << "OK\n";
   }
 
-  path_symex_taint_analysist *taint_engine;
+  taint_enginet *taint_engine;
   taint_datat taint_data;
 
   bool show_vcc;
