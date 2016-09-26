@@ -41,27 +41,30 @@ public:
 	virtual taintt get_min_elem() = 0;
 
 	// Given two taint types, the meet of the two is returned.
-	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) throw() = 0;
+	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) = 0;
 
 	// Returns the name of the taint analysis engine
 	virtual std::string get_taint_analysis_name() = 0;
 
 	// Returns the taint type corresponding to the string
-	virtual taintt parse_taint(std::string taint_name) throw() = 0;
+	virtual taintt parse_taint(std::string taint_name) = 0;
 
 	// Returns the name of a given taint type
-	virtual std::string get_taint_name(taintt taint) throw() = 0;
+	virtual std::string get_taint_name(taintt taint) = 0;
 };
 
 class path_symex_no_taint_analysist: public path_symex_taint_analysist
 {
 public:
   inline taintt get_max_elem() { return 0; }
+  inline taintt get_min_elem() { return 0; }
   inline taintt meet(irep_idt id, taintt taint1, taintt taint2) { return 0; }
   inline std::string get_taint_analysis_name() { return "None"; }
   inline taintt parse_taint(std::string taint_name) { return 0; }
   inline std::string get_taint_name(taintt taint) { return ""; }
 };
+
+typedef path_symex_taint_analysist taint_enginet; // TODO - Everywhere
 
 class path_symex_simple_taint_analysist: public path_symex_taint_analysist
 {
@@ -76,6 +79,11 @@ public:
 	inline taintt get_max_elem(){
 		return UNTAINTED;
 	}
+
+  inline taintt get_min_elem(){
+    return TAINTED;
+  }
+
 
 	taintt meet(irep_idt id, taintt taint1, taintt taint2) {
 

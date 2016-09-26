@@ -38,10 +38,10 @@ public:
 		dstring struct_member;
 
 
-		inline void output(path_symex_taint_analysist &taint_analysis, std::ostream &out) const {
+		inline void output(path_symex_taint_analysist &taint_engine, std::ostream &out) const {
 
 			out << "Location: " << loc << " set to " <<
-					taint_analysis.get_taint_name(taint_state);
+			    taint_engine.get_taint_name(taint_state);
 		}
 
 		inline taint_rulet()
@@ -59,7 +59,7 @@ public:
 	datat data;
 
 	// The taint analysis engine.
-	path_symex_taint_analysist &taint_analysis;
+//	path_symex_taint_analysist &taint_analysis;
 
 
 	/*******************************************************************\
@@ -73,9 +73,7 @@ public:
 	   Purpose: Constructor.
 
 	  \*******************************************************************/
-	inline taint_datat(path_symex_taint_analysist &analysis){
-		taint_analysis = analysis;
-	}
+	inline taint_datat() {};
 
 
 	/*******************************************************************\
@@ -123,7 +121,8 @@ public:
 
 	inline bool check_rules(
 			locst &locs,
-			std::ostream & warning) {
+			std::ostream & warning,
+			path_symex_taint_analysist &taint_engine) {
 
 		for(auto rule : data) {
 			// Check whether the rule is outside program.
@@ -131,7 +130,7 @@ public:
 
 				//Not a meaningful rule.
 				warning << "Following rule outside program scope:" << "\n";
-				rule.output(taint_analysis, warning);
+				rule.output(taint_engine, warning);
 				warning << "\n";
 				return true;
 			}
@@ -145,7 +144,7 @@ public:
 			if (!inst->is_assign() && !inst->is_decl() && !inst->is_function_call()){
 
 				warning << "Following rule refers to an unsupported op (" << inst->type << ")\n";
-				rule.output(taint_analysis, warning);
+				rule.output(taint_engine, warning);
 				warning << "\n";
 				return true;
 
@@ -156,7 +155,7 @@ public:
 
 				if(function_call.lhs().is_nil()) {
 					warning << "Following rule refers to function call with nil left-hand side:" << "\n";
-					rule.output(taint_analysis, warning);
+					rule.output(taint_engine, warning);
 					warning << "\n";
 					return true;
 				}
@@ -180,12 +179,12 @@ public:
 
   \*******************************************************************/
 
-	inline void output(std::ostream &out) const {
+	inline void output(std::ostream &out, path_symex_taint_analysist &taint_engine) const {
 
 		int i = 0;
 		for(auto taint_rule : data) {
 			out << ++i << ": ";
-			taint_rule.output(taint_analysis, out);
+			taint_rule.output(taint_engine, out);
 			out << "\n";
 			// TODO EOM.
 		}

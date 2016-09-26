@@ -24,10 +24,11 @@ Author: Daniel Kroening, kroening@kroening.com
 class path_searcht:public safety_checkert
 {
 public:
-  explicit inline path_searcht(const namespacet &_ns,
-      path_symex_taint_analysist &_taint_engine):
+  explicit inline path_searcht(const namespacet &_ns
+//      path_symex_taint_analysist &_taint_engine
+  ):
     safety_checkert(_ns),
-    taint_engine(_taint_engine),
+//    taint_engine(_taint_engine),
     show_vcc(false),
     eager_infeasibility(false),
     depth_limit_set(false), // no limit
@@ -67,14 +68,17 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(bool value, std::string file) {
+  void set_taint(bool value, std::string file, path_symex_taint_analysist &_taint_engine) {
     taint_set = value;
     taint_file = file;
-    std::cout << taint_engine.get_taint_analysis_name() << "\n";
+    taint_engine = &_taint_engine;
+//    taint_data(taint_engine);
+    std::cout << taint_engine->get_taint_analysis_name() << "\n";
     std::cout << "OK\n";
   }
 
-  path_symex_taint_analysist &taint_engine;
+  path_symex_taint_analysist *taint_engine;
+  taint_datat taint_data;
 
   bool show_vcc;
   bool eager_infeasibility;
@@ -112,8 +116,6 @@ public:
   
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
-
-  taint_datat taint_data;
 
 protected:
   typedef path_symex_statet statet;

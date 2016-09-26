@@ -248,13 +248,11 @@ int symex_parse_optionst::doit()
   }
 
   // do actual Symex
-  path_symex_simple_taint_analysist taint_engine;
-
 
   try
   {
     const namespacet ns(goto_model.symbol_table);
-    path_searcht path_search(ns, taint_engine);
+    path_searcht path_search(ns);
     
     path_search.set_message_handler(get_message_handler());
 
@@ -287,9 +285,10 @@ int symex_parse_optionst::doit()
     }
 
     if(cmdline.isset("taint")) {
-      path_search.set_taint(true, cmdline.get_value("taint"));
-      parse_taint_file(cmdline.get_value("taint"), *message_handler, path_search.taint_data,
-          path_search.taint_engine);
+      path_symex_simple_taint_analysist taint_engine;
+      path_search.set_taint(true, cmdline.get_value("taint"), taint_engine);
+//      parse_taint_file(cmdline.get_value("taint"), *message_handler,
+//          path_search.taint_engine);
 
 
 
