@@ -76,7 +76,7 @@ bool parse_taint_file(
 
 
     try {
-      // TODO: Handle catch better.  Add templating.
+      // TODO: Handle catch better.
       taint =  taint_engine.parse_taint(taint_string);
     } catch(...) {
       messaget message(message_handler);

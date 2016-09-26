@@ -13,15 +13,19 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "var_map.h"
 #include "path_symex_history.h"
 
+#include <path-symex/path_symex_taint_data.h>
+
 struct path_symex_statet
 {
 public:
   inline path_symex_statet(
     var_mapt &_var_map,
     const locst &_locs,
-    path_symex_historyt &_path_symex_history):
+    path_symex_historyt &_path_symex_history,
+    path_symex_taint_analysist &_taint_engine):
     var_map(_var_map),
     locs(_locs),
+    taint_engine(_taint_engine),
     inside_atomic_section(false),
     history(_path_symex_history),
     current_thread(0),
@@ -37,6 +41,7 @@ public:
   // and a particular program.
   var_mapt &var_map;
   const locst &locs;
+  path_symex_taint_analysist &taint_engine;
 
   // the value of a variable
   struct var_statet
@@ -254,6 +259,7 @@ protected:
 path_symex_statet initial_state(
   var_mapt &var_map,
   const locst &locs,
-  path_symex_historyt &);
+  path_symex_historyt &,
+  path_symex_taint_analysist &);
   
 #endif

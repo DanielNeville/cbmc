@@ -285,19 +285,20 @@ int symex_parse_optionst::doit()
     }
 
     if(cmdline.isset("taint")) {
+
       path_symex_simple_taint_analysist taint_engine;
+
       path_search.set_taint(true, cmdline.get_value("taint"), taint_engine);
-//      parse_taint_file(cmdline.get_value("taint"), *message_handler,
-//          path_search.taint_engine);
+      parse_taint_file(cmdline.get_value("taint"), *message_handler,
+          path_search.taint_data, *path_search.taint_engine);
 
+      // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
 
-
-
-//      if(cmdline.isset("show-taint-data")) {
-//        std::cout << "Taint data:\n";
-//        path_search.taint_data.output(taint_engine, std::cout);
-//        return 0;
-//      }
+      if(cmdline.isset("show-taint-data")) { // TODO: JSON interface.
+        std::cout << "Taint data:\n";
+        path_search.taint_data.output(std::cout, *path_search.taint_engine);
+        return 0;
+      }
     }
 
     path_search.eager_infeasibility=

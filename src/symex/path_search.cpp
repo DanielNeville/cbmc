@@ -38,23 +38,22 @@ path_searcht::resultt path_searcht::operator()(
   locs.build(goto_functions);
 
   if(taint_set) {
-//    if(taint_data.check_rules(locs, warning())) {
-//      error() << "Rules inconsistent." << eom;
-//    }
+    if(taint_data.check_rules(locs, warning(), *taint_engine)) {
+      // TODO:  Move check_rules into parse_options ..? Maybe?
+      error() << "Rules inconsistent." << eom;
+    }
 
-//    for(auto rule : taint_data.data) {
-//      loc_reft loc;
-//      loc.loc_number = rule.loc;
-//      locs[loc].enforced_taint = true;
-//      locs[loc].taint = rule.taint;
-//      // To enable access to the rules.
-//    }
+    for(auto rule : taint_data.data) {
+      locs.loc_vector[rule.loc].enforced_taint = true;
+      locs.loc_vector[rule.loc].taint = rule.taint_state;
+      // To enable access to the rules.
+    }
   }
 
   // this is the container for the history-forest  
   path_symex_historyt history;
   
-  queue.push_back(initial_state(var_map, locs, history));
+  queue.push_back(initial_state(var_map, locs, history, *taint_engine));
   
   // set up the statistics
   number_of_dropped_states=0;
@@ -149,7 +148,7 @@ path_searcht::resultt path_searcht::operator()(
       // execute
       path_symex(state, tmp_queue);
       
-      std::cout << "Current state of the internal variable map: \n";
+//      std::cout << "Current state of the internal variable map: \n";
 //
 //      if(state.pc().loc_number > 18) {
 //        for(auto i: state.var_map.id_map) {
