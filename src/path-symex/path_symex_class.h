@@ -89,13 +89,12 @@ protected:
     const exprt &ssa_rhs); // instantiated
 
 
-
-// TODO rename to better name
-  inline void find_taint(const exprt &expr, taintt &taint, path_symex_statet &state) {
-    std::cout << "Find_taint ENTERED!  Operand count : " << expr.operands().size() << "\n";
+  inline void recursive_taint_extraction(const exprt &expr,
+      taintt &taint, path_symex_statet &state) {
+//    std::cout << "Find_taint ENTERED!  Operand count : " << expr.operands().size() << "\n";
 
     if(expr.id() == ID_symbol) {
-      std::cout << "Entering symbol branch.\n";
+//      std::cout << "Entering symbol branch.\n";
       symbol_exprt symbol = to_symbol_expr(expr);
       const irep_idt &full_identifier=symbol.get(ID_C_full_identifier);
       var_mapt::var_infot &var_info=state.var_map[full_identifier];
@@ -105,7 +104,7 @@ protected:
     }
 
     forall_operands(it, expr) {
-        find_taint(*it, taint, state);
+      recursive_taint_extraction(*it, taint, state);
     }
   }
 

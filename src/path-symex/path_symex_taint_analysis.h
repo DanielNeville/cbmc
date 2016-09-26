@@ -13,14 +13,12 @@ Author:
 
 #include <iostream>
 
-// TODO: consider arrays, structs, member, index, dereference, if, array, vector, string constant,
 // TODO: how to introduce / remove taint
-// TODO: get
-// TODO: JSON parser
-// TODO: basic extensibility for different domains.
+// TODO: getters / setting within C.
 // TODO: function call considerations.
-// TODO: const
-//
+// TODO: const, code-clean up, references when possible, etc
+// TODO:  Make taint file syntactically 'similar' to A.I. taint file.
+// comment everything
 
 // We represent positions in a taint lattice as unsigned short value.
 // 0 always represents top (UT)
@@ -56,7 +54,7 @@ public:
 
 typedef path_symex_taint_analysis_enginet taint_enginet;
 
-class path_symex_no_taint_analysist: public taint_enginet
+class path_symex_no_taint_analysis_enginet: public taint_enginet
 {
 public:
   inline taintt get_min_elem() { return 0; }
@@ -88,11 +86,11 @@ public:
 		std::cout << "Parameters: 1: " << get_taint_name(taint1) << "  -- 2: " << get_taint_name(taint2) << "\n";
 
 		// Perform range checks on passed taint types.
-		if (taint1 > get_max_elem() || taint1 < get_min_elem()){
+		if (taint1 != UNTAINTED && taint1 != TAINTED) {
 			throw "First taint type  passed to meet function is invalid.";
 		}
 
-		if (taint2 > get_max_elem() || taint2 < get_min_elem()){
+		if (taint1 != UNTAINTED && taint1 != TAINTED) {
 			throw "Second taint type passed to meet function is invalid.";
 		}
 

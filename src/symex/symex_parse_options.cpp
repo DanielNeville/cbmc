@@ -284,27 +284,30 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
-    if(cmdline.isset("taint")) {
+    if(cmdline.isset("taint") && cmdline.get_value("taint") != "none") {
+      if(cmdline.get_value("taint") == "simple") {
+        path_symex_simple_taint_analysis_enginet taint_engine;
+        path_search.set_taint(true, cmdline.get_value("taint-file"), taint_engine);
+      } else {
+        throw "Taint engine type not recognised.";
+      }
 
-      // TODO IF.
-
-      path_symex_simple_taint_analysis_enginet taint_engine;
-
-      path_search.set_taint(true, cmdline.get_value("taint"), taint_engine);
-      parse_taint_file(cmdline.get_value("taint"), *message_handler,
+      parse_taint_file(cmdline.get_value("taint-file"), *message_handler,
           path_search.taint_data, *path_search.taint_engine);
 
       status() << "Using taint engine: " <<
           path_search.taint_engine->get_taint_analysis_name() <<
           ".  Found " << path_search.taint_data.data.size() << " rules.\n";
 
-      // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
 
-      if(cmdline.isset("show-taint-data")) { // TODO: JSON interface.
+      if(cmdline.isset("show-taint-data")) {
         std::cout << "Taint data:\n";
         path_search.taint_data.output(std::cout, *path_search.taint_engine);
         return 0;
       }
+    } else {
+      path_symex_no_taint_analysis_enginet taint_engine;
+      path_search.set_taint(false, cmdline.get_value("taint-file"), taint_engine);
     }
 
     path_search.eager_infeasibility=

@@ -388,14 +388,14 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
+      std::cout << "LHS: " << ssa_lhs.pretty() << "\n=\n";
 
-
-      std::cout << ssa_rhs.pretty() << "\n\n\n";
+      std::cout << "RHS: " << ssa_rhs.pretty() << "\n\n\n";
 
 //      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
 
       taintt taint = state.taint_engine.get_max_elem();
-      find_taint(ssa_rhs, taint, state);
+      recursive_taint_extraction(ssa_rhs, taint, state);
       var_state.taint = taint;
 
 //      std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";
@@ -551,6 +551,7 @@ void path_symext::assign_rec(
         ssa_rhs.is_nil()?ssa_rhs:
         simplify_expr(index_exprt(ssa_rhs, from_integer(i, index_type()), array_type.subtype()),
           state.var_map.ns);
+      std::cout << "!!! Calling LOOP\n";
       assign_rec(state, guard, operands[i], new_rhs);
     }
   }

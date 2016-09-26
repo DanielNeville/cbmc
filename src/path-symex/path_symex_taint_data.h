@@ -185,7 +185,7 @@ public:
 			out << ++i << ": ";
 			taint_rule.output(taint_engine, out);
 			out << "\n";
-			// TODO EOM.
+			// TODO EOM?
 		}
 	}
 };
