@@ -22,6 +22,7 @@ Author:
 //
 
 // We represent positions in a taint lattice as unsigned short value.
+// 0 always represents top (UT)
 typedef unsigned short taintt;
 
 /**
@@ -50,6 +51,16 @@ public:
 
 	// Returns the name of a given taint type
 	virtual std::string get_taint_name(taintt taint) throw() = 0;
+};
+
+class path_symex_no_taint_analysist: public path_symex_taint_analysist
+{
+public:
+  inline taintt get_max_elem() { return 0; }
+  inline taintt meet(irep_idt id, taintt taint1, taintt taint2) { return 0; }
+  inline std::string get_taint_analysis_name() { return "None"; }
+  inline taintt parse_taint(std::string taint_name) { return 0; }
+  inline std::string get_taint_name(taintt taint) { return ""; }
 };
 
 class path_symex_simple_taint_analysist: public path_symex_taint_analysist

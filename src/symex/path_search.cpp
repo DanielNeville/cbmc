@@ -38,17 +38,17 @@ path_searcht::resultt path_searcht::operator()(
   locs.build(goto_functions);
 
   if(taint_set) {
-    if(taint_data.check_rules(locs, warning())) {
-      error() << "Rules inconsistent." << eom;
-    }
+//    if(taint_data.check_rules(locs, warning())) {
+//      error() << "Rules inconsistent." << eom;
+//    }
 
-    for(auto rule : taint_data.data) {
-      loc_reft loc;
-      loc.loc_number = rule.loc;
-      locs[loc].enforced_taint = true;
-      locs[loc].taint = rule.taint;
-      // To enable access to the rules.
-    }
+//    for(auto rule : taint_data.data) {
+//      loc_reft loc;
+//      loc.loc_number = rule.loc;
+//      locs[loc].enforced_taint = true;
+//      locs[loc].taint = rule.taint;
+//      // To enable access to the rules.
+//    }
   }
 
   // this is the container for the history-forest  
@@ -150,16 +150,16 @@ path_searcht::resultt path_searcht::operator()(
       path_symex(state, tmp_queue);
       
       std::cout << "Current state of the internal variable map: \n";
-
-      if(state.pc().loc_number > 18) {
-        for(auto i: state.var_map.id_map) {
-
-          std::cout << i.first << " -- " << taint_engine.parser(state.get_var_state(i.second).taint) << "\n";
-        }
-        std::cout << "END ****\n";
-        std::cin.ignore();
-
-      }
+//
+//      if(state.pc().loc_number > 18) {
+//        for(auto i: state.var_map.id_map) {
+//
+//          std::cout << i.first << " -- " << taint_engine.parser(state.get_var_state(i.second).taint) << "\n";
+//        }
+//        std::cout << "END ****\n";
+//        std::cin.ignore();
+//
+//      }
 
 
       // put at head of main queue

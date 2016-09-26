@@ -248,11 +248,13 @@ int symex_parse_optionst::doit()
   }
 
   // do actual Symex
+  path_symex_simple_taint_analysist taint_engine;
+
 
   try
   {
     const namespacet ns(goto_model.symbol_table);
-    path_searcht path_search(ns);
+    path_searcht path_search(ns, taint_engine);
     
     path_search.set_message_handler(get_message_handler());
 
@@ -286,13 +288,17 @@ int symex_parse_optionst::doit()
 
     if(cmdline.isset("taint")) {
       path_search.set_taint(true, cmdline.get_value("taint"));
-      parse_taint_file(cmdline.get_value("taint"), *message_handler, path_search.taint_data);
+      parse_taint_file(cmdline.get_value("taint"), *message_handler, path_search.taint_data,
+          path_search.taint_engine);
 
-      if(cmdline.isset("show-taint-data")) {
-        std::cout << "Taint data:\n";
-        path_search.taint_data.output(std::cout);
-        return 0;
-      }
+
+
+
+//      if(cmdline.isset("show-taint-data")) {
+//        std::cout << "Taint data:\n";
+//        path_search.taint_data.output(taint_engine, std::cout);
+//        return 0;
+//      }
     }
 
     path_search.eager_infeasibility=

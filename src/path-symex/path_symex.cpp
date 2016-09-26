@@ -356,7 +356,7 @@ void path_symext::assign_rec(
       var_state.value=nil_exprt();
 
       // Non-det represents not tainted by the user (for now.)
-      var_state.taint=taintt::UNTAINTED;
+      var_state.taint=0; // TODO: Use enum
 
       if(state.inst_enforces_taint()) {
         var_state.taint = state.get_enforced_taint();
@@ -394,14 +394,14 @@ void path_symext::assign_rec(
       //
       path_symex_simple_taint_analysist taint_engine;
 
-      taintt taint = taintt::UNTAINTED;
+      taintt taint = 0; // TODO: Use enum
 
 //      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
       find_taint(ssa_rhs, taint, state);
 
       var_state.taint = taint;
 
-      std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";
+//      std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";
 
 //      var_state.taint=taint_engine.meet()
 
