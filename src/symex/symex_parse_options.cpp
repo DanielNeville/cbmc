@@ -294,6 +294,10 @@ int symex_parse_optionst::doit()
       parse_taint_file(cmdline.get_value("taint"), *message_handler,
           path_search.taint_data, *path_search.taint_engine);
 
+      status() << "Using taint engine: " <<
+          path_search.taint_engine->get_taint_analysis_name() <<
+          ".  Found " << path_search.taint_data.data.size() << " rules.\n";
+
       // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
 
       if(cmdline.isset("show-taint-data")) { // TODO: JSON interface.

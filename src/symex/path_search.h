@@ -68,15 +68,9 @@ public:
 
   void set_taint(bool value, std::string file, taint_enginet &_taint_engine) {
     taint_set = value;
-    taint_file = file;
+    taint_file = file; // For posterity.
     taint_engine = &_taint_engine;
-//    taint_data(taint_engine);
-    std::cout << taint_engine->get_taint_analysis_name() << "\n";
-    std::cout << "OK\n";
   }
-
-  taint_enginet *taint_engine;
-  taint_datat taint_data;
 
   bool show_vcc;
   bool eager_infeasibility;
@@ -114,6 +108,11 @@ public:
   
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
+
+  taint_enginet *taint_engine;
+  // This is the taint engine that will be used throughout analysis.
+  taint_datat taint_data;
+  // This is the specified data provided in the JSON file.
 
 protected:
   typedef path_symex_statet statet;
