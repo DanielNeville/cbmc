@@ -13,12 +13,14 @@ Author:
 
 #include <iostream>
 
-// TODO: how to introduce / remove taint
 // TODO: getters / setting within C.
+// TODO: Add functionality for tainted array index, tainted array
+// TODO: Add semantics to printf / others.
 // TODO: function call considerations.
-// TODO: const, code-clean up, references when possible, etc
 // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
-// comment everything
+// TODO: code-efficient, const, code-clean up, references when possible, comment, etc
+
+
 
 // We represent positions in a taint lattice as unsigned short value.
 // 0 always represents top (UT)
