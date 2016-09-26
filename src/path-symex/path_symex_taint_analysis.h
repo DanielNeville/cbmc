@@ -73,7 +73,7 @@ class path_symex_simple_taint_analysis_enginet:
 public:
 
 	// For simple taint analysis, we solely consider two taint types.
-	static const taintt UNTAINTED = 0;
+	static const taintt UNTAINTED = 0; // 0 = max.
 	static const taintt TAINTED = 1;
 
 	~path_symex_simple_taint_analysis_enginet() {}
@@ -81,7 +81,6 @@ public:
   inline taintt get_min_elem(){
     return TAINTED;
   }
-
 
 	taintt meet(irep_idt id, taintt taint1, taintt taint2) {
 

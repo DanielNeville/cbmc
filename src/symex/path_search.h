@@ -155,7 +155,6 @@ protected:
 
   bool taint_set;
   std::string taint_file;
-  // TODO: Templating support.
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 

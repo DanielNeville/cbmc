@@ -21,7 +21,7 @@
 bool parse_taint_file(
     const std::string &file_name,
     message_handlert &message_handler,
-    taint_datat &taint_data, // TODO: Add engine.,
+    taint_datat &taint_data,
     taint_enginet &taint_engine
 )
 {
