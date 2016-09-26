@@ -33,20 +33,23 @@ public:
 
 	virtual ~path_symex_taint_analysist(){};
 
-	// Returns the maximal element of the lattice.
+	// Returns the maximal/top element of the lattice.
 	virtual taintt get_max_elem() = 0;
 
+	// Returns the minimal/lowest element of the lattice.
+	virtual taintt get_min_elem() = 0;
+
 	// Given two taint types, the meet of the two is returned.
-	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) = 0;
+	virtual taintt meet(irep_idt id, taintt taint1, taintt taint2) throw() = 0;
 
 	// Returns the name of the taint analysis engine
 	virtual std::string get_taint_analysis_name() = 0;
 
 	// Returns the taint type corresponding to the string
-	virtual taintt parse_taint(std::string taint_name) = 0;
+	virtual taintt parse_taint(std::string taint_name) throw() = 0;
 
 	// Returns the name of a given taint type
-	virtual std::string get_taint_name(taintt taint) = 0;
+	virtual std::string get_taint_name(taintt taint) throw() = 0;
 };
 
 class path_symex_simple_taint_analysist: public path_symex_taint_analysist
@@ -67,6 +70,15 @@ public:
 
 		std::cout << "*** MEET HAS BEEN CALLED\n";
 		std::cout << "Parameters: 1: " << get_taint_name(taint1) << "  -- 2: " << get_taint_name(taint2) << "\n";
+
+		// Perform range checks on passed taint types.
+		if (taint1 > get_max_elem() || taint1 < get_min_elem()){
+			throw "First taint type  passed to meet function is invalid.";
+		}
+
+		if (taint2 > get_max_elem() || taint2 < get_min_elem()){
+			throw "Second taint type passed to meet function is invalid.";
+		}
 
 		// If either one of the taint states is tainted, then the result is tainted.
 		return (taint1 == TAINTED || taint2 == TAINTED)
@@ -94,7 +106,6 @@ public:
 		}
 		throw "Taint type not recognised";
 	}
-
 };
 
 #endif

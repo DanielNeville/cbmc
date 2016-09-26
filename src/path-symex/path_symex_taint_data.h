@@ -14,7 +14,7 @@ class taint_datat
 {
 public:
 
-
+	// Defines a taint rule.
 	class taint_rulet
 	{
 	public:
@@ -41,13 +41,13 @@ public:
 		inline void output(path_symex_taint_analysist &taint_analysis, std::ostream &out) const {
 
 			out << "Location: " << loc << " set to " <<
-					taint_analysis.get_taint_state_name(taint_state);
+					taint_analysis.get_taint_name(taint_state);
 		}
 
 		inline taint_rulet(path_symex_taint_analysist &taint_analysis)
 		{
 			loc = 0;
-			taint_state = taint_analysis.get_top_position();
+			taint_state = taint_analysis.get_max_elem()();
 			array_index_flag = false;
 			array_index = 0;
 			struct_member_flag = false;
@@ -55,20 +55,38 @@ public:
 		}
 	};
 
-
 	typedef std::vector<taint_rulet> datat;
 	datat data;
+
+	// The taint analysis engine.
+	path_symex_taint_analysist &taint_analysis;
 
 
 	/*******************************************************************\
 
-  Function: taint_datat::add
+	  Function: taint_datat::taint_datat
+
+	   Inputs: The considered taint analysis engine
+
+	   Outputs: Nothing
+
+	   Purpose: Constructor.
+
+	  \*******************************************************************/
+	inline taint_datat(path_symex_taint_analysist &analysis){
+		taint_analysis = analysis;
+	}
+
+
+	/*******************************************************************\
+
+    Function: taint_datat::add
 
     Inputs: The location where a given taint state is introduced.
 
-   Outputs: Nothing
+    Outputs: Nothing
 
-   Purpose: Registers a taint rule, normally parsed from the JSON file.
+    Purpose: Registers a taint rule, normally parsed from the JSON file.
 
   \*******************************************************************/
 
@@ -105,7 +123,6 @@ public:
 
 	inline bool check_rules(
 			locst &locs,
-			path_symex_taint_analysist &taint_analysis,
 			std::ostream & warning) {
 
 		for(auto rule : data) {
@@ -135,7 +152,6 @@ public:
 			}else if (inst->is_function_call()){
 
 				// Need to check that the left hand side of the function call exists.
-
 				code_function_callt function_call = to_code_function_call(inst->code);
 
 				if(function_call.lhs().is_nil()) {
@@ -160,11 +176,11 @@ public:
 
    Outputs: Returns nothing.
 
-   Purpose: Outputs the specified rules.
+   Purpose: Outputs to stream the specified rules.
 
   \*******************************************************************/
 
-	inline void output(path_symex_taint_analysist &taint_analysis, std::ostream &out) const {
+	inline void output(std::ostream &out) const {
 
 		int i = 0;
 		for(auto taint_rule : data) {
