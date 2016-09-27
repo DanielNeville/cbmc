@@ -31,10 +31,6 @@ public:
   
   // we only support a single branch target
   loc_reft branch_target;
-
-  /* taint code */
-  taintt taint;
-  bool enforced_taint = false;
 };
 
 class locst
