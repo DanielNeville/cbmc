@@ -40,7 +40,7 @@ bool parse_taint_file(
   if(parse_json(file_name, message_handler, json))
   {
     messaget message(message_handler);
-    message.error() << "input location file is not a valid json file" << messaget::eom;
+    message.error() << "Taint file is not a valid json file" << messaget::eom;
     return true;
   }
 
