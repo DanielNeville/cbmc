@@ -90,9 +90,6 @@ protected:
 
   static bool propagate(const exprt &src);
 
-  void set_taint
-
-
   inline void recursive_taint_extraction(
       const exprt &expr,
       taintt &taint,
