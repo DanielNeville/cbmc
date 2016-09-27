@@ -1053,9 +1053,11 @@ void path_symext::operator()(
 
         if(code.op0().id() == ID_set_taint) {
           exprt src = code.op0();
+
           // TODO:  Put in function
           //           set_taint(code.op0());
           // void set_taint(exprt src);
+
           assert(src.op0().id() == ID_address_of);
           assert(src.op0().op0().id() == ID_index);
           assert(src.op0().op0().op0().id() == ID_string_constant);
