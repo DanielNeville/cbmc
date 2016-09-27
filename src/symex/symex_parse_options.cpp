@@ -300,6 +300,10 @@ int symex_parse_optionst::doit()
         }
       }
 
+      // Point the taint engine to the data.
+      (path_search.taint_engine)->taint_data=
+          &path_search.taint_data;
+
       status() << "Using taint engine: " <<
           path_search.taint_engine->get_taint_analysis_name() <<
           "  Found " << path_search.taint_data.data.size() <<

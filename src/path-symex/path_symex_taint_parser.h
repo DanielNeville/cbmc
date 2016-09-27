@@ -100,9 +100,6 @@ bool parse_taint_file(const std::string &file_name,
     taint_data.add(loc, taint, symbol_flag, symbol_name);
   }
 
-  // Point the taint engine to the data.
-  taint_engine.taint_data=&taint_data;
-
   return false;
 }
 
