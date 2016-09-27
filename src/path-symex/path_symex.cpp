@@ -931,6 +931,7 @@ void path_symext::operator()(
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
 
+  loc_reft pc = state.pc();
     
   #ifdef DEBUG
   std::cout << "path_symext::operator(): "
@@ -1086,6 +1087,18 @@ void path_symext::operator()(
 
   default:
     throw "path_symext: unexpected instruction";
+  }
+
+  // TODO: Move to function?
+  if(state.taint_engine.enabled) {
+    for(auto rule : state.taint_engine.taint_data->data[pc.loc_number]) {
+      if(rule.enforces_lhs || !rule.symbol_flag)
+        continue;
+      var_mapt::var_infot &var_info=state.var_map[rule.symbol_name];
+      assert(var_info.full_identifier==rule.symbol_name);
+      path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
+      var_state.taint = rule.taint_state;
+    }
   }
 }
 

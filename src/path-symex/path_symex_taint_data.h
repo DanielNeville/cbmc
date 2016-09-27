@@ -27,7 +27,7 @@ public:
 		// The taint state the force.
 		taintt taint_state;
 
-		bool symbol_flag;
+		bool symbol_flag; // somewhat mirrors enforces_lhs
 
 		irep_idt symbol_name;
 

@@ -56,6 +56,8 @@ public:
 	virtual std::string get_taint_name(taintt taint) = 0;
 
 	taint_datat *taint_data;
+
+  bool enabled = false;
 };
 
 typedef path_symex_taint_analysis_enginet taint_enginet;
@@ -75,7 +77,6 @@ class path_symex_simple_taint_analysis_enginet:
     public taint_enginet
 {
 public:
-
 	// For simple taint analysis, we solely consider two taint types.
 	static const taintt UNTAINTED = 0; // 0 = max.
 	static const taintt TAINTED = 1;

@@ -37,7 +37,7 @@ path_searcht::resultt path_searcht::operator()(
   
   locs.build(goto_functions);
 
-  if(taint_set) {
+  if(taint_engine->enabled) {
     if(taint_data.check_rules(locs, warning(), *taint_engine)) {
       // TODO:  Move check_rules into parse_options ..? Maybe?
       error() << "Rules inconsistent." << eom;

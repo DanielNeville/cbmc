@@ -33,7 +33,6 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
-    taint_set(false),
     taint_file(""),
     search_heuristic(search_heuristict::DFS)
   {
@@ -66,10 +65,10 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(bool value, std::string file, taint_enginet &_taint_engine) {
-    taint_set = value;
+  void set_taint(bool enabled, std::string file, taint_enginet &_taint_engine) {
     taint_file = file; // For posterity.
     taint_engine = &_taint_engine;
+    taint_engine->enabled = enabled;
   }
 
   bool show_vcc;
@@ -152,7 +151,6 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
-  bool taint_set;
   std::string taint_file;
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
