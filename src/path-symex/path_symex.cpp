@@ -357,7 +357,7 @@ void path_symext::assign_rec(
       var_state.value=nil_exprt();
 
       // Non-det represents not tainted by the user (for now.)
-      var_state.taint=taint_enginet::get_max_elem();
+      var_state.taint=taint_enginet::get_top_elem();
 
       if(state.inst_enforces_taint()) {
         var_state.taint = state.get_enforced_taint();
@@ -388,7 +388,7 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
-      taintt taint = state.taint_engine.get_max_elem();
+      taintt taint = state.taint_engine.get_top_elem();
       recursive_taint_extraction(ssa_rhs, taint, state);
       var_state.taint = taint;
 
@@ -923,7 +923,7 @@ void path_symext::operator()(
   const goto_programt::instructiont &instruction=
       *state.get_instruction();
 
-  loc_reft pc = state.pc();
+  loc_reft pc = state.pc(); // For taint analysis.
 
 #ifdef DEBUG
   std::cout << "path_symext::operator(): "
@@ -931,8 +931,6 @@ void path_symext::operator()(
       << instruction.type
       << std::endl;
 #endif
-
-  std::cout << "Instruction: " << instruction.type << "\n";
 
   switch(instruction.type)
   {
@@ -1111,7 +1109,7 @@ void path_symext::operator()(
   // TODO: Move to function?
   if(state.taint_engine.enabled) {
     for(auto rule : state.taint_engine.taint_data->data[pc.loc_number]) {
-      if(rule.enforces_lhs || !rule.symbol_flag)
+      if(!rule.symbol_flag)
         continue;
       var_mapt::var_infot &var_info=state.var_map[rule.symbol_name];
       assert(var_info.full_identifier==rule.symbol_name);

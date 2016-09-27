@@ -65,7 +65,7 @@ public:
     var_statet():
       value(nil_exprt()),
       ssa_symbol(irep_idt()),
-      taint(taint_enginet::get_max_elem())
+      taint(taint_enginet::get_top_elem())
     {
     }
   };
@@ -172,7 +172,7 @@ public:
   inline bool inst_enforces_taint() {
     // TODO:  Consider removal?  It's not a symbol.  What can we meaningfully do?
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
-      if(rule.enforces_lhs)
+      if(!rule.symbol_flag)
         return true;
     }
     return false;
@@ -180,7 +180,7 @@ public:
 
   inline taintt get_enforced_taint() {
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
-      if(rule.enforces_lhs)
+      if(!rule.symbol_flag)
         return rule.taint_state;
     }
 

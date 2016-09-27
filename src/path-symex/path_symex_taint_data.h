@@ -14,171 +14,179 @@ class taint_datat
 {
 public:
 
-	// Defines a taint rule.
-	class taint_rulet
-	{
-	public:
-	  // LHS enforced?
-	  bool enforces_lhs;
+  // Defines a taint rule.
+  class taint_rulet
+  {
+  public:
+    // The location where taint is forced.  (Redundant.)
+    unsigned int loc;
 
-		// The location where taint is forced.  (Redundant.)
-		unsigned int loc;
+    // The taint state the force.
+    taintt taint_state;
 
-		// The taint state the force.
-		taintt taint_state;
+    // Modify a symbol, or just the LHS?
+    bool symbol_flag;
 
-		bool symbol_flag; // somewhat mirrors enforces_lhs
+    // The name of the symbol to be updated.
+    irep_idt symbol_name;
 
-		irep_idt symbol_name;
+    // Output a rule using the taint engine.
+    inline void output(taint_enginet &taint_engine, std::ostream &out) const
+    {
+      out << "Location: " << loc;
+      if (symbol_flag)
+        out << ", symbol name: " << symbol_name;
 
+      out << " set to " << taint_engine.get_taint_name(taint_state);
+    }
 
-		inline void output(taint_enginet &taint_engine, std::ostream &out) const {
+    // Defaults
+    inline taint_rulet()
+    {
+      loc=0;
+      // 0 = TOP element, always.
+      taint_state=0;
+      symbol_flag=false;
+      symbol_name="";
+    }
+  };
 
-			out << "Location: " << loc;
-      if(symbol_flag)
-        out << ", symbol_name: " << symbol_name;
+  typedef std::map<unsigned, std::vector<taint_rulet> > datat;
+  datat data;
 
-			out << " set to " << taint_engine.get_taint_name(taint_state);
-		}
+  /*******************************************************************
+   Function: taint_datat::taint_datat
 
-		inline taint_rulet()
-		{
-			loc = 0;
-			taint_state = 0; // 0 = maximal.
-			symbol_flag = false;
-			symbol_name = "";
-			enforces_lhs = false;
-		}
-	};
+   Inputs: The considered taint analysis engine
 
-	typedef std::map<unsigned, std::vector<taint_rulet> > datat;
-	datat data;
+   Outputs: Nothing
 
-	/*******************************************************************\
+   Purpose: Constructor.
 
-	  Function: taint_datat::taint_datat
+   \*******************************************************************/
+  inline taint_datat()
+  {
+  }
+  ;
 
-	   Inputs: The considered taint analysis engine
+/*******************************************************************
 
-	   Outputs: Nothing
+ Function: taint_datat::add
 
-	   Purpose: Constructor.
+ Inputs: The location where a given taint state is introduced.
 
-	  \*******************************************************************/
-	inline taint_datat() {};
+ Outputs: Nothing
 
+ Purpose: Registers a taint rule, normally parsed from the JSON file.
 
-	/*******************************************************************\
+\*******************************************************************/
 
-    Function: taint_datat::add
+  inline void add(unsigned loc, taintt taint_state,
+      bool symbol_flag, irep_idt symbol_name)
+  {
+    taint_rulet rule;
+    rule.loc=loc;
+    rule.taint_state=taint_state;
+    rule.symbol_name=symbol_name;
+    rule.symbol_flag=symbol_flag;
+    data[loc].push_back(rule);
+  }
 
-    Inputs: The location where a given taint state is introduced.
-
-    Outputs: Nothing
-
-    Purpose: Registers a taint rule, normally parsed from the JSON file.
-
-  \*******************************************************************/
-
-	inline void add(
-			unsigned loc,
-			taintt taint_state,
-			bool symbol_flag,
-			irep_idt symbol_name) {
-
-		taint_rulet rule;
-		rule.loc = loc;
-		rule.taint_state = taint_state;
-		rule.symbol_name = symbol_name;
-		rule.symbol_flag = symbol_flag;
-		rule.enforces_lhs = !symbol_flag;
-		data[loc].push_back(rule);
-	}
-
-
-	/*******************************************************************\
+/*******************************************************************
 
   Function: taint_datat::check_rules
 
-    Inputs: Takes the locs of the program.
+  Inputs: Takes the locs of the program.
 
-   Outputs: Returns true in case a rule is invalid
+  Outputs: Returns true in case a rule is invalid
 
-   Purpose: Checks specified taint introduction rules.
+  Purpose: Checks specified taint introduction rules.
 
-  \*******************************************************************/
+  This is not intended to be a complete checker of rules.
 
-	inline bool check_rules(
-			locst &locs,
-			std::ostream & warning,
-			taint_enginet &taint_engine) {
+\*******************************************************************/
 
-	  for(auto rule_vector : data) {
-	    for(auto rule: rule_vector.second) {
-	      // Check whether the rule is outside program.
-	      if(rule.loc >= locs.size()) {
+  inline bool check_rules(locst &locs, std::ostream & warning,
+      taint_enginet &taint_engine) const
+  {
+    if(!taint_engine.enabled)
+      return false;
 
-	        //Not a meaningful rule.
-	        warning << "Following rule outside program scope:" << "\n";
-	        rule.output(taint_engine, warning);
-	        warning << "\n";
-	        return true;
-	      }
+    for (auto rule_vector : data)
+    {
+      for (auto rule : rule_vector.second)
+      {
+        // Check whether the rule is outside program.
+        if (rule.loc >= locs.size())
+        {
+          warning << "Following rule outside program scope:" << "\n";
+          rule.output(taint_engine, warning);
+          warning << "\n";
+          return true;
+        }
 
-	      // Retrieve instruction.
-	      goto_programt::const_targett inst = locs.loc_vector[rule.loc].target;
+        // Retrieve instruction.
+        goto_programt::const_targett inst=locs.loc_vector[rule.loc].target;
 
-	      // Check that the instruction is supported.
-	      if (!inst->is_assign() && !inst->is_decl() && !inst->is_function_call()){
+        // Check that the instruction is supported.
+        if (!inst->is_assign() && !inst->is_decl() &&
+            !inst->is_function_call())
+        {
 
-	        warning << "Following rule refers to an unsupported op (" << inst->type << ")\n";
-	        rule.output(taint_engine, warning);
-	        warning << "\n";
-	        return true;
+          warning << "Following rule refers to an unsupported op ("
+              << inst->type << ")\n";
+          rule.output(taint_engine, warning);
+          warning << "\n";
+          return true;
 
-	      }else if (inst->is_function_call()){
+        } else if (inst->is_function_call())
+        {
+          // Need to check that the left hand side of the function call exists.
+          code_function_callt function_call=to_code_function_call(inst->code);
 
-	        // Need to check that the left hand side of the function call exists.
-	        code_function_callt function_call = to_code_function_call(inst->code);
+          if (function_call.lhs().is_nil())
+          {
+            warning
+                << "Following rule refers to function call with nil left-hand side:"
+                << "\n";
+            rule.output(taint_engine, warning);
+            warning << "\n";
+            return true;
+          }
+        }
+      }
+    }
 
-	        if(function_call.lhs().is_nil()) {
-	          warning << "Following rule refers to function call with nil left-hand side:" << "\n";
-	          rule.output(taint_engine, warning);
-	          warning << "\n";
-	          return true;
-	        }
-	      }
-	    }
-	  }
+    // No errors found.
+    return false;
+  }
 
-		// No errors found.
-		return false;
-	}
+/*******************************************************************
 
+ Function: taint_datat::check_rules
 
-	/*******************************************************************\
+ Inputs: Takes Output stream.
 
-  Function: taint_datat::check_rules
+ Outputs: Returns nothing.
 
-    Inputs: Takes Output stream.
+ Purpose: Outputs to stream the specified rules.
 
-   Outputs: Returns nothing.
+\*******************************************************************/
 
-   Purpose: Outputs to stream the specified rules.
-
-  \*******************************************************************/
-
-	inline void output(std::ostream &out, taint_enginet &taint_engine) const {
-	  int i = 0;
-	  for(auto rule_vector : data) {
-	    for(auto rule: rule_vector.second) {
-	      out << ++i << ": ";
-	      rule.output(taint_engine, out);
-	      out << "\n";
-	      // TODO EOM?
-	    }
-	  }
-	}
+  inline void output(std::ostream &out, taint_enginet &taint_engine) const
+  {
+    int i=0;
+    for (auto rule_vector : data)
+    {
+      for (auto rule : rule_vector.second)
+      {
+        out << ++i << ": ";
+        rule.output(taint_engine, out);
+        out << "\n";
+        // TODO EOM?
+      }
+    }
+  }
 };
 
 #endif /* PATH_SYMEX_PATH_SYMEX_TAINT_DATA_H_ */

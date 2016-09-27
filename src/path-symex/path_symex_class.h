@@ -88,13 +88,18 @@ protected:
     const exprt &ssa_lhs, // instantiated, recursion here
     const exprt &ssa_rhs); // instantiated
 
+  static bool propagate(const exprt &src);
 
-  inline void recursive_taint_extraction(const exprt &expr,
-      taintt &taint, path_symex_statet &state) {
-//    std::cout << "Find_taint ENTERED!  Operand count : " << expr.operands().size() << "\n";
+  void set_taint
+
+
+  inline void recursive_taint_extraction(
+      const exprt &expr,
+      taintt &taint,
+      path_symex_statet &state) {
 
     if(expr.id() == ID_symbol) {
-//      std::cout << "Entering symbol branch.\n";
+      // TODO: Comment
       symbol_exprt symbol = to_symbol_expr(expr);
       const irep_idt &full_identifier=symbol.get(ID_C_full_identifier);
       var_mapt::var_infot &var_info=state.var_map[full_identifier];
@@ -107,8 +112,6 @@ protected:
       recursive_taint_extraction(*it, taint, state);
     }
   }
-
-  static bool propagate(const exprt &src);
 };
 
 

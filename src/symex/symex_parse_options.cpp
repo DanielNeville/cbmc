@@ -293,15 +293,18 @@ int symex_parse_optionst::doit()
         throw "Taint engine type not recognised.";
       }
 
-      if(parse_taint_file(cmdline.get_value("taint-file"), *message_handler,
-          path_search.taint_data, *path_search.taint_engine)) {
-        throw "Taint file invalid.\n";
+      if(cmdline.isset("taint-file")) {
+        if(parse_taint_file(cmdline.get_value("taint-file"), *message_handler,
+            path_search.taint_data, *path_search.taint_engine)) {
+          throw "Taint file invalid.\n";
+        }
       }
 
       status() << "Using taint engine: " <<
           path_search.taint_engine->get_taint_analysis_name() <<
-          ".  Found " << path_search.taint_data.data.size() << " rules.\n";
-
+          "  Found " << path_search.taint_data.data.size() <<
+          ((path_search.taint_data.data.size() == 1) ? " rule." : " rules.") <<
+          eom;
 
       if(cmdline.isset("show-taint-data")) {
         std::cout << "Taint data:\n";

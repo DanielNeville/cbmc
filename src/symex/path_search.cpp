@@ -37,11 +37,8 @@ path_searcht::resultt path_searcht::operator()(
   
   locs.build(goto_functions);
 
-  if(taint_engine->enabled) {
-    if(taint_data.check_rules(locs, warning(), *taint_engine)) {
-      // TODO:  Move check_rules into parse_options ..? Maybe?
-      error() << "Rules inconsistent." << eom;
-    }
+  if(taint_data.check_rules(locs, warning(), *taint_engine)) {
+    warning() << "Rules inconsistent." << eom;
   }
 
   // this is the container for the history-forest  
@@ -139,26 +136,9 @@ path_searcht::resultt path_searcht::operator()(
         }
       }
 
-      std::cout << "*********************\n" <<
-          "Calling path_symex at " << state.pc() << "\n";
-
       // execute
       path_symex(state, tmp_queue);
       
-      std::cout << "Now (just before) " << state.pc() << " Current state of the internal variable map: \n";
-
-      if(state.pc().loc_number > 0) {
-        for(auto i: state.var_map.id_map) {
-
-          std::cout << i.first << " -- " <<
-              taint_engine->get_taint_name((state.get_var_state(i.second).taint)) << "\n";
-        }
-        std::cout << "END ****\n";
-        std::cin.ignore();
-
-      }
-
-
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
     }
