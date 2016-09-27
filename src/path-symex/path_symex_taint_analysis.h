@@ -19,12 +19,14 @@ Author:
 // TODO: function call considerations.
 // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
 // TODO: code-efficient, const, code-clean up, references when possible, comment, etc
-
+// TODO:  Add func to output symbol names (e.g. func::1::x[1])
 
 
 // We represent positions in a taint lattice as unsigned short value.
 // 0 always represents top (UT)
 typedef unsigned short taintt;
+
+class taint_datat;
 
 /**
  * 	Interface for taint analysis, which differ in their considered domains.
@@ -52,6 +54,8 @@ public:
 
 	// Returns the name of a given taint type
 	virtual std::string get_taint_name(taintt taint) = 0;
+
+	taint_datat *taint_data;
 };
 
 typedef path_symex_taint_analysis_enginet taint_enginet;

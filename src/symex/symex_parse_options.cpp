@@ -287,6 +287,7 @@ int symex_parse_optionst::doit()
     if(cmdline.isset("taint") && cmdline.get_value("taint") != "none") {
       if(cmdline.get_value("taint") == "simple") {
         path_symex_simple_taint_analysis_enginet taint_engine;
+        // TODO: Move
         path_search.set_taint(true, cmdline.get_value("taint-file"), taint_engine);
       } else {
         throw "Taint engine type not recognised.";

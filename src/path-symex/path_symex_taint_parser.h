@@ -28,8 +28,10 @@ bool parse_taint_file(
 	/* Format
   Array of Objects.
   Each Object:
-  Loc: <Program location s.t. LHS is tainted>
-  Taint: <Taint value>
+  loc: <Program location s.t. LHS is tainted>
+  taint: <Taint value>
+  array_index: <Index Value> (Optional)
+  struct_member: <Member ID) (Optional)
    */
 
   jsont json;
@@ -66,13 +68,12 @@ bool parse_taint_file(
 
     const std::string taint_string =(*it)["taint"].value;
     const std::string loc_string =(*it)["loc"].value;
+    const std::string symbol_string =(*it)["symbol"].value;
 
     taintt taint = 0;
     unsigned int loc = 0;
-    unsigned array_index = 0;
-    dstring struct_member = "";
-    bool array_index_flag = false;
-    bool struct_member_flag = false;
+    irep_idt symbol_name = "";
+    bool symbol_flag = false;
 
 
     try {
@@ -92,8 +93,15 @@ bool parse_taint_file(
       loc = safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    taint_data.add(loc, taint, array_index_flag, array_index, struct_member_flag, struct_member);
+    if(!symbol_string.empty()) {
+      symbol_name = symbol_string;
+      symbol_flag = true;
+     }
+
+    taint_data.add(loc, taint, symbol_flag, symbol_name);
   }
+
+  taint_engine.taint_data = &taint_data;
 
   return false;
 }

@@ -14,6 +14,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "path_symex_history.h"
 
 #include <path-symex/path_symex_taint_data.h>
+#include <util/ssa_expr.h>
 
 struct path_symex_statet
 {
@@ -167,13 +168,23 @@ public:
   {
     threads[current_thread].pc=new_pc;
   }
-  
+
   inline bool inst_enforces_taint() {
-    return locs[pc()].enforced_taint;
+    // TODO:  Consider removal?  It's not a symbol.  What can we meaningfully do?
+    for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
+      if(rule.enforces_lhs)
+        return true;
+    }
+    return false;
   }
 
   inline taintt get_enforced_taint() {
-    return locs[pc()].taint;
+    for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
+      if(rule.enforces_lhs)
+        return rule.taint_state;
+    }
+
+    throw "Taint not found.";
   }
 
   // output  

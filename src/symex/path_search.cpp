@@ -42,12 +42,6 @@ path_searcht::resultt path_searcht::operator()(
       // TODO:  Move check_rules into parse_options ..? Maybe?
       error() << "Rules inconsistent." << eom;
     }
-
-    for(auto rule : taint_data.data) {
-      locs.loc_vector[rule.loc].enforced_taint = true;
-      locs.loc_vector[rule.loc].taint = rule.taint_state;
-      // To enable access to the rules.
-    }
   }
 
   // this is the container for the history-forest  
@@ -153,7 +147,7 @@ path_searcht::resultt path_searcht::operator()(
       
       std::cout << "Now (just before) " << state.pc() << " Current state of the internal variable map: \n";
 
-      if(state.pc().loc_number > 18) {
+      if(state.pc().loc_number > 0) {
         for(auto i: state.var_map.id_map) {
 
           std::cout << i.first << " -- " <<

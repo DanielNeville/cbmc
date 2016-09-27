@@ -18,49 +18,41 @@ public:
 	class taint_rulet
 	{
 	public:
+	  // LHS enforced?
+	  bool enforces_lhs;
 
-		// The location where taint is forced
+		// The location where taint is forced.  (Redundant.)
 		unsigned int loc;
 
 		// The taint state the force.
 		taintt taint_state;
 
-		// A flag to denote that taint must be forced at a particular array index.
-		bool array_index_flag;
+		bool symbol_flag;
 
-		// The array index where taint is forced.
-		unsigned array_index;
-
-		// A flag to denote that taint must be forced at for a particular member in a struct.
-		bool struct_member_flag;
-
-		// The member that must be associated with a taint state.
-		dstring struct_member;
+		irep_idt symbol_name;
 
 
 		inline void output(taint_enginet &taint_engine, std::ostream &out) const {
 
-			out << "Location: " << loc << " set to " <<
-			    taint_engine.get_taint_name(taint_state);
+			out << "Location: " << loc;
+      if(symbol_flag)
+        out << ", symbol_name: " << symbol_name;
+
+			out << " set to " << taint_engine.get_taint_name(taint_state);
 		}
 
 		inline taint_rulet()
 		{
 			loc = 0;
 			taint_state = 0; // 0 = maximal.
-			array_index_flag = false;
-			array_index = 0;
-			struct_member_flag = false;
-			struct_member = "";
+			symbol_flag = false;
+			symbol_name = "";
+			enforces_lhs = false;
 		}
 	};
 
-	typedef std::vector<taint_rulet> datat;
+	typedef std::map<unsigned, std::vector<taint_rulet> > datat;
 	datat data;
-
-	// The taint analysis engine.
-//	path_symex_taint_analysist &taint_analysis;
-
 
 	/*******************************************************************\
 
@@ -91,19 +83,16 @@ public:
 	inline void add(
 			unsigned loc,
 			taintt taint_state,
-			bool array_index_flag,
-			unsigned array_index,
-			bool struct_member_flag,
-			dstring struct_member) {
+			bool symbol_flag,
+			irep_idt symbol_name) {
 
 		taint_rulet rule;
 		rule.loc = loc;
 		rule.taint_state = taint_state;
-		rule.array_index = array_index;
-		rule.array_index_flag = array_index_flag;
-		rule.struct_member = struct_member;
-		rule.struct_member_flag = struct_member_flag;
-		data.push_back(rule);
+		rule.symbol_name = symbol_name;
+		rule.symbol_flag = symbol_flag;
+		rule.enforces_lhs = !symbol_flag;
+		data[loc].push_back(rule);
 	}
 
 
@@ -124,43 +113,43 @@ public:
 			std::ostream & warning,
 			taint_enginet &taint_engine) {
 
-		for(auto rule : data) {
-			// Check whether the rule is outside program.
-			if(rule.loc >= locs.size()) {
+	  for(auto rule_vector : data) {
+	    for(auto rule: rule_vector.second) {
+	      // Check whether the rule is outside program.
+	      if(rule.loc >= locs.size()) {
 
-				//Not a meaningful rule.
-				warning << "Following rule outside program scope:" << "\n";
-				rule.output(taint_engine, warning);
-				warning << "\n";
-				return true;
-			}
+	        //Not a meaningful rule.
+	        warning << "Following rule outside program scope:" << "\n";
+	        rule.output(taint_engine, warning);
+	        warning << "\n";
+	        return true;
+	      }
 
-			// Retrieve instruction.
-			loc_reft loc;
-			loc.loc_number = rule.loc;
-			goto_programt::const_targett inst = locs[loc].target;
+	      // Retrieve instruction.
+	      goto_programt::const_targett inst = locs.loc_vector[rule.loc].target;
 
-			// Check that the instruction is supported.
-			if (!inst->is_assign() && !inst->is_decl() && !inst->is_function_call()){
+	      // Check that the instruction is supported.
+	      if (!inst->is_assign() && !inst->is_decl() && !inst->is_function_call()){
 
-				warning << "Following rule refers to an unsupported op (" << inst->type << ")\n";
-				rule.output(taint_engine, warning);
-				warning << "\n";
-				return true;
+	        warning << "Following rule refers to an unsupported op (" << inst->type << ")\n";
+	        rule.output(taint_engine, warning);
+	        warning << "\n";
+	        return true;
 
-			}else if (inst->is_function_call()){
+	      }else if (inst->is_function_call()){
 
-				// Need to check that the left hand side of the function call exists.
-				code_function_callt function_call = to_code_function_call(inst->code);
+	        // Need to check that the left hand side of the function call exists.
+	        code_function_callt function_call = to_code_function_call(inst->code);
 
-				if(function_call.lhs().is_nil()) {
-					warning << "Following rule refers to function call with nil left-hand side:" << "\n";
-					rule.output(taint_engine, warning);
-					warning << "\n";
-					return true;
-				}
-			}
-		}
+	        if(function_call.lhs().is_nil()) {
+	          warning << "Following rule refers to function call with nil left-hand side:" << "\n";
+	          rule.output(taint_engine, warning);
+	          warning << "\n";
+	          return true;
+	        }
+	      }
+	    }
+	  }
 
 		// No errors found.
 		return false;
@@ -180,13 +169,15 @@ public:
   \*******************************************************************/
 
 	inline void output(std::ostream &out, taint_enginet &taint_engine) const {
-		int i = 0;
-		for(auto taint_rule : data) {
-			out << ++i << ": ";
-			taint_rule.output(taint_engine, out);
-			out << "\n";
-			// TODO EOM?
-		}
+	  int i = 0;
+	  for(auto rule_vector : data) {
+	    for(auto rule: rule_vector.second) {
+	      out << ++i << ": ";
+	      rule.output(taint_engine, out);
+	      out << "\n";
+	      // TODO EOM?
+	    }
+	  }
 	}
 };
 

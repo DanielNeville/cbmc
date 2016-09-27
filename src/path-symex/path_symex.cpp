@@ -388,9 +388,9 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
-      std::cout << "LHS: " << ssa_lhs.pretty() << "\n=\n";
-
-      std::cout << "RHS: " << ssa_rhs.pretty() << "\n\n\n";
+//      std::cout << "LHS: " << ssa_lhs.pretty() << "\n=\n";
+//
+//      std::cout << "RHS: " << ssa_rhs.pretty() << "\n\n\n";
 
 //      std::cout << "About to call find_taint with ID: "  << ssa_rhs.id() <<  ".\n";
 
@@ -399,8 +399,6 @@ void path_symext::assign_rec(
       var_state.taint = taint;
 
 //      std::cout << "!!!!******    Output taint: " << taint_engine.parser(taint) << "\n";
-
-//      var_state.taint=taint_engine.meet()
 
       if(state.inst_enforces_taint()) {
         var_state.taint = state.get_enforced_taint();
