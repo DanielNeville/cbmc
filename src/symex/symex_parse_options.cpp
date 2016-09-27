@@ -293,7 +293,7 @@ int symex_parse_optionst::doit()
         throw "Taint engine type not recognised.";
       }
 
-      if(!parse_taint_file(cmdline.get_value("taint-file"), *message_handler,
+      if(parse_taint_file(cmdline.get_value("taint-file"), *message_handler,
           path_search.taint_data, *path_search.taint_engine)) {
         throw "Taint file invalid.\n";
       }
