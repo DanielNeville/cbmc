@@ -49,6 +49,8 @@ exprt path_symex_statet::read(const exprt &src, bool propagate)
   // 4. Rewriting to SSA symbols
   // 5. Simplifier
   
+  // + An extra phase zero.  Rewrite taint checkers.
+
   exprt tmp1=src;
   adjust_float_expressions(tmp1, var_map.ns);
   
@@ -346,6 +348,52 @@ exprt path_symex_statet::instantiate_rec(
     // must be SSA already, or code
     assert(src.type().id()==ID_code ||
            src.get_bool(ID_C_SSA_symbol));
+  }
+  else if(src.id()==ID_is_taint)
+  {
+    // String constants are rewritten into:
+    // address_of -> index -> string_constant.
+
+    assert(src.op0().id() == ID_address_of);
+    assert(src.op0().op0().id() == ID_index);
+    assert(src.op0().op0().op0().id() == ID_string_constant);
+
+    dstring symbol_name = src.op0().op0().op0().get_string(ID_value);
+
+    assert(src.op0().id() == ID_address_of);
+    assert(src.op0().op0().id() == ID_index);
+    assert(src.op0().op0().op0().id() == ID_string_constant);
+
+    taintt taint = taint_engine.parse_taint(src.op1().op0().op0().get_string(ID_value));
+
+    var_mapt::var_infot &var_info=var_map[symbol_name];
+    assert(var_info.full_identifier==symbol_name);
+    path_symex_statet::var_statet &var_state=get_var_state(var_info);
+
+    if(var_state.taint == taint) {
+      return true_exprt();
+    } else {
+      return false_exprt();
+    }
+  }
+  else if(src.id()==ID_get_taint)
+  {
+    assert(src.op0().id() == ID_address_of);
+    assert(src.op0().op0().id() == ID_index);
+    assert(src.op0().op0().op0().id() == ID_string_constant);
+
+    dstring symbol_name = src.op0().op0().op0().get_string(ID_value);
+
+    var_mapt::var_infot &var_info=var_map[symbol_name];
+    assert(var_info.full_identifier==symbol_name);
+    path_symex_statet::var_statet &var_state=get_var_state(var_info);
+
+    dstring taint = taint_engine.get_taint_name(var_state.taint);
+
+    exprt out = src.op0();
+    out.op0().op0().set(ID_value, taint);
+
+    return out;
   }
 
   if(!src.has_operands())

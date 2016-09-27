@@ -14,12 +14,12 @@ Author:
 #include <iostream>
 
 // TODO: getters / setting within C.
-// TODO: Add functionality for tainted array index, tainted array
 // TODO: Add semantics to printf / others.
-// TODO: function call considerations.
 // TODO:  Make taint file syntactically 'similar' to A.I. taint file.
 // TODO: code-efficient, const, code-clean up, references when possible, comment, etc
-// TODO:  Add func to output symbol names (e.g. func::1::x[1])
+// TODO: function call considerations.
+// TODO: Pretty output
+
 
 
 // We represent positions in a taint lattice as unsigned short value.
