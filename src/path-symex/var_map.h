@@ -14,7 +14,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/namespace.h>
 #include <util/type.h>
-#include "path_symex_taint_analysis.h"
 
 class var_mapt
 {

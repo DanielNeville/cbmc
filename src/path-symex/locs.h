@@ -12,7 +12,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 
 #include <goto-programs/goto_functions.h>
-#include <path-symex/path_symex_taint_analysis.h>
 
 #include "loc_ref.h"
 

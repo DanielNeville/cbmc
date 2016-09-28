@@ -90,28 +90,10 @@ protected:
 
   static bool propagate(const exprt &src);
 
-  inline void recursive_taint_extraction(
+  void recursive_taint_extraction(
       const exprt &expr,
       taintt &taint,
-      path_symex_statet &state) {
-
-    if(!state.taint_engine.enabled)
-      return;
-
-    if(expr.id() == ID_symbol) {
-      // TODO: Comment
-      symbol_exprt symbol = to_symbol_expr(expr);
-      const irep_idt &full_identifier=symbol.get(ID_C_full_identifier);
-      var_mapt::var_infot &var_info=state.var_map[full_identifier];
-      assert(var_info.full_identifier==full_identifier);
-      path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
-      taint = state.taint_engine.meet(expr.id(), taint, var_state.taint);
-    }
-
-    forall_operands(it, expr) {
-      recursive_taint_extraction(*it, taint, state);
-    }
-  }
+      path_symex_statet &state);
 };
 
 

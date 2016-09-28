@@ -42,6 +42,7 @@ public:
   // and a particular program.
   var_mapt &var_map;
   const locst &locs;
+
   taint_enginet &taint_engine;
 
   // the value of a variable
@@ -51,17 +52,18 @@ public:
     exprt value;
     symbol_exprt ssa_symbol;
     
-    // record taint
+    // For recording taint.
     taintt taint;
 
     // for uninterpreted functions or arrays we maintain an index set
     typedef std::set<exprt> index_sett;
     index_sett index_set;
 
-    // record taint for arrays.
+    // For recording taint in arrays.
     typedef std::set<taintt> taint_index_sett;
     taint_index_sett taint_index_set;
 
+    // taint value set to untaint by default.
     var_statet():
       value(nil_exprt()),
       ssa_symbol(irep_idt()),
@@ -169,51 +171,9 @@ public:
     threads[current_thread].pc=new_pc;
   }
 
-
-/*******************************************************************
-   Function: inst_enforces_taint
-
-	Inputs: Nothing.
-
-	Outputs: A bool that specifies whether json file enforces taint.
-
-	Purpose: Checks whether the json file enforces taint to a
-	variable.
-
-
-\*******************************************************************/
-
-  inline bool is_enforced_taint_json() {
-    for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
-      if(!rule.symbol_flag)
-        return true;
-    }
-
-    // No set symbol flag has been found.
-    return false;
-  }
-
-
-  /*******************************************************************
-     Function: inst_enforces_taint
-
-  	Inputs: Nothing
-
-  	Outputs: Returns the taint state to enforce.
-
-  	Purpose: Gets the taint state to enforce.
-
-
-  \*******************************************************************/
-
-  inline taintt get_enforced_taint() {
-    for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
-      if(!rule.symbol_flag)
-        return rule.taint;
-    }
-
-    throw "Taint not found.";
-  }
+  // Enforce taint functions
+   bool is_enforced_taint_json();
+  inline taintt get_enforced_taint();
 
   // output  
   void output(std::ostream &out) const;

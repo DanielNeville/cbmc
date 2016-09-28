@@ -1082,6 +1082,46 @@ void path_symext::operator()(path_symex_statet &state,
 	path_symex_set_taint_via_symbols(state, pc);
 }
 
+
+/*******************************************************************
+ Function: recursive_taint_extraction()
+
+ Inputs: Takes a taint as a placeholder for recursion. At start,
+ 	 needs to be the top most element in the lattice.
+
+ Outputs: The lowest taint element met by the operands.
+
+ Purpose: Finds the taint state in an expression via meet function.
+
+ \*******************************************************************/
+void recursive_taint_extraction(const exprt &expr, taintt &taint,
+		path_symex_statet &state) {
+
+	// if taint engine is not enabled, simply return.
+	if (!state.taint_engine.enabled)
+		return;
+
+	// Check if we reached a symbol.
+	if (expr.id() == ID_symbol) {
+
+		// Convert expression to symbol and perform look-up using var_map.
+		symbol_exprt symbol = to_symbol_expr(expr);
+		const irep_idt &full_identifier = symbol.get(ID_C_full_identifier);
+		var_mapt::var_infot &var_info = state.var_map[full_identifier];
+		assert(var_info.full_identifier == full_identifier);
+		path_symex_statet::var_statet &var_state = state.get_var_state(
+				var_info);
+
+		// Get the lowest position in the lattice where the states meet.
+		taint = state.taint_engine.meet(expr.id(), taint, var_state.taint);
+	}
+
+	// Progress down the expression tree, to check operands.
+	forall_operands(it, expr) {
+		recursive_taint_extraction(*it, taint, state);
+	}
+}
+
 /*******************************************************************
  Function: path_symext::operator()
 

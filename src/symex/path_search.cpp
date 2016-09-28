@@ -37,12 +37,13 @@ path_searcht::resultt path_searcht::operator()(
   
   locs.build(goto_functions);
 
+  // Perform a non-comprehensive check on JSON file.
   if(taint_engine->enabled &&
       taint_data.check_rules(locs, warning(), *taint_engine)) {
     warning() << "Rules inconsistent." << eom;
   }
 
-  // this is the container for the history-forest  
+  // This is the container for the history-forest
   path_symex_historyt history;
   
   queue.push_back(initial_state(var_map, locs, history, *taint_engine));
