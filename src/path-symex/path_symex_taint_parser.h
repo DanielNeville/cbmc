@@ -27,8 +27,7 @@ bool parse_taint_file(const std::string &file_name,
    Each Object:
    loc: <Program location s.t. LHS is tainted>
    taint: <Taint value>
-   array_index: <Index Value> (Optional)
-   struct_member: <Member ID) (Optional)
+   symbol: <expanded symbol>
    */
 
   jsont json;
