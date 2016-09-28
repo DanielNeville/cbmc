@@ -351,15 +351,18 @@ void path_symext::assign_rec(
     if(ssa_rhs.is_nil())
     {
       // Propagate/instantiate taint.
+
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=nil_exprt();
 
       // Non-det represents not tainted by the user (for now.)
-      var_state.taint=taint_enginet::get_top_elem();
 
-      if(state.inst_enforces_taint()) {
-        std::cout << "Setting nil taint to enforced value.\n";
-        var_state.taint = state.get_enforced_taint();
+      if(state.taint_engine.enabled)
+      {
+        var_state.taint=taint_enginet::get_top_elem();
+
+        if(state.inst_enforces_taint())
+          var_state.taint=state.get_enforced_taint();
       }
     }
     else
@@ -387,16 +390,19 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
-      std::cout << "Setting taint (not-nil) prop from RHS: " << ssa_rhs.pretty() << " .\n";
-      taintt taint = state.taint_engine.get_top_elem();
+      if(state.taint_engine.enabled)
+      {
+        std::cout << "Setting taint (not-nil) prop from RHS: " << ssa_rhs.pretty() << " .\n";
+        taintt taint = state.taint_engine.get_top_elem();
 
-      recursive_taint_extraction(state.read_no_propagate(rhs), taint, state);
-      var_state.taint = taint;
+        recursive_taint_extraction(state.read_no_propagate(rhs), taint, state);
+        var_state.taint = taint;
 
-      std::cout << "calculated taint: " << state.taint_engine.get_taint_name(taint) << "\n";
+        std::cout << "calculated taint: " << state.taint_engine.get_taint_name(taint) << "\n";
 
-      if(state.inst_enforces_taint()) {
-        var_state.taint = state.get_enforced_taint();
+        if(state.inst_enforces_taint()) {
+          var_state.taint = state.get_enforced_taint();
+        }
       }
     }
   }
@@ -1054,7 +1060,8 @@ void path_symext::operator()(
       {
         // like SKIP
 
-        if(code.op0().id() == ID_set_taint) {
+        if(code.op0().id() == ID_set_taint &&
+            state.taint_engine.enabled) {
           std::cout << "Setting taint.\n";
 
           exprt src = code.op0();

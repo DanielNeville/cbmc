@@ -183,7 +183,6 @@ public:
         out << ++i << ": ";
         rule.output(taint_engine, out);
         out << "\n";
-        // TODO EOM?
       }
     }
   }

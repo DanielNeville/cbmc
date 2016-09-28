@@ -95,6 +95,9 @@ protected:
       taintt &taint,
       path_symex_statet &state) {
 
+    if(!state.taint_engine.enabled)
+      return;
+
     if(expr.id() == ID_symbol) {
       // TODO: Comment
       symbol_exprt symbol = to_symbol_expr(expr);

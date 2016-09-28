@@ -13,10 +13,11 @@ int main(){
 
 	for (i = 0; i < 4; i++){
 
-		 x[i] = i == 4 ? j : 0;
+		 x[i] = (i == 8) ? j : 0;
 	}
 
-	assert(!__CPROVER_is_taint("main::1::x[3]", "tainted"));
+
+	assert(__CPROVER_is_taint("main::1::x[3]", "tainted"));
 
 
 	return 0;
