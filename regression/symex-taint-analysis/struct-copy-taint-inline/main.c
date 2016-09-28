@@ -12,8 +12,13 @@ int main(){
 
 	struct name my_name;
 	my_name.a = x;
+	my_name.b = -2.1459f;
 
-	assert(__CPROVER_is_taint("main::1::my_name.b", "untainted"));
+	struct name my_name_copy;
+	my_name_copy.a = my_name.a;
+	my_name_copy.b = my_name.b;
+
+	assert(__CPROVER_is_taint("main::1::my_name_copy.a", "tainted"));
 
     return 0;
 }

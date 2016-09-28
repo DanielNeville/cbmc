@@ -169,19 +169,47 @@ public:
     threads[current_thread].pc=new_pc;
   }
 
-  inline bool inst_enforces_taint() {
-    // TODO:  Consider removal?  It's not a symbol.  What can we meaningfully do?
+
+/*******************************************************************
+   Function: inst_enforces_taint
+
+	Inputs: Nothing.
+
+	Outputs: A bool that specifies whether json file enforces taint.
+
+	Purpose: Checks whether the json file enforces taint to a
+	variable.
+
+
+\*******************************************************************/
+
+  inline bool is_enforced_taint_json() {
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
       if(!rule.symbol_flag)
         return true;
     }
+
+    // No set symbol flag has been found.
     return false;
   }
+
+
+  /*******************************************************************
+     Function: inst_enforces_taint
+
+  	Inputs: Nothing
+
+  	Outputs: Returns the taint state to enforce.
+
+  	Purpose: Gets the taint state to enforce.
+
+
+  \*******************************************************************/
 
   inline taintt get_enforced_taint() {
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
       if(!rule.symbol_flag)
-        return rule.taint_state;
+        return rule.taint;
     }
 
     throw "Taint not found.";

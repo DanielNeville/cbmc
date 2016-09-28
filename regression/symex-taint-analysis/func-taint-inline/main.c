@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-
 int main(){
 
 	int *x = malloc(sizeof(int));

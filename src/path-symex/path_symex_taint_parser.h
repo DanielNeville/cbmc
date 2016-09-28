@@ -1,9 +1,11 @@
-/*
- * path_symex_taint_parser.h
- *
- *  Created on: 22 Sep 2016
- *  Author: Daniel Neville
- */
+/*******************************************************************\
+
+Module: Taint Data Module
+
+Author: Daniel Neville,	daniel.neville@cs.ox.ac.uk
+		John Galea,		john.galea@cs.ox.ac.uk
+
+\*******************************************************************/
 
 #ifndef PATH_SYMEX_PATH_SYMEX_TAINT_PARSER_H_
 #define PATH_SYMEX_PATH_SYMEX_TAINT_PARSER_H_
@@ -22,12 +24,12 @@ bool parse_taint_file(const std::string &file_name,
     taint_datat &taint_data,
     taint_enginet &taint_engine)
 {
-  /* Format
+  /* Format of JSON File.
    Array of Objects.
    Each Object:
-   loc: <Program location s.t. LHS is tainted>
-   taint: <Taint value>
-   symbol: <expanded symbol>
+   	   loc: <Program location s.t. LHS is tainted>
+   	   taint: <Taint value>
+   	   symbol: <expanded symbol> (Optional)
    */
 
   jsont json;

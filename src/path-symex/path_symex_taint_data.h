@@ -1,9 +1,11 @@
-/*
- * path_symex_taint_data.h
- *
- *  Created on: 22 Sep 2016
- *  Author: Daniel Neville
- */
+/*******************************************************************\
+
+Module: Taint Data Module
+
+Author: Daniel Neville,	daniel.neville@cs.ox.ac.uk
+		John Galea,		john.galea@cs.ox.ac.uk
+
+\*******************************************************************/
 
 #ifndef PATH_SYMEX_PATH_SYMEX_TAINT_DATA_H_
 #define PATH_SYMEX_PATH_SYMEX_TAINT_DATA_H_
@@ -22,7 +24,7 @@ public:
     unsigned int loc;
 
     // The taint state the force.
-    taintt taint_state;
+    taintt taint;
 
     // Modify a symbol, or just the LHS?
     bool symbol_flag;
@@ -37,7 +39,7 @@ public:
       if (symbol_flag)
         out << ", symbol name: " << symbol_name;
 
-      out << " set to " << taint_engine.get_taint_name(taint_state);
+      out << " set to " << taint_engine.get_taint_name(taint);
     }
 
     // Defaults
@@ -45,7 +47,7 @@ public:
     {
       loc=0;
       // 0 = TOP element, always.
-      taint_state=0;
+      taint=0;
       symbol_flag=false;
       symbol_name="";
     }
@@ -81,12 +83,12 @@ public:
 
 \*******************************************************************/
 
-  inline void add(unsigned loc, taintt taint_state,
+  inline void add(unsigned loc, taintt taint,
       bool symbol_flag, irep_idt symbol_name)
   {
     taint_rulet rule;
     rule.loc=loc;
-    rule.taint_state=taint_state;
+    rule.taint=taint;
     rule.symbol_name=symbol_name;
     rule.symbol_flag=symbol_flag;
     data[loc].push_back(rule);

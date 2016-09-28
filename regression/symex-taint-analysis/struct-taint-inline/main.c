@@ -10,10 +10,10 @@ int main(){
 
 	__CPROVER_set_taint("main::1::x", "tainted");
 
-	struct name nm;
-	nm.a = x;
+	struct name my_name;
+	my_name.a = x;
 
-	assert(__CPROVER_is_taint("main::1::nm.a", "tainted"));
+	assert(__CPROVER_is_taint("main::1::my_name.a", "tainted"));
 
     return 0;
 }

@@ -1,16 +1,20 @@
-/*******************************************************************
- Module: We define taint lattices to represent taint types (the domain). In order to implement analysis using a new taint domain,
- one needs to implement the path_symex_taint_analysist interface. This file contains defines the interface class, as well
- as its implementors.
+/*******************************************************************\
 
- Author:
+Module: Taint Engine Module
 
- \*******************************************************************/
+		We define taint lattices to represent taint types (the domain).
+ 	 	In order to implement analysis using a new taint domain, one
+ 	 	needs to implement the path_symex_taint_analysis_enginet
+ 	 	interface. This file defines the interface class, as
+ 	 	well as its implementors.
+
+Author: Daniel Neville,	daniel.neville@cs.ox.ac.uk
+		John Galea,		john.galea@cs.ox.ac.uk
+
+\*******************************************************************/
 
 #ifndef CPROVER_PATH_SYMEX_TAINT_ANALYSIS_H
 #define CPROVER_PATH_SYMEX_TAINT_ANALYSIS_H
-
-#include <iostream>
 
 /* Future work.
  *
@@ -20,12 +24,9 @@
  * Make taint JSON file syntactically 'similar' to A.I. taint file.
  *
  * Consider tainting function calls under some semantics.
- */
+*/
 
-// TODO: code-efficient, const, code-clean up, references when possible, comment, etc
-// TODO: Pretty output
 // We represent positions in a taint lattice as unsigned short value.
-// 0 always represents top (UT)
 typedef unsigned short taintt;
 
 class taint_datat;
@@ -41,7 +42,6 @@ public:
   virtual ~path_symex_taint_analysis_enginet()
   {
   }
-  ;
 
   // Returns the maximal/top element of the lattice.
   inline const static taintt get_top_elem()
@@ -64,6 +64,7 @@ public:
   // Returns the name of a given taint type
   virtual std::string get_taint_name(taintt taint) const = 0;
 
+  // Taint Data.
   taint_datat *taint_data;
 
   // A flag specifying whether the taint engine is to be used.

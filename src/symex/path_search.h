@@ -65,9 +65,12 @@ public:
     unwind_limit=limit;
   }
 
-  void set_taint(bool enabled, std::string file, taint_enginet &_taint_engine) {
+
+
+  void set_taint(const bool enabled, std::string file, taint_enginet &_taint_engine) {
     taint_file = file; // For posterity.
     taint_engine = &_taint_engine;
+
     taint_engine->enabled = enabled;
   }
 
