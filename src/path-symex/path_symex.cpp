@@ -136,12 +136,9 @@ void path_symext::assign(
   exprt ssa_lhs=
       state.read_no_propagate(dereference_exprt(lhs_address));
 
-  // read the rhs
-  exprt ssa_rhs=state.read(rhs);
-
   // start recursion on lhs
   exprt::operandst _guard; // start with empty guard
-  assign_rec(state, _guard, ssa_lhs, ssa_rhs);
+  assign_rec(state, _guard, ssa_lhs, rhs);
 }
 
 /*******************************************************************\
@@ -308,9 +305,10 @@ void path_symext::assign_rec(
     path_symex_statet &state,
     exprt::operandst &guard,
     const exprt &ssa_lhs,
-    const exprt &ssa_rhs)
+    const exprt &rhs)
 {
   //const typet &ssa_lhs_type=state.var_map.ns.follow(ssa_lhs.type());
+  const exprt ssa_rhs = state.read(rhs);
 
 #ifdef DEBUG
   std::cout << "assign_rec: " << ssa_lhs.pretty() << std::endl;
@@ -360,6 +358,7 @@ void path_symext::assign_rec(
       var_state.taint=taint_enginet::get_top_elem();
 
       if(state.inst_enforces_taint()) {
+        std::cout << "Setting nil taint to enforced value.\n";
         var_state.taint = state.get_enforced_taint();
       }
     }
@@ -388,9 +387,13 @@ void path_symext::assign_rec(
       path_symex_statet::var_statet &var_state=state.get_var_state(var_info);
       var_state.value=propagate(ssa_rhs)?ssa_rhs:nil_exprt();
 
+      std::cout << "Setting taint (not-nil) prop from RHS: " << ssa_rhs.pretty() << " .\n";
       taintt taint = state.taint_engine.get_top_elem();
-      recursive_taint_extraction(ssa_rhs, taint, state);
+
+      recursive_taint_extraction(state.read_no_propagate(rhs), taint, state);
       var_state.taint = taint;
+
+      std::cout << "calculated taint: " << state.taint_engine.get_taint_name(taint) << "\n";
 
       if(state.inst_enforces_taint()) {
         var_state.taint = state.get_enforced_taint();
@@ -1052,12 +1055,12 @@ void path_symext::operator()(
         // like SKIP
 
         if(code.op0().id() == ID_set_taint) {
+          std::cout << "Setting taint.\n";
+
           exprt src = code.op0();
 
           // TODO:  Put in function
           //           set_taint(code.op0());
-          // void set_taint(exprt src);
-
           assert(src.op0().id() == ID_address_of);
           assert(src.op0().op0().id() == ID_index);
           assert(src.op0().op0().op0().id() == ID_string_constant);

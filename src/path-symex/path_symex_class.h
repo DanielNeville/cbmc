@@ -86,7 +86,7 @@ protected:
     path_symex_statet &state,
     exprt::operandst &guard, // instantiated
     const exprt &ssa_lhs, // instantiated, recursion here
-    const exprt &ssa_rhs); // instantiated
+    const exprt &rhs); // instantiated
 
   static bool propagate(const exprt &src);
 
