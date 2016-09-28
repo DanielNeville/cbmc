@@ -311,7 +311,7 @@ void path_symext::assign_rec(path_symex_statet &state, exprt::operandst &guard,
 			if (state.taint_engine.enabled) {
 
 				/*
-				 * 	If json specifies a rule, we enforce taint. Otherwise, we set
+				 * 	If JSON specifies a rule, we enforce taint. Otherwise, we set
 				 *	taint to the top most position in lattice (untaint).
 				 */
 				var_state.taint =

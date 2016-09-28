@@ -99,7 +99,7 @@ void path_symex_statet::output(const threadt &thread, std::ostream &out) const
 
 
 /*******************************************************************
-   Function: inst_enforces_taint
+   Function: path_symex_statet::is_enforced_taint_json
 
 	Inputs: Nothing.
 
@@ -111,7 +111,7 @@ void path_symex_statet::output(const threadt &thread, std::ostream &out) const
 
 \*******************************************************************/
 
-  inline bool is_enforced_taint_json() {
+  inline bool path_symex_statet::is_enforced_taint_json() {
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
       if(!rule.symbol_flag)
         return true;
@@ -123,7 +123,7 @@ void path_symex_statet::output(const threadt &thread, std::ostream &out) const
 
 
   /*******************************************************************
-     Function: inst_enforces_taint
+     Function: path_symex_statet::get_enforced_taint
 
   	Inputs: Nothing
 
@@ -134,7 +134,7 @@ void path_symex_statet::output(const threadt &thread, std::ostream &out) const
 
   \*******************************************************************/
 
-  inline taintt get_enforced_taint() {
+  inline taintt path_symex_statet::get_enforced_taint() {
     for(auto rule : taint_engine.taint_data->data[pc().loc_number]) {
       if(!rule.symbol_flag)
         return rule.taint;

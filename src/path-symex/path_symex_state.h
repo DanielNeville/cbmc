@@ -172,7 +172,7 @@ public:
   }
 
   // Enforce taint functions
-   bool is_enforced_taint_json();
+  inline bool is_enforced_taint_json();
   inline taintt get_enforced_taint();
 
   // output  
