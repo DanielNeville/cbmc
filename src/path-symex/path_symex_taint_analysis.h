@@ -66,6 +66,7 @@ public:
 
   taint_datat *taint_data;
 
+  // A flag specifying whether the taint engine is to be used.
   bool enabled=false;
 };
 
@@ -118,13 +119,13 @@ public:
 
   taintt meet(irep_idt id, taintt taint1, taintt taint2) const
   {
-    // Perform range checks on passed taint types.
+    // Perform checks on passed taint types.
     if (taint1 != UNTAINTED && taint1 != TAINTED)
     {
       throw "First taint type  passed to meet function is invalid.";
     }
 
-    if (taint1 != UNTAINTED && taint1 != TAINTED)
+    if (taint2 != UNTAINTED && taint2 != TAINTED)
     {
       throw "Second taint type passed to meet function is invalid.";
     }
