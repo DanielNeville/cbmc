@@ -367,16 +367,6 @@ exprt path_symex_statet::instantiate_rec(
     taintt taint = taint_engine.parse_taint(src.op1().op0().op0().get_string(ID_value));
 
     var_mapt::var_infot &var_info=var_map[symbol_name];
-
-
-    for (auto k : var_map.id_map){
-
-        std::cout << "assert: " << k.first << "\n\n";
-
-    }
-
-    std::cout << "assert: " << symbol_name << "\n\n";
-
     assert(var_info.full_identifier==symbol_name);
     path_symex_statet::var_statet &var_state=get_var_state(var_info);
 
