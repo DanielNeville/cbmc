@@ -311,7 +311,7 @@ int symex_parse_optionst::doit()
           eom;
 
       if(cmdline.isset("show-taint-data")) {
-        std::cout << "Taint data:\n";
+        std::cout << "Taint data from JSON file:\n";
         path_search.taint_data.output(std::cout, *path_search.taint_engine);
         return 0;
       }
