@@ -66,13 +66,7 @@ public:
   }
 
 
-
-  void set_taint(const bool enabled, std::string file, taint_enginet &_taint_engine) {
-    taint_file = file; // For posterity.
-    taint_engine = &_taint_engine;
-
-    taint_engine->enabled = enabled;
-  }
+  void set_taint(const bool enabled, std::string file, taint_enginet &_taint_engine);
 
   bool show_vcc;
   bool eager_infeasibility;
@@ -158,7 +152,6 @@ protected:
 
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
 
-//  class path_symex_taint_analysis_domaint taint_engine;
 };
 
 #endif

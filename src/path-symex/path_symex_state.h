@@ -172,8 +172,8 @@ public:
   }
 
   // Enforce taint functions
-  inline bool is_enforced_taint_json();
-  inline taintt get_enforced_taint();
+  bool is_enforced_taint_json();
+  taintt get_enforced_taint();
 
   // output  
   void output(std::ostream &out) const;

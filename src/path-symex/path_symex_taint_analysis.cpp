@@ -2,54 +2,47 @@
  Module: Taint Engine Module
 
  Author: Daniel Neville,	daniel.neville@cs.ox.ac.uk
- John Galea,				john.galea@cs.ox.ac.uk
+ John Galea,		john.galea@cs.ox.ac.uk
 
  \*******************************************************************/
 
 #include "path_symex_taint_analysis.h"
 
-virtual path_symex_taint_analysis_enginet::~path_symex_taint_analysis_enginet() {
-}
-
-inline const static taintt path_symex_taint_analysis_enginet::get_top_elem() {
+// Returns the maximal/top element of the lattice.
+const taintt path_symex_taint_analysis_enginet::get_top_elem() {
 	return 0;
 }
 
-path_symex_no_taint_analysis_enginet::~path_symex_no_taint_analysis_enginet() {
-}
-
-inline const taintt path_symex_no_taint_analysis_enginet::get_bottom_elem() const {
+const taintt path_symex_no_taint_analysis_enginet::get_bottom_elem() const {
 	return 0;
 }
 
-inline taintt path_symex_no_taint_analysis_enginet::meet(irep_idt id,
-		const taintt taint_1, const taintt taint_2) const {
+taintt path_symex_no_taint_analysis_enginet::meet(irep_idt id,
+		taintt taint_1, taintt taint_2) const {
 	return 0;
 }
 
-inline const std::string path_symex_no_taint_analysis_enginet::get_taint_analysis_name() const {
+const std::string path_symex_no_taint_analysis_enginet::get_taint_analysis_name() const {
 	return "None";
 }
 
-inline taintt path_symex_no_taint_analysis_enginet::parse_taint(
-		const std::string taint_name) const {
+taintt path_symex_no_taint_analysis_enginet::parse_taint(
+		std::string taint_name) const {
 	return 0;
 }
 
-inline std::string path_symex_no_taint_analysis_enginet::get_taint_name(
-		const taintt taint) const {
+std::string path_symex_no_taint_analysis_enginet::get_taint_name(
+		taintt taint) const {
 	return "";
 }
 
-path_symex_simple_taint_analysis_enginet::~path_symex_simple_taint_analysis_enginet() {
-}
 
-inline const taintt path_symex_simple_taint_analysis_enginet::get_bottom_elem() const {
+const taintt path_symex_simple_taint_analysis_enginet::get_bottom_elem() const {
 	return TAINTED;
 }
 
-inline taintt path_symex_simple_taint_analysis_enginet::meet(irep_idt id,
-		const taintt taint1, const taintt taint2) const {
+taintt path_symex_simple_taint_analysis_enginet::meet(irep_idt id,
+		taintt taint1, taintt taint2) const {
 	// Perform checks on passed taint types.
 	if (taint1 != UNTAINTED && taint1 != TAINTED) {
 		throw "First taint type  passed to meet function is invalid.";
@@ -63,12 +56,12 @@ inline taintt path_symex_simple_taint_analysis_enginet::meet(irep_idt id,
 	return (taint1 == TAINTED || taint2 == TAINTED) ? TAINTED : UNTAINTED;
 }
 
-inline const std::string path_symex_simple_taint_analysis_enginet::get_taint_analysis_name() const {
+const std::string path_symex_simple_taint_analysis_enginet::get_taint_analysis_name() const {
 	return "Simple taint domain.";
 }
 
-inline taintt path_symex_simple_taint_analysis_enginet::parse_taint(
-		const std::string taint_name) const {
+taintt path_symex_simple_taint_analysis_enginet::parse_taint(
+		std::string taint_name) const {
 	/* Parse from strings -> taint types */
 	if (taint_name == "untainted")
 		return UNTAINTED;
@@ -77,8 +70,8 @@ inline taintt path_symex_simple_taint_analysis_enginet::parse_taint(
 	throw "Taint type not recognised";
 }
 
-inline std::string path_symex_simple_taint_analysis_enginet::get_taint_name(
-		const taintt taint) const {
+std::string path_symex_simple_taint_analysis_enginet::get_taint_name(
+		taintt taint) const {
 	/* Parse from taint -> strings types */
 	switch (taint) {
 	case UNTAINTED:

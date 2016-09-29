@@ -333,8 +333,11 @@ exprt path_symex_statet::instantiate_rec(const exprt &src, bool propagate) {
 		path_symex_statet::var_statet &var_state = get_var_state(var_info);
 
 		// If tainted, return true expression. Otherwise, return false.
-		const exprt result = (var_state.taint == taint) ? true_exprt() : false_exprt();
-		return result;
+		if (var_state.taint == taint)
+			return true_exprt();
+		else
+			return false_exprt();
+
 
 	} else if (src.id() == ID_get_taint) {
 		// get_taint CProver special function in use.

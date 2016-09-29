@@ -17,6 +17,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <langapi/language_ui.h>
 
 #include "path_search.h"
+#include <path-symex/path_symex_taint_analysis.h>
 
 class goto_functionst;
 class optionst;
@@ -70,6 +71,8 @@ protected:
   void show_counterexample(const class goto_tracet &);
             
   void eval_verbosity();
+
+  bool handle_taint_analysis_option(path_searcht &path_search);
 
   std::string get_test(const goto_tracet &goto_trace);
 };

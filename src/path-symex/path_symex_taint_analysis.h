@@ -14,6 +14,10 @@
 #ifndef CPROVER_PATH_SYMEX_TAINT_ANALYSIS_H
 #define CPROVER_PATH_SYMEX_TAINT_ANALYSIS_H
 
+#include <util/std_expr.h>
+#include "locs.h"
+#include <string>
+
 /* Future work.
  *
  * Consider whether a goto_check for printf not-tainted should be inserted
@@ -36,16 +40,17 @@ class path_symex_taint_analysis_enginet {
 
 public:
 
-	virtual ~path_symex_taint_analysis_enginet();
+	inline virtual ~path_symex_taint_analysis_enginet(){}
 
 	// Returns the maximal/top element of the lattice.
-	inline const static taintt get_top_elem();
+	const static taintt get_top_elem();
 
 	// Returns the minimal/lowest element of the lattice.
 	virtual const taintt get_bottom_elem() const = 0;
 
 	// Given two taint types, the meet of the two is returned.
-	virtual taintt meet(irep_idt id, const taintt taint_1, const taintt taint_2) const = 0;
+	virtual taintt meet(irep_idt id, const taintt taint_1,
+			const taintt taint_2) const = 0;
 
 	// Returns the name of the taint analysis engine
 	virtual const std::string get_taint_analysis_name() const = 0;
@@ -70,17 +75,18 @@ class path_symex_no_taint_analysis_enginet: public taint_enginet {
 // A dummy implementation of a taint engine that performs no taint analysis.
 public:
 
-	~path_symex_no_taint_analysis_enginet();
+	inline ~path_symex_no_taint_analysis_enginet(){}
 
-	inline const taintt get_bottom_elem() const;
+	const taintt get_bottom_elem() const;
 
-	inline taintt meet(irep_idt id, const taintt taint_1, const taintt taint_2) const;
+	taintt meet(irep_idt id, const taintt taint_1, const taintt taint_2) const;
 
-	inline const std::string get_taint_analysis_name() const;
+	const std::string get_taint_analysis_name() const;
 
-	inline taintt parse_taint(const std::string taint_name) const;
+	taintt parse_taint(const std::string taint_name) const;
 
-	inline std::string get_taint_name(const taintt taint) const;
+	std::string get_taint_name(const taintt taint) const;
+
 };
 
 /*
@@ -92,18 +98,17 @@ public:
 	static const taintt UNTAINTED = 0;
 	static const taintt TAINTED = 1;
 
-	~path_symex_simple_taint_analysis_enginet() {
-	}
+	inline ~path_symex_simple_taint_analysis_enginet(){}
 
-	inline const taintt get_bottom_elem() const;
+	const taintt get_bottom_elem() const;
 
-	inline taintt meet(irep_idt id, const taintt taint1, const taintt taint2) const;
+	taintt meet(irep_idt id, const taintt taint_1, const taintt taint_2) const;
 
-	inline const std::string get_taint_analysis_name() const;
+	const std::string get_taint_analysis_name() const;
 
-	inline taintt parse_taint(const std::string taint_name) const;
+	taintt parse_taint(const std::string taint_name) const;
 
-	inline std::string get_taint_name(const taintt taint) const;
+	std::string get_taint_name(const taintt taint) const;
 };
 
 #endif

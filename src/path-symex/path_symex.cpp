@@ -346,20 +346,19 @@ void path_symext::assign_rec(path_symex_statet &state, exprt::operandst &guard,
 			var_state.value = propagate(ssa_rhs) ? ssa_rhs : nil_exprt();
 
 			if (state.taint_engine.enabled) {
-				std::cout << "Setting taint (not-nil) prop from RHS: "
-						<< ssa_rhs.pretty() << " .\n";
-				taintt taint = state.taint_engine.get_top_elem();
 
-				recursive_taint_extraction(state.read_no_propagate(rhs), taint,
-						state);
-				var_state.taint = taint;
-
-				std::cout << "calculated taint: "
-						<< state.taint_engine.get_taint_name(taint) << "\n";
-
-				if (state.is_enforced_taint_json())
+				// Check if taint is enforced as specified in JSON file.
+				if (state.is_enforced_taint_json()){
 					var_state.taint = state.get_enforced_taint();
+				}
+				else{
+					taintt taint = state.taint_engine.get_top_elem();
 
+					// Retrieve and propagate taint state.
+					recursive_taint_extraction(state.read_no_propagate(rhs), taint,
+							state);
+					var_state.taint = taint;
+				}
 			}
 		}
 	} else if (ssa_lhs.id() == ID_member) {
@@ -494,7 +493,6 @@ void path_symext::assign_rec(path_symex_statet &state, exprt::operandst &guard,
 											from_integer(i, index_type()),
 											array_type.subtype()),
 									state.var_map.ns);
-			std::cout << "!!! Calling LOOP\n";
 			assign_rec(state, guard, operands[i], new_rhs);
 		}
 	} else if (ssa_lhs.id() == ID_vector) {
@@ -823,98 +821,6 @@ void path_symext::do_goto(path_symex_statet &state, bool taken) {
 }
 
 /*******************************************************************
- Function: path_symex_set_taint_symbols()
-
- Inputs: Takes a path_symex state, which contains the taint engine.
-
- Outputs: Nothing.
-
- Purpose: Checks each rule at a given pc for symbol taint, and
- propagates taint accordingly.
-
- \*******************************************************************/
-
-void path_symex_set_taint_via_symbols(path_symex_statet &state,
-		const loc_reft &pc) {
-
-	const taint_enginet &taint_engine = state.taint_engine;
-
-	if (taint_engine.enabled) {
-
-		// Loops through all symbols that need to be tainted at a given loc.
-		for (auto rule : taint_engine.taint_data->data[pc.loc_number]) {
-
-			// Check if symbol flag is set. If false, next rule is considered.
-			if (!rule.symbol_flag)
-				continue;
-
-			/*	We assume that the user provides the correct symbol name as
-			 * input. This is used for looking up using the var_map.
-			 */
-			var_mapt::var_infot &var_info = state.var_map[rule.symbol_name];
-			// Assert that the symbol name matches the identifier.
-			assert(var_info.full_identifier == rule.symbol_name);
-
-			path_symex_statet::var_statet &var_state = state.get_var_state(
-					var_info);
-
-			// Force taint.
-			var_state.taint = rule.taint;
-		}
-	}
-}
-
-/*******************************************************************
- Function: path_symex_handle_taint_set_taint_function
-
- Inputs: Takes a path_symex state and codet.
-
- Outputs: Nothing.
-
- Purpose: Responsible for setting taint via the CPROVER Special Function.
-
- \*******************************************************************/
-
-void path_symex_handle_taint_expr(path_symex_statet &state, const codet &code) {
-
-	assert(code.has_operands());
-
-	// Check if code is a set_taint CPROVER special function
-	if (code.op0().id() == ID_set_taint) {
-		exprt src = code.op0();
-		assert(src.has_operands());
-
-		// Retrieve Symbol name.
-		assert(src.op0().id() == ID_address_of);
-		assert(src.op0().has_operands());
-		assert(src.op0().op0().id() == ID_index);
-		assert(src.op0().op0().has_operands());
-		assert(src.op0().op0().op0().id() == ID_string_constant);
-
-		dstring symbol_name = src.op0().op0().op0().get_string(ID_value);
-
-		// Retrieve taint state (as string).
-		assert(src.op1().id() == ID_address_of);
-		assert(src.op1().has_operands());
-		assert(src.op1().op0().id() == ID_index);
-		assert(src.op1().op0().has_operands());
-		assert(src.op1().op0().op0().id() == ID_string_constant);
-
-		// Get taint state
-		taintt taint = state.taint_engine.parse_taint(
-				src.op1().op0().op0().get_string(ID_value));
-
-		// Set taint
-		var_mapt::var_infot &var_info = state.var_map[symbol_name];
-		assert(var_info.full_identifier == symbol_name);
-		path_symex_statet::var_statet &var_state = state.get_var_state(
-				var_info);
-
-		var_state.taint = taint;
-	}
-}
-
-/*******************************************************************
  Function: path_symext::operator()
 
  Inputs:
@@ -1082,19 +988,18 @@ void path_symext::operator()(path_symex_statet &state,
 	path_symex_set_taint_via_symbols(state, pc);
 }
 
-
 /*******************************************************************
  Function: recursive_taint_extraction()
 
  Inputs: Takes a taint as a placeholder for recursion. At start,
- 	 needs to be the top most element in the lattice.
+ needs to be the top most element in the lattice.
 
  Outputs: The lowest taint element met by the operands.
 
  Purpose: Finds the taint state in an expression via meet function.
 
  \*******************************************************************/
-void recursive_taint_extraction(const exprt &expr, taintt &taint,
+void path_symext::recursive_taint_extraction(const exprt &expr, taintt &taint,
 		path_symex_statet &state) {
 
 	// if taint engine is not enabled, simply return.
@@ -1119,6 +1024,98 @@ void recursive_taint_extraction(const exprt &expr, taintt &taint,
 	// Progress down the expression tree, to check operands.
 	forall_operands(it, expr) {
 		recursive_taint_extraction(*it, taint, state);
+	}
+}
+
+/*******************************************************************
+ Function: path_symex_set_taint_symbols()
+
+ Inputs: Takes a path_symex state, which contains the taint engine.
+
+ Outputs: Nothing.
+
+ Purpose: Checks each rule at a given pc for symbol taint, and
+ propagates taint accordingly.
+
+ \*******************************************************************/
+
+void path_symext::path_symex_set_taint_via_symbols(path_symex_statet &state,
+		const loc_reft &pc) {
+
+	const taint_enginet &taint_engine = state.taint_engine;
+
+	if (taint_engine.enabled) {
+
+		// Loops through all symbols that need to be tainted at a given loc.
+		for (auto rule : taint_engine.taint_data->data[pc.loc_number]) {
+
+			// Check if symbol flag is set. If false, next rule is considered.
+			if (!rule.symbol_flag)
+				continue;
+
+			/*	We assume that the user provides the correct symbol name as
+			 * input. This is used for looking up using the var_map.
+			 */
+			var_mapt::var_infot &var_info = state.var_map[rule.symbol_name];
+			// Assert that the symbol name matches the identifier.
+			assert(var_info.full_identifier == rule.symbol_name);
+
+			path_symex_statet::var_statet &var_state = state.get_var_state(
+					var_info);
+
+			// Force taint.
+			var_state.taint = rule.taint;
+		}
+	}
+}
+
+/*******************************************************************
+ Function: path_symex_handle_taint_set_taint_function
+
+ Inputs: Takes a path_symex state and codet.
+
+ Outputs: Nothing.
+
+ Purpose: Responsible for setting taint via the CPROVER Special Function.
+
+ \*******************************************************************/
+
+void path_symext::path_symex_handle_taint_expr(path_symex_statet &state, const codet &code) {
+
+	assert(code.has_operands());
+
+	// Check if code is a set_taint CPROVER special function
+	if (code.op0().id() == ID_set_taint) {
+		exprt src = code.op0();
+		assert(src.has_operands());
+
+		// Retrieve Symbol name.
+		assert(src.op0().id() == ID_address_of);
+		assert(src.op0().has_operands());
+		assert(src.op0().op0().id() == ID_index);
+		assert(src.op0().op0().has_operands());
+		assert(src.op0().op0().op0().id() == ID_string_constant);
+
+		dstring symbol_name = src.op0().op0().op0().get_string(ID_value);
+
+		// Retrieve taint state (as string).
+		assert(src.op1().id() == ID_address_of);
+		assert(src.op1().has_operands());
+		assert(src.op1().op0().id() == ID_index);
+		assert(src.op1().op0().has_operands());
+		assert(src.op1().op0().op0().id() == ID_string_constant);
+
+		// Get taint state
+		taintt taint = state.taint_engine.parse_taint(
+				src.op1().op0().op0().get_string(ID_value));
+
+		// Set taint
+		var_mapt::var_infot &var_info = state.var_map[symbol_name];
+		assert(var_info.full_identifier == symbol_name);
+		path_symex_statet::var_statet &var_state = state.get_var_state(
+				var_info);
+
+		var_state.taint = taint;
 	}
 }
 

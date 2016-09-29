@@ -140,19 +140,6 @@ path_searcht::resultt path_searcht::operator()(
 
       // execute
       path_symex(state, tmp_queue);
-      
-//      std::cout << "Now (just before) " << state.pc() << " Current state of the internal variable map: \n";
-//
-//      if(state.pc().loc_number > 0) {
-//        for(auto i: state.var_map.id_map) {
-//
-//          std::cout << i.first << " -- " <<
-//              taint_engine->get_taint_name((state.get_var_state(i.second).taint)) << "\n";
-//        }
-//        std::cout << "END ****\n";
-////        std::cin.ignore();
-//
-//      }
 
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
@@ -256,6 +243,24 @@ void path_searcht::pick_state()
   case search_heuristict::LOCS:
     return;
   }  
+}
+
+/*******************************************************************\
+
+Function: path_searcht::set_taint
+
+ Inputs: The taint engine, name of JSON file, and a flag denoting
+ 	 whether the taint engine is enabled.
+
+ Outputs: Nothing
+
+ Purpose: Sets initial information to perform taint analysis
+
+\*******************************************************************/
+void path_searcht::set_taint(const bool enabled, std::string file, taint_enginet &_taint_engine) {
+  taint_file = file;
+  taint_engine = &_taint_engine;
+  taint_engine->enabled = enabled;
 }
 
 /*******************************************************************\
