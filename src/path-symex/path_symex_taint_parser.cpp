@@ -34,7 +34,7 @@ bool parse_taint_file(const std::string &file_name,
   jsont json;
 
   // First parse the file.
-  if (parse_json(file_name, message_handler, json))
+  if(parse_json(file_name, message_handler, json))
   {
     messaget message(message_handler);
     message.error() << "Taint file is not a valid json file" << messaget::eom;
@@ -42,7 +42,7 @@ bool parse_taint_file(const std::string &file_name,
   }
 
   // Perform array check.
-  if (!json.is_array())
+  if(!json.is_array())
   {
     messaget message(message_handler);
     message.error() << "expecting an array in the input location file, but got "
@@ -53,7 +53,7 @@ bool parse_taint_file(const std::string &file_name,
   for (jsont::arrayt::const_iterator it=json.array.begin();
       it != json.array.end(); it++)
   {
-    if (!it->is_object())
+    if(!it->is_object())
     {
       messaget message(message_handler);
       message.error()
@@ -81,17 +81,18 @@ bool parse_taint_file(const std::string &file_name,
       message.error() << "Taint type not recognised." << messaget::eom;
     }
 
-    if (loc_string.empty())
+    if(loc_string.empty())
     {
       messaget message(message_handler);
       message.error() << "location must have \"unsigned int\"" << messaget::eom;
       return true;
-    } else
+    }
+    else
     {
       loc=safe_string2unsigned(std::string(loc_string, 0, std::string::npos));
     }
 
-    if (!symbol_string.empty())
+    if(!symbol_string.empty())
     {
       symbol_name=symbol_string;
       symbol_flag=true;

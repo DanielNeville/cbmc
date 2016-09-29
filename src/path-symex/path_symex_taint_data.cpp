@@ -33,7 +33,7 @@ void taint_datat::taint_rulet::output(taint_enginet &taint_engine,
     std::ostream &out) const
 {
   out << "Location: " << loc;
-  if (symbol_flag)
+  if(symbol_flag)
     out << ", symbol name: " << symbol_name;
 
   out << " set to " << taint_engine.get_taint_name(taint);
@@ -84,7 +84,7 @@ void taint_datat::add(unsigned loc, taintt taint, bool symbol_flag,
 bool taint_datat::check_rules(locst &locs, std::ostream & warning,
     taint_enginet &taint_engine)
 {
-  if (!taint_engine.enabled)
+  if(!taint_engine.enabled)
     return false;
 
   for (auto rule_vector : data)
@@ -92,7 +92,7 @@ bool taint_datat::check_rules(locst &locs, std::ostream & warning,
     for (auto rule : rule_vector.second)
     {
       // Check whether the rule is outside program.
-      if (rule.loc >= locs.size())
+      if(rule.loc >= locs.size())
       {
         warning << "Following rule outside program scope:" << "\n";
         rule.output(taint_engine, warning);
@@ -104,7 +104,7 @@ bool taint_datat::check_rules(locst &locs, std::ostream & warning,
       goto_programt::const_targett inst=locs.loc_vector[rule.loc].target;
 
       // Check that the instruction is supported.
-      if (!inst->is_assign() && !inst->is_decl() && !inst->is_function_call())
+      if(!inst->is_assign() && !inst->is_decl() && !inst->is_function_call())
       {
 
         warning << "Following rule refers to an unsupported op (" << inst->type
@@ -113,12 +113,13 @@ bool taint_datat::check_rules(locst &locs, std::ostream & warning,
         warning << "\n";
         return true;
 
-      } else if (inst->is_function_call())
+      }
+      else if(inst->is_function_call())
       {
         // Need to check that the left hand side of the function call exists.
         code_function_callt function_call=to_code_function_call(inst->code);
 
-        if (function_call.lhs().is_nil())
+        if(function_call.lhs().is_nil())
         {
           warning
               << "Following rule refers to function call with nil left-hand side:"

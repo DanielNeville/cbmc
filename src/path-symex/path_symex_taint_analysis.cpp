@@ -51,12 +51,12 @@ taintt path_symex_simple_taint_analysis_enginet::meet(irep_idt id,
     taintt taint1, taintt taint2) const
 {
   // Perform checks on passed taint types.
-  if (taint1 != UNTAINTED && taint1 != TAINTED)
+  if(taint1 != UNTAINTED && taint1 != TAINTED)
   {
     throw "First taint type  passed to meet function is invalid.";
   }
 
-  if (taint2 != UNTAINTED && taint2 != TAINTED)
+  if(taint2 != UNTAINTED && taint2 != TAINTED)
   {
     throw "Second taint type passed to meet function is invalid.";
   }
@@ -74,9 +74,9 @@ taintt path_symex_simple_taint_analysis_enginet::parse_taint(
     std::string taint_name) const
 {
   /* Parse from strings -> taint types */
-  if (taint_name == "untainted")
+  if(taint_name == "untainted")
     return UNTAINTED;
-  if (taint_name == "tainted")
+  if(taint_name == "tainted")
     return TAINTED;
   throw "Taint type not recognised";
 }
