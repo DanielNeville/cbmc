@@ -514,9 +514,15 @@ bool symex_parse_optionst::handle_taint_analysis_option(path_searcht &path_searc
 
 	// Find which taint engine has been selected
 	if(cmdline.get_value("taint") == "simple") {
-    path_symex_simple_taint_analysis_enginet taint_engine;
+    /*path_symex_simple_taint_analysis_enginet taint_engine;
 
     path_search.set_taint(true, cmdline.get_value("taint-file"), taint_engine);
+  */
+
+		// QUICK FIX FOR NOW!
+	path_symex_simple_taint_analysis_enginet *taint_engine = new path_symex_simple_taint_analysis_enginet();
+	path_search.set_taint(true, cmdline.get_value("taint-file"), *taint_engine);
+
   } else {
     throw "Taint engine type not recognised.";
   }
