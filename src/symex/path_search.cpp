@@ -14,6 +14,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex.h>
 #include <path-symex/build_goto_trace.h>
 
+#include <iostream>
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -31,7 +33,6 @@ Function: path_searcht::operator()
 path_searcht::resultt path_searcht::operator()(
   const goto_functionst &goto_functions)
 {
-  locst locs(ns);
   var_mapt var_map(ns);
   
   locs.build(goto_functions);
@@ -50,6 +51,7 @@ path_searcht::resultt path_searcht::operator()(
   number_of_infeasible_paths=0;
   number_of_VCCs_after_simplification=0;
   number_of_failed_properties=0;
+  number_of_merged_states=0;
   number_of_locs=locs.size();
 
   // stop the time
@@ -60,6 +62,10 @@ path_searcht::resultt path_searcht::operator()(
   while(!queue.empty())
   {
     number_of_steps++;
+
+    at_merge_point(*queue.begin());
+
+    merge_states();
   
     // Pick a state from the queue,
     // according to some heuristic.
@@ -235,8 +241,119 @@ void path_searcht::pick_state()
     
   case search_heuristict::LOCS:
     return;
+
+  case search_heuristict::FAST_FORWARD:
+    // Very simple fast forward strategy.
+
+    if(queue.size() > 1) {
+      for (auto it = queue.begin(); it != queue.end(); it++)
+      {
+        if(!at_merge_point(*it))
+        {
+          // Move states not at merge point to front.
+          // Breaks iterator.
+          queue.splice(queue.begin(), queue, it);
+          // But for now, only one.  We broke our iterator.
+          break;
+        }
+      }
+    }
   }  
 }
+/*******************************************************************\
+
+Function: path_searcht::merge_states
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void path_searcht::merge_states()
+{
+  if(queue.size() < 2)
+    return;
+
+  switch (merge_heuristic)
+  {
+    case merge_heuristict::NONE:
+      return;
+
+    case merge_heuristict::AGGRESSIVE:
+      // The last state inserted, is the last state
+      // we manipulated.
+      queuet::iterator current=queue.begin();
+
+      queuet::iterator it=queue.begin();
+      assert(queue.size() >= 2 && it != queue.end());
+
+      // Move it to the point the state beyond the last state.
+      it++;
+
+      for (; it != queue.end(); it++)
+      {
+        if(it->pc() != current->pc())
+        {
+          // Only merge when same PC.  (Otherwise fast-forward?)
+          continue;
+        }
+
+        debug() << "Considering to merge at " << it->pc() << eom;
+
+        // Own class with inheritance eventually.
+        if(do_aggressive_merge(it, current))
+        {
+          merge(current, it);
+          number_of_merged_states++;
+// //     Disabled for testing.
+//          queue.erase(it);
+        }
+      }
+
+      return;
+  }
+}
+
+bool path_searcht::do_aggressive_merge(
+    queuet::iterator &state, queuet::iterator &cmp_state)
+{
+  return true; // much aggressive.
+}
+
+void path_searcht::merge(
+    queuet::iterator &state, queuet::iterator &cmp_state)
+{
+  assert(state->pc() == cmp_state->pc());
+
+  progress() << "Merging states at program location: " << state->pc() << eom;
+  // Specific semantics.  State is updated to be the 'new' state.
+  // Cmp_state will be destroyed.
+
+  /* So it should be noted that two states to merge will have some
+   * common prefix, and some common suffix (albeit possibly empty)
+   *
+   * Maintaining the common prefix is particularly important, so let's
+   * consider how to calculate.
+   */
+
+  typedef std::vector<path_symex_step_reft> state_historyt;
+
+  state_historyt state_history;
+  state->history.build_history(state_history);
+  state_historyt::iterator state_it = state_history.begin();
+
+  state_historyt cmp_state_history;
+  cmp_state->history.build_history(cmp_state_history);
+  state_historyt::iterator cmp_state_it = cmp_state_history.begin();
+
+
+
+}
+
+
 
 /*******************************************************************\
 

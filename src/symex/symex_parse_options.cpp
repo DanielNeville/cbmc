@@ -273,6 +273,18 @@ int symex_parse_optionst::doit()
     if(cmdline.isset("bfs"))
       path_search.set_bfs();
 
+    if(cmdline.isset("fast-forward"))
+    {
+      debug() << "Setting fast forward." << eom;
+      path_search.set_fast_forward();
+    }
+
+    if(cmdline.isset("aggressive-merging"))
+    {
+      debug() << "Setting aggressive state merging." << eom;
+      path_search.set_aggressive_merging();
+    }
+
     if(cmdline.isset("locs"))
       path_search.set_locs();
 
