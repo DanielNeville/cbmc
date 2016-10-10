@@ -199,6 +199,12 @@ void path_searcht::report_statistics()
   status() << "Number of paths: "
            << number_of_paths << messaget::eom;
 
+  if(merge_heuristic != merge_heuristict::NONE)
+  {
+    status() << "Number of merges: "
+             << number_of_merged_states << messaget::eom;
+  }
+
   status() << "Number of infeasible paths: "
            << number_of_infeasible_paths << messaget::eom;
 
@@ -295,7 +301,10 @@ void path_searcht::merge_states()
 
       for (; it != queue.end(); it++)
       {
-        if(it->pc() != current->pc())
+        if(it->pc() != current->pc()
+            ||
+           it->get_current_thread() != current->get_current_thread()
+           )
         {
           // Only merge when same PC.  (Otherwise fast-forward?)
           continue;
@@ -309,7 +318,7 @@ void path_searcht::merge_states()
           merge(current, it);
           number_of_merged_states++;
 // //     Disabled for testing.
-//          queue.erase(it);
+          queue.erase(it);
         }
       }
 
@@ -327,6 +336,8 @@ void path_searcht::merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
   assert(state->pc() == cmp_state->pc());
+
+  assert(state->get_current_thread() == cmp_state->get_current_thread());
 
   progress() << "Merging states at program location: " << state->pc() << eom;
   // Specific semantics.  State is updated to be the 'new' state.
@@ -352,6 +363,9 @@ void path_searcht::merge(
   unsigned steps = 0;
   /* This code places both states at the first location of their divergence. */
 
+  exprt state_last_seen_guard = nil_exprt();
+  exprt cmp_state_last_seen_guard = nil_exprt();
+
   while(state_it != state_history.end()
       &&
       cmp_state_it != cmp_state_history.end()) {
@@ -359,21 +373,24 @@ void path_searcht::merge(
     if((*state_it)->pc != (*cmp_state_it)->pc)
       break;
 
+    state_last_seen_guard =(*state_it)->guard;
+    cmp_state_last_seen_guard =(*cmp_state_it)->guard;
+
     steps++;
 
     progress() << "Comparison" << steps << "-" << (*state_it)->pc << "," << (*cmp_state_it)->pc << eom;
 
     state_it++;
     cmp_state_it++;
-
-
   }
 
-  unsigned reverse_steps = state_history.size() - steps;
+  unsigned reverse_steps=state_history.size() - steps - 1; // end offset.
+  // remove "- 1" to go to guarded divergence state.
 
-  path_symex_step_reft reverse_step = state->history;
+  path_symex_step_reft reverse_step=state->history;
 
-  while(reverse_steps > 0) {
+  while (reverse_steps > 0)
+  {
     --reverse_step;
     reverse_steps--;
   }
@@ -386,16 +403,113 @@ void path_searcht::merge(
   std::vector<exprt> state_guards;
   std::vector<exprt> cmp_state_guards;
 
+  state_guards.push_back(state_last_seen_guard);
+  cmp_state_guards.push_back(cmp_state_last_seen_guard);
+
   /* Let's now calculate guards on each branch */
-  while(state_it != state_history.end()) {
+  while (state_it != state_history.end())
+  {
+    if(((*state_it)->guard).is_not_nil())
+    {
+      state_guards.push_back((*state_it)->guard);
+    }
+    state_it++;
+  }
+
+  while (cmp_state_it != cmp_state_history.end())
+  {
+    if(((*cmp_state_it)->guard).is_not_nil())
+    {
+      cmp_state_guards.push_back((*cmp_state_it)->guard);
+    }
+    cmp_state_it++;
+  }
+
+  assert(state_guards.size() > 0 && cmp_state_guards.size() > 0);
+
+  /* TESTING ASSERTION. */
+  /* Let's practise on one differing guard only to get an understanding
+   * before recursive calls  */
+  assert(state_guards.size() == 1 && cmp_state_guards.size() == 1);
+
+
+  /* Multiple steps
+   *
+   * 1) Update history.
+   * 2) Update var_state.
+   * 2a) Ensure valid SSA IDs.
+   * 3) Update statistics.
+   */
+
+  /* Update history */
+
+  // <TO DO>
+
+  /* Update var_state */
+  unsigned j = 0;
+
+  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
+        it != state->var_map.id_map.end(); it++)
+  {
+    ssa_exprt &ssa = to_ssa_expr(state->get_var_state(it->second).ssa_symbol);
 
   }
 
 
-  std::cout << "Found" << reverse_step->pc.loc_number << "\n";
 
 
+//  /*  THIS ONLY WORKS FOR ONE ALTERED GUARD (I.E. G_1 = !C_G_1) */
+//  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
+//      it != state->var_map.id_map.end(); it++)
+//  {
+//    if(!(state->get_var_state(it->second).value
+//        == cmp_state->get_var_state(it->second).value))
+//    {
+//
+//      if_exprt phi_node=if_exprt();
+//      phi_node.cond()=conjunction(state_guards);
+//
+//      if(state->get_var_state(it->second).value.is_not_nil()
+//          && cmp_state->get_var_state(it->second).value.is_not_nil())
+//      {
+//        phi_node.type()=state->get_var_state(it->second).value.type();
+//        phi_node.true_case()=state->get_var_state(it->second).value;
+//        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
+//
+//        assert(
+//            state->get_var_state(it->second).value.type()
+//                == cmp_state->get_var_state(it->second).value.type());
+//
+//      }
+//      else if(state->get_var_state(it->second).value.is_not_nil()
+//          && cmp_state->get_var_state(it->second).value.is_nil())
+//      {
+//        phi_node.type()=state->get_var_state(it->second).value.type();
+//        phi_node.true_case()=state->get_var_state(it->second).value;
+//        phi_node.false_case()=it->second.ssa_symbol();
+//      }
+//      else if(cmp_state->get_var_state(it->second).value.is_not_nil()
+//          && state->get_var_state(it->second).value.is_nil())
+//      {
+//        phi_node.type()=cmp_state->get_var_state(it->second).value.type();
+//        phi_node.true_case()=it->second.ssa_symbol();
+//        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
+//      }
+//      else
+//      {
+//        assert(0); // They're both the same via the previous IF, so if they're both NIL, they're the same.
+//        // This should not be reached.
+//      }
+//      state->get_var_state(it->second).value=phi_node;
+//    }
+//  }
 
+  /* Update statistics */
+  // Max depth.
+  state->set_depth(
+      (state->get_depth() < cmp_state->get_depth()) ?
+          state->get_depth() : cmp_state->get_depth());
+  // ...
 
   //  std::cout << "Path 1:\n";
   //
