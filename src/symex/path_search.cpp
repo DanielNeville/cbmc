@@ -412,10 +412,14 @@ void path_searcht::merge(
   exprt guarded_expression = and_exprt(state_guarded_expression, cmp_state_guarded_expression);
 
   std::cout << "Finished.  Result:\n\n";
+  std::cout << guarded_expression.pretty() << "\n";
+
+
+  // Simplify!
+  guarded_expression = simplify_expr(guarded_expression, ns);
 
   std::cout << guarded_expression.pretty() << "\n";
 
-  guarded_expression = simplify_expr(state_guarded_expression, ns);
 
 //  while(state_it != state_history.end()) {
 //
