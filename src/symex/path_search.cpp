@@ -353,6 +353,7 @@ void path_searcht::merge(
    * consider how to calculate.
    */
 
+  /* Generate forward iterable histories for both states */
   state_historyt state_history;
   state->history.build_history(state_history);
   state_historyt::iterator state_it = state_history.begin();
@@ -364,18 +365,12 @@ void path_searcht::merge(
   unsigned steps = 0;
   /* This code places both states at the first location of their divergence. */
 
-  exprt state_last_seen_guard = nil_exprt();
-  exprt cmp_state_last_seen_guard = nil_exprt();
-
   while(state_it != state_history.end()
       &&
       cmp_state_it != cmp_state_history.end()) {
 
     if((*state_it)->pc != (*cmp_state_it)->pc) // Consider if different guard.
       break;
-
-    state_last_seen_guard =(*state_it)->guard;
-    cmp_state_last_seen_guard =(*cmp_state_it)->guard;
 
     steps++;
 
