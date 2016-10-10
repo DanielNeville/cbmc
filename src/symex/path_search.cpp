@@ -387,11 +387,20 @@ void path_searcht::merge(
   state_it--;
   cmp_state_it--;
 
+  /* This takes the states backwards one position.
+   * This means both states are pointing to the same program location.
+   */
+
+  /*
+   * One will have guard: g, and one will have not_exprt(g).
+   * This isn't relevant or assumed.  Both are treated as "just some" guard.
+   * tl;dr: It is not assumed that g1 = not(g2) or vice-versa.
+   */
+
   /* History.
    *
-   * true AND e1 AND e2 AND G1 => (e3 AND e4 AND G2 => (EXPR))
-   * AND
-   * [path 2]
+   * Each expression is conjuncted onto the current focal point.
+   * Each guard generates a new conjunction of
    */
 
   exprt state_guarded_expression = true_exprt();
@@ -560,7 +569,7 @@ void path_searcht::construct_guarded_expression(exprt &expr,
   if((*state_it)->guard.is_not_nil())
   {
     std::cout << "GUARDED! \n" << (*state_it)->guard.pretty() << "\n\n";
-    expr=implies_exprt((*state_it)->guard, true_exprt());
+    expr=and_exprt(expr, implies_exprt((*state_it)->guard, true_exprt()));
     state_it++;
     construct_guarded_expression(expr.op1(), state_it, state_history);
   }
