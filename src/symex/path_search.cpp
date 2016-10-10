@@ -349,8 +349,136 @@ void path_searcht::merge(
   cmp_state->history.build_history(cmp_state_history);
   state_historyt::iterator cmp_state_it = cmp_state_history.begin();
 
+  unsigned steps = 0;
+  /* This code places both states at the first location of their divergence. */
+
+  while(state_it != state_history.end()
+      &&
+      cmp_state_it != cmp_state_history.end()) {
+
+    if((*state_it)->pc != (*cmp_state_it)->pc)
+      break;
+
+    steps++;
+
+    progress() << "Comparison" << steps << "-" << (*state_it)->pc << "," << (*cmp_state_it)->pc << eom;
+
+    state_it++;
+    cmp_state_it++;
 
 
+  }
+
+  unsigned reverse_steps = state_history.size() - steps;
+
+  path_symex_step_reft reverse_step = state->history;
+
+  while(reverse_steps > 0) {
+    --reverse_step;
+    reverse_steps--;
+  }
+
+  // We should have gone backwards to where we diverged first.
+  // We can go back one extra time (if not end) to go to the last point
+  // before divergence.
+  assert(reverse_step->pc == (*state_it)->pc);
+
+  std::vector<exprt> state_guards;
+  std::vector<exprt> cmp_state_guards;
+
+  /* Let's now calculate guards on each branch */
+  while(state_it != state_history.end()) {
+
+  }
+
+
+  std::cout << "Found" << reverse_step->pc.loc_number << "\n";
+
+
+
+
+  //  std::cout << "Path 1:\n";
+  //
+  //  for (auto it : state_history)
+  //  {
+  //    std::cout << "PC: " << it->pc.loc_number << "\n" << "LHS: "
+  //        << it->ssa_lhs.pretty() << "\n" << "RHS:" << it->ssa_rhs.pretty()
+  //        << "\n" << "Guard: " << it->guard.pretty() << "\n\n";
+  //  }
+  //
+  //  std::cout << "Path 2:\n";
+  //
+  //  for (auto it : cmp_state_history)
+  //  {
+  //    std::cout << "PC: " << it->pc.loc_number << "\n" << "LHS: "
+  //        << it->ssa_lhs.pretty() << "\n" << "RHS:" << it->ssa_rhs.pretty()
+  //        << "\n" << "Guard: " << it->guard.pretty() << "\n\n";
+  //  }
+
+
+
+//  progress() << "Steps:" << steps << eom;
+////
+//  std::cout << (*state_it)->pc << "," << (*cmp_state_it)->pc << "\n";
+//
+
+//
+//  // To be moved to state history step == operator.
+//  while(
+//      together
+//      &&
+//      state_it != state_history.end()
+//      &&
+//      cmp_state_it != cmp_state_history.end()
+//      )
+//  {
+//    if(
+//        (*state_it)->pc.loc_number != (*cmp_state_it)->pc.loc_number)
+///*        ||
+//        (*state_it)->thread_nr != (*cmp_state_it)->thread_nr
+//        ||
+//        (*state_it)->guard != (*cmp_state_it)->guard
+//        ||
+//        (*state_it)->full_lhs != (*cmp_state_it)->full_lhs
+//        ||
+//        (*state_it)->ssa_lhs != (*cmp_state_it)->ssa_lhs
+//        ||
+//        (*state_it)->ssa_rhs != (*cmp_state_it)->ssa_lhs
+//        )*/
+//    {
+//      std::cout << (*state_it)->pc.loc_number << "-"
+//          << (*cmp_state_it)->pc.loc_number << "\n";
+//
+//      together = false;
+//
+//      std::cout << "Different.\n";
+//    }
+//    else
+//    {
+//
+//
+//
+//      state_it++;
+//      cmp_state++;
+//    }
+//
+//
+//  }
+//
+//  if(
+//      (state_it != state_history.end()
+//      &&
+//      cmp_state_it == cmp_state_history.end())
+//     ||
+//     (state_it == state_history.end()
+//     &&
+//     cmp_state_it != cmp_state_history.end())
+//     )
+//  {
+//    together = false;
+//  }
+
+//  std::cout << (together ? "Together" : "Not together.") << " ";
 }
 
 
