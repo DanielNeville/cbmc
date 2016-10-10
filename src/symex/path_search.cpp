@@ -14,6 +14,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex.h>
 #include <path-symex/build_goto_trace.h>
 
+// Move to appropriate file.
+#include <util/simplify_expr.h>
+
 #include <iostream>
 
 #include "path_search.h"
@@ -350,8 +353,6 @@ void path_searcht::merge(
    * consider how to calculate.
    */
 
-  typedef std::vector<path_symex_step_reft> state_historyt;
-
   state_historyt state_history;
   state->history.build_history(state_history);
   state_historyt::iterator state_it = state_history.begin();
@@ -370,7 +371,7 @@ void path_searcht::merge(
       &&
       cmp_state_it != cmp_state_history.end()) {
 
-    if((*state_it)->pc != (*cmp_state_it)->pc)
+    if((*state_it)->pc != (*cmp_state_it)->pc) // Consider if different guard.
       break;
 
     state_last_seen_guard =(*state_it)->guard;
@@ -384,53 +385,98 @@ void path_searcht::merge(
     cmp_state_it++;
   }
 
-  unsigned reverse_steps=state_history.size() - steps - 1; // end offset.
-  // remove "- 1" to go to guarded divergence state.
-
-  path_symex_step_reft reverse_step=state->history;
-
-  while (reverse_steps > 0)
-  {
-    --reverse_step;
-    reverse_steps--;
+  if(steps == 0) {
+    throw "Error.\n";
   }
 
-  // We should have gone backwards to where we diverged first.
-  // We can go back one extra time (if not end) to go to the last point
-  // before divergence.
-  assert(reverse_step->pc == (*state_it)->pc);
+  state_it--;
+  cmp_state_it--;
 
-  std::vector<exprt> state_guards;
-  std::vector<exprt> cmp_state_guards;
+  /* History.
+   *
+   * true AND e1 AND e2 AND G1 => (e3 AND e4 AND G2 => (EXPR))
+   * AND
+   * [path 2]
+   */
 
-  state_guards.push_back(state_last_seen_guard);
-  cmp_state_guards.push_back(cmp_state_last_seen_guard);
+  exprt state_guarded_expression = true_exprt();
+  exprt cmp_state_guarded_expression = true_exprt();
 
-  /* Let's now calculate guards on each branch */
-  while (state_it != state_history.end())
-  {
-    if(((*state_it)->guard).is_not_nil())
-    {
-      state_guards.push_back((*state_it)->guard);
-    }
-    state_it++;
-  }
+  construct_guarded_expression(state_guarded_expression, state_it, state_history);
+  construct_guarded_expression(cmp_state_guarded_expression, cmp_state_it, cmp_state_history);
 
-  while (cmp_state_it != cmp_state_history.end())
-  {
-    if(((*cmp_state_it)->guard).is_not_nil())
-    {
-      cmp_state_guards.push_back((*cmp_state_it)->guard);
-    }
-    cmp_state_it++;
-  }
+  exprt guarded_expression = and_exprt(state_guarded_expression, cmp_state_guarded_expression);
 
-  assert(state_guards.size() > 0 && cmp_state_guards.size() > 0);
+  std::cout << "Finished.  Result:\n\n";
 
-  /* TESTING ASSERTION. */
-  /* Let's practise on one differing guard only to get an understanding
-   * before recursive calls  */
-  assert(state_guards.size() == 1 && cmp_state_guards.size() == 1);
+  std::cout << guarded_expression.pretty() << "\n";
+
+  guarded_expression = simplify_expr(state_guarded_expression, ns);
+
+//  while(state_it != state_history.end()) {
+//
+//    if((*state_it)->guard.is_not_nil())
+//    {
+//      expr = implies_exprt((*state_it)->guard, new_expr);
+//      return;
+//    }
+//    if((*state_it)->ssa_rhs.is_not_nil())
+//    {
+//      *work=and_exprt(*work,
+//          equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs));
+//    }
+//    state_it++;
+//  }
+
+//  calculate_merge(expr, state_it, state_history);
+
+//  unsigned reverse_steps=state_history.size() - steps - 1; // end offset.
+//  // remove "- 1" to go to guarded divergence state.
+//
+//  path_symex_step_reft reverse_step=state->history;
+//
+//  while (reverse_steps > 0)
+//  {
+//    --reverse_step;
+//    reverse_steps--;
+//  }
+//
+//  // We should have gone backwards to where we diverged first.
+//  // We can go back one extra time (if not end) to go to the last point
+//  // before divergence.
+////  assert(reverse_step->pc == (*state_it)->pc);
+//
+//  std::vector<exprt> state_guards;
+//  std::vector<exprt> cmp_state_guards;
+//
+//  state_guards.push_back(state_last_seen_guard);
+//  cmp_state_guards.push_back(cmp_state_last_seen_guard);
+//
+//  /* Let's now calculate guards on each branch */
+////  while (state_it != state_history.end())
+////  {
+////    if(((*state_it)->guard).is_not_nil())
+////    {
+////      state_guards.push_back((*state_it)->guard);
+////    }
+////    state_it++;
+////  }
+////
+////  while (cmp_state_it != cmp_state_history.end())
+////  {
+////    if(((*cmp_state_it)->guard).is_not_nil())
+////    {
+////      cmp_state_guards.push_back((*cmp_state_it)->guard);
+////    }
+////    cmp_state_it++;
+////  }
+//
+//  assert(state_guards.size() > 0 && cmp_state_guards.size() > 0);
+//
+//  /* TESTING ASSERTION. */
+//  /* Let's practise on one differing guard only to get an understanding
+//   * before recursive calls  */
+//  assert(state_guards.size() == 1 && cmp_state_guards.size() == 1);
 
 
   /* Multiple steps
@@ -446,14 +492,7 @@ void path_searcht::merge(
   // <TO DO>
 
   /* Update var_state */
-  unsigned j = 0;
-
-  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
-        it != state->var_map.id_map.end(); it++)
-  {
-    ssa_exprt &ssa = to_ssa_expr(state->get_var_state(it->second).ssa_symbol);
-
-  }
+//  unsigned j = 0;
 
 
 
@@ -510,92 +549,39 @@ void path_searcht::merge(
       (state->get_depth() < cmp_state->get_depth()) ?
           state->get_depth() : cmp_state->get_depth());
   // ...
-
-  //  std::cout << "Path 1:\n";
-  //
-  //  for (auto it : state_history)
-  //  {
-  //    std::cout << "PC: " << it->pc.loc_number << "\n" << "LHS: "
-  //        << it->ssa_lhs.pretty() << "\n" << "RHS:" << it->ssa_rhs.pretty()
-  //        << "\n" << "Guard: " << it->guard.pretty() << "\n\n";
-  //  }
-  //
-  //  std::cout << "Path 2:\n";
-  //
-  //  for (auto it : cmp_state_history)
-  //  {
-  //    std::cout << "PC: " << it->pc.loc_number << "\n" << "LHS: "
-  //        << it->ssa_lhs.pretty() << "\n" << "RHS:" << it->ssa_rhs.pretty()
-  //        << "\n" << "Guard: " << it->guard.pretty() << "\n\n";
-  //  }
-
-
-
-//  progress() << "Steps:" << steps << eom;
-////
-//  std::cout << (*state_it)->pc << "," << (*cmp_state_it)->pc << "\n";
-//
-
-//
-//  // To be moved to state history step == operator.
-//  while(
-//      together
-//      &&
-//      state_it != state_history.end()
-//      &&
-//      cmp_state_it != cmp_state_history.end()
-//      )
-//  {
-//    if(
-//        (*state_it)->pc.loc_number != (*cmp_state_it)->pc.loc_number)
-///*        ||
-//        (*state_it)->thread_nr != (*cmp_state_it)->thread_nr
-//        ||
-//        (*state_it)->guard != (*cmp_state_it)->guard
-//        ||
-//        (*state_it)->full_lhs != (*cmp_state_it)->full_lhs
-//        ||
-//        (*state_it)->ssa_lhs != (*cmp_state_it)->ssa_lhs
-//        ||
-//        (*state_it)->ssa_rhs != (*cmp_state_it)->ssa_lhs
-//        )*/
-//    {
-//      std::cout << (*state_it)->pc.loc_number << "-"
-//          << (*cmp_state_it)->pc.loc_number << "\n";
-//
-//      together = false;
-//
-//      std::cout << "Different.\n";
-//    }
-//    else
-//    {
-//
-//
-//
-//      state_it++;
-//      cmp_state++;
-//    }
-//
-//
-//  }
-//
-//  if(
-//      (state_it != state_history.end()
-//      &&
-//      cmp_state_it == cmp_state_history.end())
-//     ||
-//     (state_it == state_history.end()
-//     &&
-//     cmp_state_it != cmp_state_history.end())
-//     )
-//  {
-//    together = false;
-//  }
-
-//  std::cout << (together ? "Together" : "Not together.") << " ";
 }
 
+void path_searcht::construct_guarded_expression(exprt &expr,
+    state_historyt::iterator &state_it, state_historyt &state_history)
+{
+  if(state_it == state_history.end())
+  {
+    return;
+  }
 
+  std::cout << "\n\nInspecting: " << (*state_it)->pc.loc_number << "\n";
+  std::cout << "Current expression is: " << expr.pretty() << "\n\n\n\n";
+
+  if((*state_it)->guard.is_not_nil())
+  {
+    std::cout << "GUARDED! \n" << (*state_it)->guard.pretty() << "\n\n";
+    expr=implies_exprt((*state_it)->guard, true_exprt());
+    state_it++;
+    construct_guarded_expression(expr.op1(), state_it, state_history);
+  }
+  else if((*state_it)->ssa_rhs.is_not_nil())
+  {
+    std::cout << "EXPRESSION! \n"
+        << equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs).pretty()
+        << "\n\n";
+
+    expr=and_exprt(expr,
+        equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs));
+
+    state_it++;
+    construct_guarded_expression(expr, state_it, state_history);
+  }
+}
 
 /*******************************************************************\
 

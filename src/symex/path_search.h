@@ -16,6 +16,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <path-symex/path_symex_state.h>
 
+// Todo: Move
+  typedef std::vector<path_symex_step_reft> state_historyt;
+
 class path_searcht:public safety_checkert
 {
 public:
@@ -160,6 +163,10 @@ protected:
   {
     return locs[state.pc()].target->incoming_edges.size() > 1;
   }
+
+  void construct_guarded_expression(exprt &expr,
+      state_historyt::iterator &state,
+      state_historyt &state_history);
 
 
 };
