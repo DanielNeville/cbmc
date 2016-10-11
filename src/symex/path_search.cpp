@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 // Move to appropriate file.
 #include <util/simplify_expr.h>
+#include <util/base_type.h>
 
 #include <iostream>
 
@@ -365,22 +366,21 @@ void path_searcht::merge(
   unsigned steps = 0;
   /* This code places both states at the first location of their divergence. */
 
-  while(state_it != state_history.end()
-      &&
-      cmp_state_it != cmp_state_history.end()) {
+  while (state_it != state_history.end()
+      && cmp_state_it != cmp_state_history.end())
+  {
 
     if((*state_it)->pc != (*cmp_state_it)->pc) // Consider if different guard.
       break;
 
     steps++;
 
-//    progress() << "Comparison" << steps << "-" << (*state_it)->pc << "," << (*cmp_state_it)->pc << eom;
-
     state_it++;
     cmp_state_it++;
   }
 
-  if(steps == 0) {
+  if(steps == 0)
+  {
     throw "Error.\n";
   }
 
@@ -396,17 +396,24 @@ void path_searcht::merge(
    * Each guard generates a new conjunction of
    */
 
-  exprt state_guarded_expression = true_exprt();
-  exprt cmp_state_guarded_expression = true_exprt();
+  exprt state_guarded_expression=true_exprt();
+  exprt cmp_state_guarded_expression=true_exprt();
 
   path_symex_step_reft reverse_step=state->history;
   path_symex_step_reft cmp_reverse_step=cmp_state->history;
 
+  and_exprt state_conjunction_guards;
+  and_exprt cmp_state_conjunction_guards;
+
+
   /* This alters reverse_step! */
   construct_guarded_expression(state_guarded_expression,
-      state_history.size() - steps, reverse_step);
+      state_history.size() - steps, reverse_step,
+      state_conjunction_guards.operands());
+
   construct_guarded_expression(cmp_state_guarded_expression,
-      cmp_state_history.size() - steps, cmp_reverse_step);
+      cmp_state_history.size() - steps, cmp_reverse_step,
+      cmp_state_conjunction_guards.operands());
 
   exprt guarded_expression=and_exprt(state_guarded_expression,
       cmp_state_guarded_expression);
@@ -425,8 +432,52 @@ void path_searcht::merge(
   state->history=reverse_step;
   /* This step changes history! */
 
+  // a and !b
+  exprt cond=and_exprt(state_conjunction_guards,
+      not_exprt(cmp_state_conjunction_guards));
 
-//  std::cout << guarded_expression.pretty() << "\n";
+  cond=simplify_expr(cond, ns);
+
+  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
+      it != state->var_map.id_map.end(); it++)
+  {
+    if(!(state->get_var_state(it->second).value
+        == cmp_state->get_var_state(it->second).value))
+    {
+      if_exprt phi_node=if_exprt();
+
+      phi_node.cond()=cond;
+
+      if(state->get_var_state(it->second).value.is_not_nil()
+          && cmp_state->get_var_state(it->second).value.is_not_nil())
+      {
+        phi_node.type()=state->get_var_state(it->second).value.type();
+        phi_node.true_case()=state->get_var_state(it->second).value;
+        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
+      }
+      else if(state->get_var_state(it->second).value.is_not_nil()
+          && cmp_state->get_var_state(it->second).value.is_nil())
+      {
+        phi_node.type()=state->get_var_state(it->second).value.type();
+        phi_node.true_case()=state->get_var_state(it->second).value;
+        phi_node.false_case()=it->second.ssa_symbol();
+      }
+      else if(cmp_state->get_var_state(it->second).value.is_not_nil()
+          && state->get_var_state(it->second).value.is_nil())
+      {
+        phi_node.type()=cmp_state->get_var_state(it->second).value.type();
+        phi_node.true_case()=it->second.ssa_symbol();
+        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
+      }
+      else
+      {
+        assert(0); // They're both the same via the previous IF, so if they're both NIL, they're the same.
+        // This should not be reached.
+      }
+      state->get_var_state(it->second).value=phi_node;
+      base_type_eq(phi_node.true_case(), phi_node.false_case(), ns);
+    }
+  }
 
 
 //  while(state_it != state_history.end()) {
@@ -568,7 +619,8 @@ void path_searcht::merge(
 }
 
 void path_searcht::construct_guarded_expression(exprt &expr,
-    int reverse_steps, path_symex_step_reft &reverse_step)
+    int reverse_steps, path_symex_step_reft &reverse_step,
+    exprt::operandst &guards)
 {
   // Condition at bottom.
    while (true)
@@ -577,6 +629,7 @@ void path_searcht::construct_guarded_expression(exprt &expr,
      /* TODO:  The above. */
      if(reverse_step->guard.is_not_nil()) {
        expr = implies_exprt(reverse_step->guard, expr);
+       guards.push_back(reverse_step->guard);
      }
 
      if(reverse_step->ssa_rhs.is_not_nil()) {

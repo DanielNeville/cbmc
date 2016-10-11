@@ -165,7 +165,8 @@ protected:
   }
 
   void construct_guarded_expression(exprt &expr,
-      int reverse_steps, path_symex_step_reft &reverse_step);
+      int reverse_steps, path_symex_step_reft &reverse_step,
+      std::vector<exprt> &guards);
 
 
 };
