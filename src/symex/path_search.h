@@ -155,6 +155,9 @@ protected:
   bool do_aggressive_merge(
       queuet::iterator &state, queuet::iterator &current_state);
 
+  bool do_qce_merge(
+      queuet::iterator &state, queuet::iterator &cmp_state);
+
   void merge(
       queuet::iterator &state, queuet::iterator &cmp_state);
 

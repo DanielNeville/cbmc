@@ -336,6 +336,14 @@ bool path_searcht::do_aggressive_merge(
   return true; // much aggressive.
 }
 
+bool path_searcht::do_qce_merge(
+    queuet::iterator &state, queuet::iterator &cmp_state)
+{
+  /* To do. */
+
+  return false;
+}
+
 void path_searcht::merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
