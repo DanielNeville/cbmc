@@ -432,148 +432,27 @@ void path_searcht::merge(
   state->history=reverse_step;
   /* This step changes history! */
 
+  /* Update internal variable mappings */
+
   // a and !b
   exprt cond=and_exprt(state_conjunction_guards,
       not_exprt(cmp_state_conjunction_guards));
 
-  cond=simplify_expr(cond, ns);
+//  cond=simplify_expr(cond, ns);
 
-  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
-      it != state->var_map.id_map.end(); it++)
-  {
-    if(!(state->get_var_state(it->second).value
-        == cmp_state->get_var_state(it->second).value))
-    {
-      if_exprt phi_node=if_exprt();
+  int i = 0;
 
-      phi_node.cond()=cond;
+  std::cout << "Size: " << state->var_map.id_map.size() << "\n";
 
-      if(state->get_var_state(it->second).value.is_not_nil()
-          && cmp_state->get_var_state(it->second).value.is_not_nil())
-      {
-        phi_node.type()=state->get_var_state(it->second).value.type();
-        phi_node.true_case()=state->get_var_state(it->second).value;
-        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
-      }
-      else if(state->get_var_state(it->second).value.is_not_nil()
-          && cmp_state->get_var_state(it->second).value.is_nil())
-      {
-        phi_node.type()=state->get_var_state(it->second).value.type();
-        phi_node.true_case()=state->get_var_state(it->second).value;
-        phi_node.false_case()=it->second.ssa_symbol();
-      }
-      else if(cmp_state->get_var_state(it->second).value.is_not_nil()
-          && state->get_var_state(it->second).value.is_nil())
-      {
-        phi_node.type()=cmp_state->get_var_state(it->second).value.type();
-        phi_node.true_case()=it->second.ssa_symbol();
-        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
-      }
-      else
-      {
-        assert(0); // They're both the same via the previous IF, so if they're both NIL, they're the same.
-        // This should not be reached.
-      }
-      state->get_var_state(it->second).value=phi_node;
-      base_type_eq(phi_node.true_case(), phi_node.false_case(), ns);
-    }
-  }
-
-
-//  while(state_it != state_history.end()) {
-//
-//    if((*state_it)->guard.is_not_nil())
-//    {
-//      expr = implies_exprt((*state_it)->guard, new_expr);
-//      return;
-//    }
-//    if((*state_it)->ssa_rhs.is_not_nil())
-//    {
-//      *work=and_exprt(*work,
-//          equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs));
-//    }
-//    state_it++;
-//  }
-
-//  calculate_merge(expr, state_it, state_history);
-
-//  unsigned reverse_steps=state_history.size() - steps - 1; // end offset.
-//  // remove "- 1" to go to guarded divergence state.
-//
-//  path_symex_step_reft reverse_step=state->history;
-//
-//  while (reverse_steps > 0)
-//  {
-//    --reverse_step;
-//    reverse_steps--;
-//  }
-//
-//  // We should have gone backwards to where we diverged first.
-//  // We can go back one extra time (if not end) to go to the last point
-//  // before divergence.
-////  assert(reverse_step->pc == (*state_it)->pc);
-//
-//  std::vector<exprt> state_guards;
-//  std::vector<exprt> cmp_state_guards;
-//
-//  state_guards.push_back(state_last_seen_guard);
-//  cmp_state_guards.push_back(cmp_state_last_seen_guard);
-//
-//  /* Let's now calculate guards on each branch */
-////  while (state_it != state_history.end())
-////  {
-////    if(((*state_it)->guard).is_not_nil())
-////    {
-////      state_guards.push_back((*state_it)->guard);
-////    }
-////    state_it++;
-////  }
-////
-////  while (cmp_state_it != cmp_state_history.end())
-////  {
-////    if(((*cmp_state_it)->guard).is_not_nil())
-////    {
-////      cmp_state_guards.push_back((*cmp_state_it)->guard);
-////    }
-////    cmp_state_it++;
-////  }
-//
-//  assert(state_guards.size() > 0 && cmp_state_guards.size() > 0);
-//
-//  /* TESTING ASSERTION. */
-//  /* Let's practise on one differing guard only to get an understanding
-//   * before recursive calls  */
-//  assert(state_guards.size() == 1 && cmp_state_guards.size() == 1);
-
-
-  /* Multiple steps
-   *
-   * 1) Update history.
-   * 2) Update var_state.
-   * 2a) Ensure valid SSA IDs.
-   * 3) Update statistics.
-   */
-
-  /* Update history */
-
-  // <TO DO>
-
-  /* Update var_state */
-//  unsigned j = 0;
-
-
-
-
-//  /*  THIS ONLY WORKS FOR ONE ALTERED GUARD (I.E. G_1 = !C_G_1) */
 //  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
 //      it != state->var_map.id_map.end(); it++)
 //  {
 //    if(!(state->get_var_state(it->second).value
 //        == cmp_state->get_var_state(it->second).value))
 //    {
-//
 //      if_exprt phi_node=if_exprt();
-//      phi_node.cond()=conjunction(state_guards);
+//
+//      phi_node.cond()=cond;
 //
 //      if(state->get_var_state(it->second).value.is_not_nil()
 //          && cmp_state->get_var_state(it->second).value.is_not_nil())
@@ -581,11 +460,6 @@ void path_searcht::merge(
 //        phi_node.type()=state->get_var_state(it->second).value.type();
 //        phi_node.true_case()=state->get_var_state(it->second).value;
 //        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
-//
-//        assert(
-//            state->get_var_state(it->second).value.type()
-//                == cmp_state->get_var_state(it->second).value.type());
-//
 //      }
 //      else if(state->get_var_state(it->second).value.is_not_nil()
 //          && cmp_state->get_var_state(it->second).value.is_nil())
@@ -606,7 +480,10 @@ void path_searcht::merge(
 //        assert(0); // They're both the same via the previous IF, so if they're both NIL, they're the same.
 //        // This should not be reached.
 //      }
+////      base_type_eq(phi_node.true_case(), phi_node.false_case(), ns);
 //      state->get_var_state(it->second).value=phi_node;
+//
+//      std::cout << phi_node.pretty() << "\n\n\n\n\n\n\n\n\n______\n\n\n\n\n\n";
 //    }
 //  }
 
