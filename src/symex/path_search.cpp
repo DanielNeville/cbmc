@@ -374,7 +374,7 @@ void path_searcht::merge(
 
     steps++;
 
-    progress() << "Comparison" << steps << "-" << (*state_it)->pc << "," << (*cmp_state_it)->pc << eom;
+//    progress() << "Comparison" << steps << "-" << (*state_it)->pc << "," << (*cmp_state_it)->pc << eom;
 
     state_it++;
     cmp_state_it++;
@@ -383,13 +383,6 @@ void path_searcht::merge(
   if(steps == 0) {
     throw "Error.\n";
   }
-
-  state_it--;
-  cmp_state_it--;
-
-  /* This takes the states backwards one position.
-   * This means both states are pointing to the same program location.
-   */
 
   /*
    * One will have guard: g, and one will have not_exprt(g).
@@ -406,38 +399,31 @@ void path_searcht::merge(
   exprt state_guarded_expression = true_exprt();
   exprt cmp_state_guarded_expression = true_exprt();
 
-  construct_guarded_expression(state_guarded_expression, state_it, state_history);
-  construct_guarded_expression(cmp_state_guarded_expression, cmp_state_it, cmp_state_history);
-
-  exprt guarded_expression = and_exprt(state_guarded_expression, cmp_state_guarded_expression);
-
-  std::cout << "Finished.  Result:\n\n";
-//  std::cout << guarded_expression.pretty() << "\n";
-
-  // Simplify!
-  guarded_expression = simplify_expr(guarded_expression, ns);
-
-  unsigned reverse_steps=state_history.size() - steps;
-  // remove "- 1" to go to guarded divergence state
-
   path_symex_step_reft reverse_step=state->history;
+  path_symex_step_reft cmp_reverse_step=cmp_state->history;
 
-  while (reverse_steps > 0)
-  {
-    /* We could generate the guarded expression through backwards recursion. */
-    /* TODO:  The above. */
-    --reverse_step;
-    reverse_steps--;
-  }
+  /* This alters reverse_step! */
+  construct_guarded_expression(state_guarded_expression,
+      state_history.size() - steps, reverse_step);
+  construct_guarded_expression(cmp_state_guarded_expression,
+      cmp_state_history.size() - steps, cmp_reverse_step);
 
+  exprt guarded_expression=and_exprt(state_guarded_expression,
+      cmp_state_guarded_expression);
+
+  guarded_expression=simplify_expr(guarded_expression, ns);
+
+  /* Update history */
+  /* Reverse step was moved by construct_guarded_expression! */
   reverse_step->guard=nil_exprt();
   reverse_step->full_lhs=true_exprt();
   reverse_step->ssa_lhs=symbol_exprt();
   reverse_step->ssa_rhs=nil_exprt();
   reverse_step->arbitrary_expr=guarded_expression;
 
+  /* Rewrite history */
+  state->history=reverse_step;
   /* This step changes history! */
-  state->history = reverse_step;
 
 
 //  std::cout << guarded_expression.pretty() << "\n";
@@ -582,35 +568,35 @@ void path_searcht::merge(
 }
 
 void path_searcht::construct_guarded_expression(exprt &expr,
-    state_historyt::iterator &state_it, state_historyt &state_history)
+    int reverse_steps, path_symex_step_reft &reverse_step)
 {
-  if(state_it == state_history.end())
-  {
-    return;
-  }
+  // Condition at bottom.
+   while (true)
+   {
+     /* We could generate the guarded expression through backwards recursion. */
+     /* TODO:  The above. */
+     if(reverse_step->guard.is_not_nil()) {
+       expr = implies_exprt(reverse_step->guard, expr);
+     }
 
-  std::cout << "\n\nInspecting: " << (*state_it)->pc.loc_number << "\n";
-  std::cout << "Current expression is: " << expr.pretty() << "\n\n\n\n";
+     if(reverse_step->ssa_rhs.is_not_nil()) {
+       expr=and_exprt(expr,
+           equal_exprt(reverse_step->ssa_lhs, reverse_step->ssa_rhs));
+     }
 
-  if((*state_it)->guard.is_not_nil())
-  {
-    std::cout << "GUARDED! \n" << (*state_it)->guard.pretty() << "\n\n";
-    expr=and_exprt(expr, implies_exprt((*state_it)->guard, true_exprt()));
-    state_it++;
-    construct_guarded_expression(expr.op1(), state_it, state_history);
-  }
-  else if((*state_it)->ssa_rhs.is_not_nil())
-  {
-    std::cout << "EXPRESSION! \n"
-        << equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs).pretty()
-        << "\n\n";
+     if(reverse_step->arbitrary_expr.is_not_nil()) {
+       expr=and_exprt(expr,
+                 reverse_step->arbitrary_expr);
+     }
 
-    expr=and_exprt(expr,
-        equal_exprt((*state_it)->ssa_lhs, (*state_it)->ssa_rhs));
-
-    state_it++;
-    construct_guarded_expression(expr, state_it, state_history);
-  }
+     if(reverse_steps > 0) {
+       --reverse_step;
+       --reverse_steps;
+       /* This means we end up in the right place. */
+     } else {
+       break;
+     }
+   }
 }
 
 /*******************************************************************\

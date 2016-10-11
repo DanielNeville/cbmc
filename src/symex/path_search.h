@@ -165,8 +165,7 @@ protected:
   }
 
   void construct_guarded_expression(exprt &expr,
-      state_historyt::iterator &state,
-      state_historyt &state_history);
+      int reverse_steps, path_symex_step_reft &reverse_step);
 
 
 };
