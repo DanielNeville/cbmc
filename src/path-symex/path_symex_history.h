@@ -103,6 +103,8 @@ public:
   exprt full_lhs;
   symbol_exprt ssa_lhs;
 
+  exprt arbitrary_expr;
+
   bool hidden; 
   
   path_symex_stept():
@@ -110,6 +112,7 @@ public:
     guard(nil_exprt()),
     ssa_rhs(nil_exprt()),
     full_lhs(nil_exprt()),
+    arbitrary_expr(nil_exprt()),
     hidden(false)
   {
   }

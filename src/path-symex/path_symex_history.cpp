@@ -64,6 +64,9 @@ void path_symex_stept::convert(decision_proceduret &dest) const
 
   if(guard.is_not_nil())
     dest << guard;
+
+  if(arbitrary_expr.is_not_nil())
+    dest << arbitrary_expr;
 }
 
 /*******************************************************************\

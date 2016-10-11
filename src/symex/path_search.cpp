@@ -412,13 +412,35 @@ void path_searcht::merge(
   exprt guarded_expression = and_exprt(state_guarded_expression, cmp_state_guarded_expression);
 
   std::cout << "Finished.  Result:\n\n";
-  std::cout << guarded_expression.pretty() << "\n";
-
+//  std::cout << guarded_expression.pretty() << "\n";
 
   // Simplify!
   guarded_expression = simplify_expr(guarded_expression, ns);
 
-  std::cout << guarded_expression.pretty() << "\n";
+  unsigned reverse_steps=state_history.size() - steps;
+  // remove "- 1" to go to guarded divergence state
+
+  path_symex_step_reft reverse_step=state->history;
+
+  while (reverse_steps > 0)
+  {
+    /* We could generate the guarded expression through backwards recursion. */
+    /* TODO:  The above. */
+    --reverse_step;
+    reverse_steps--;
+  }
+
+  reverse_step->guard=nil_exprt();
+  reverse_step->full_lhs=true_exprt();
+  reverse_step->ssa_lhs=symbol_exprt();
+  reverse_step->ssa_rhs=nil_exprt();
+  reverse_step->arbitrary_expr=guarded_expression;
+
+  /* This step changes history! */
+  state->history = reverse_step;
+
+
+//  std::cout << guarded_expression.pretty() << "\n";
 
 
 //  while(state_it != state_history.end()) {
