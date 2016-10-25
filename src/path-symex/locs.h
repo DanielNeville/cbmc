@@ -65,6 +65,12 @@ public:
     return loc_vector[l.loc_number];
   }
   
+  inline loct &operator[] (unsigned l) // TODO const?
+  {
+    assert(l>=0 && l < loc_vector.size());
+    return loc_vector[l];
+  }
+
   static inline loc_reft begin()
   {
     loc_reft tmp;
