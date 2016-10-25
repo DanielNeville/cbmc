@@ -14,6 +14,7 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
        ../util/util$(LIBEXT) \
        ../goto-symex/adjust_float_expressions$(OBJEXT) \
        ../goto-symex/rewrite_union$(OBJEXT) \
+       ../pointer-analysis/pointer-analysis$(LIBEXT) \
        ../pointer-analysis/dereference$(OBJEXT) \
        ../goto-instrument/cover$(OBJEXT) \
        ../path-symex/path-symex$(LIBEXT)

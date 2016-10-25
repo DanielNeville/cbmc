@@ -17,6 +17,9 @@ Author: Daniel Kroening, kroening@kroening.com
 // Move to appropriate file.
 #include <util/simplify_expr.h>
 #include <util/base_type.h>
+#include <analyses/dependence_graph.h>
+
+
 
 #include <iostream>
 
@@ -38,14 +41,14 @@ path_searcht::resultt path_searcht::operator()(
   const goto_functionst &goto_functions)
 {
   var_mapt var_map(ns);
-  
+
   locs.build(goto_functions);
 
   // this is the container for the history-forest  
   path_symex_historyt history;
-  
+
   queue.push_back(initial_state(var_map, locs, history));
-  
+
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
@@ -60,31 +63,35 @@ path_searcht::resultt path_searcht::operator()(
 
   // stop the time
   start_time=current_time();
-  
+
   initialize_property_map(goto_functions);
-  
+
+  calculate_hotsets(goto_functions);
+
+  return SAFE;
+
   while(!queue.empty())
   {
     number_of_steps++;
 
-    at_merge_point(*queue.begin());
+//    at_merge_point(*queue.begin());
 
     merge_states();
-  
+
     // Pick a state from the queue,
     // according to some heuristic.
     // The state moves to the head of the queue.
     pick_state();
-    
+
     // move into temporary queue
     queuet tmp_queue;
     tmp_queue.splice(
       tmp_queue.begin(), queue, queue.begin(), ++queue.begin());
-    
+
     try
     {
       statet &state=tmp_queue.front();
-      
+
       // record we have seen it
       loc_data[state.get_pc().loc_number].visited=true;
 
@@ -93,16 +100,16 @@ path_searcht::resultt path_searcht::operator()(
               << ", depth: " << state.get_depth();
       for(const auto & s : queue)
         debug() << ' ' << s.get_depth();
-        
+
       debug() << eom;
-    
+
       if(drop_state(state))
       {
         number_of_dropped_states++;
         number_of_paths++;
         continue;
       }
-      
+
       if(!state.is_executable())
       {
         number_of_paths++;
@@ -117,7 +124,7 @@ path_searcht::resultt path_searcht::operator()(
         number_of_paths++;
         continue;
       }
-      
+
       if(number_of_steps%1000==0)
       {
         status() << "Queue " << queue.size()
@@ -134,7 +141,7 @@ path_searcht::resultt path_searcht::operator()(
         else
         {
           check_assertion(state);
-          
+
           // all assertions failed?
           if(number_of_failed_properties==property_map.size())
             break;
@@ -143,7 +150,7 @@ path_searcht::resultt path_searcht::operator()(
 
       // execute
       path_symex(state, tmp_queue);
-      
+
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
     }
@@ -162,9 +169,9 @@ path_searcht::resultt path_searcht::operator()(
       number_of_dropped_states++;
     }
   }
-  
+
   report_statistics();
-  
+
   return number_of_failed_properties==0?SAFE:UNSAFE;
 }
 
@@ -216,7 +223,7 @@ void path_searcht::report_statistics()
            << number_of_VCCs_after_simplification
            << " remaining after simplification"
            << messaget::eom;
-  
+
   time_periodt total_time=current_time()-start_time;
   status() << "Runtime: " << total_time << "s total, "
            << sat_time << "s SAT" << messaget::eom;
@@ -241,14 +248,14 @@ void path_searcht::pick_state()
   case search_heuristict::DFS:
     // Picking the first one (most recently added) is a DFS.
     return;
-  
+
   case search_heuristict::BFS:
     // Picking the last one is a BFS.
     if(queue.size()>=2)
       // move last to first position
       queue.splice(queue.begin(), queue, --queue.end(), queue.end());
     return;
-    
+
   case search_heuristict::LOCS:
     return;
 
@@ -268,7 +275,7 @@ void path_searcht::pick_state()
         }
       }
     }
-  }  
+  }
 }
 /*******************************************************************\
 
@@ -295,6 +302,7 @@ void path_searcht::merge_states()
     case merge_heuristict::AGGRESSIVE:
       // The last state inserted, is the last state
       // we manipulated.
+
       queuet::iterator current=queue.begin();
 
       queuet::iterator it=queue.begin();
@@ -340,6 +348,7 @@ bool path_searcht::do_qce_merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
   /* To do. */
+
 
   return false;
 }
@@ -423,7 +432,7 @@ void path_searcht::merge(
       cmp_state_history.size() - steps, cmp_reverse_step,
       cmp_state_conjunction_guards.operands());
 
-  exprt guarded_expression=and_exprt(state_guarded_expression,
+  exprt guarded_expression=or_exprt(state_guarded_expression,
       cmp_state_guarded_expression);
 
   guarded_expression=simplify_expr(guarded_expression, ns);
@@ -443,15 +452,14 @@ void path_searcht::merge(
   /* Update internal variable mappings */
 
   // a and !b
-  exprt cond=and_exprt(state_conjunction_guards,
-      not_exprt(cmp_state_conjunction_guards));
+//  exprt cond=and_exprt(state_conjunction_guards,
+//      not_exprt(cmp_state_conjunction_guards));
+  exprt cond = state_conjunction_guards;
 
-//  cond=simplify_expr(cond, ns);
+  cond=simplify_expr(cond, ns);
 
-  int i = 0;
-
-  std::cout << "Size: " << state->var_map.id_map.size() << "\n";
-
+//  std::cout << "Size!: " << state->var_map.id_map.size() << "\n";
+//
 //  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
 //      it != state->var_map.id_map.end(); it++)
 //  {
@@ -491,7 +499,7 @@ void path_searcht::merge(
 ////      base_type_eq(phi_node.true_case(), phi_node.false_case(), ns);
 //      state->get_var_state(it->second).value=phi_node;
 //
-//      std::cout << phi_node.pretty() << "\n\n\n\n\n\n\n\n\n______\n\n\n\n\n\n";
+////      std::cout << phi_node.pretty() << "\n\n\n\n\n\n\n\n\n______\n\n\n\n\n\n";
 //    }
 //  }
 
@@ -513,7 +521,7 @@ void path_searcht::construct_guarded_expression(exprt &expr,
      /* We could generate the guarded expression through backwards recursion. */
      /* TODO:  The above. */
      if(reverse_step->guard.is_not_nil()) {
-       expr = implies_exprt(reverse_step->guard, expr);
+       expr = and_exprt(reverse_step->guard, expr);
        guards.push_back(reverse_step->guard);
      }
 
@@ -537,6 +545,215 @@ void path_searcht::construct_guarded_expression(exprt &expr,
    }
 }
 
+void path_searcht::calculate_hotset(
+    unsigned location,
+    const goto_functionst &goto_functions,
+    std::vector<symbolt> &symbols)
+{
+  // q(l, c) = b * q(succ(l', c) + b * q(l'', c) + c(l', e).
+  // 0 halt
+  // q(succ(l', c)) else
+
+  // A recursive calculation here would kill everything.
+  path_symex_statet &state = queue.back();
+
+  dependence_grapht dependence_graph(ns);
+  dependence_graph(goto_functions, ns);
+
+
+  std::map<unsigned int, searchert> searchers;
+  std::map<unsigned int, searchert> completed_searchers;
+
+  unsigned int states = 0;
+
+  searchert searcher(location);
+  searchers.insert(std::make_pair(states++, searcher));
+
+  std::cout << "Locs:" << locs.loc_vector.size() << " from " << location << "\n";
+
+  while(!searchers.empty()) {
+    std::map<unsigned int, searchert>::iterator item = searchers.begin();
+
+    unsigned id = item->first;
+    searchert current = item->second;
+
+    searchers.erase(searchers.begin());
+
+    std::cout << locs[current.location].target->type << " at " << current.location << "\n";
+
+
+    switch(locs[current.location].target->type) {
+      case GOTO:
+      {
+        const exprt &guard = locs[current.location].target->guard;
+
+
+        if(locs[current.location].target->is_backwards_goto()) {
+          current.loop_count++;
+          if(current.loop_count > 0) {
+            current.work = false;
+            completed_searchers.insert(std::make_pair(id, current));
+            std::cout << "Backwards at " << current.location << "\n";
+            break;
+          }
+        }
+
+        if(guard.is_true())
+        {
+          assert(!locs[current.location].target->targets.empty());
+
+          current.location=
+              (*locs[current.location].target->targets.begin())->location_number;
+          searchers.insert(std::make_pair(id, current));
+
+          std::cout << "(Always true -> " << current.location << ")\n";
+          break;
+        }
+
+        if(guard.is_false())
+        {
+          current.location++;
+          searchers.insert(std::make_pair(id, current));
+
+          std::cout << "(Always false -> " << current.location << ")\n";
+
+          break;
+        }
+
+        std::cout << state.read_no_propagate(guard).pretty();
+
+        searchert lhs = current;
+        searchert rhs = current;
+
+        assert(!locs[current.location].target->targets.empty());
+
+        lhs.location = (*locs[current.location].target->targets.begin())->location_number;
+        rhs.location++;
+
+//        std::cout << "(Could be both: LHS -> " << lhs.location << " -- RHS ->" << rhs.location << "\n";
+
+        current.branches_found++;
+
+        unsigned lhs_id = states++;
+        unsigned rhs_id = states++;
+
+        current.lhs = lhs_id;
+        current.rhs = rhs_id;
+
+        current.work = false;
+
+        /* Calculate value */
+        completed_searchers.insert(std::make_pair(id, current));
+        searchers.insert(std::make_pair(lhs_id, lhs));
+        searchers.insert(std::make_pair(rhs_id, rhs));
+
+        break;
+      }
+      case FUNCTION_CALL:
+      {
+        code_function_callt function_call=to_code_function_call(
+            locs[current.location].target->code);
+
+        if(function_call.function().id() == ID_symbol)
+        {
+          const irep_idt &function_identifier=
+              to_symbol_expr(function_call.function()).get_identifier();
+
+          // find the function
+          locst::function_mapt::const_iterator f_it=locs.function_map.find(
+              function_identifier);
+
+          if(f_it == locs.function_map.end())
+            throw "failed to find `" + id2string(function_identifier)
+                + "' in function_map";
+
+          const locst::function_entryt &function_entry=f_it->second;
+
+          loc_reft function_entry_point=function_entry.first_loc;
+
+          // do we have a body?
+          if(function_entry_point == loc_reft())
+          {
+            current.location++;
+            searchers.insert(std::make_pair(id, current));
+            // no body
+
+            // this is a skip
+            break;
+          }
+
+          searchert lhs=current;
+          searchert rhs=current;
+
+          unsigned lhs_id = states++;
+          unsigned rhs_id = states++;
+
+          lhs.location=function_entry_point.loc_number;
+          rhs.location++;
+
+          current.lhs=lhs_id;
+          current.rhs=rhs_id;
+
+          current.work=false;
+
+          completed_searchers.insert(std::make_pair(id, current));
+          searchers.insert(std::make_pair(lhs_id, lhs));
+          searchers.insert(std::make_pair(rhs_id, rhs));
+        }
+        else
+        {
+          throw "Function w/o symbol.";
+        }
+        break;
+      }
+
+
+      case END_FUNCTION:
+        current.work = false;
+        completed_searchers.insert(std::make_pair(id, current));
+        break;
+
+      default:
+        current.location++;
+        searchers.insert(std::make_pair(id, current));
+        break;
+    }
+  }
+
+  std::cout << "number of completed workers: " << completed_searchers.size() << "\n";
+  for(auto it:completed_searchers) {
+    std::cout << it.first << ":" << it.second.location << " - " << it.second.branches_found << "\n";
+  }
+}
+
+
+
+void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
+
+{
+  std::cout << "Calculating hotsets\n";
+
+  goto_functionst goto_functions_copy;
+  goto_functions_copy.copy_from(goto_functions);
+
+  forall_goto_functions(it_f, goto_functions){
+
+  if(!it_f->second.body_available() ||
+      it_f->second.body.instructions.size() < 1)
+  {
+    continue;
+
+  }
+
+  std::vector<symbolt> symbols;
+//      calculate_hotset(it->location_number, goto_functions, symbols);
+  calculate_hotset(it_f->second.body.instructions.begin()->location_number, goto_functions, symbols);
+  return;
+
+}
+
+}
+
 /*******************************************************************\
 
 Function: path_searcht::do_show_vcc
@@ -553,20 +770,20 @@ void path_searcht::do_show_vcc(statet &state)
 {
   // keep statistics
   number_of_VCCs++;
-  
+
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
-    
+
   mstreamt &out=result();
 
   if(instruction.source_location.is_not_nil())
     out << instruction.source_location << '\n';
-  
+
   if(instruction.source_location.get_comment()!="")
     out << instruction.source_location.get_comment() << '\n';
-    
+
   unsigned count=1;
-  
+
   std::vector<path_symex_step_reft> steps;
   state.history.build_history(steps);
 
@@ -574,7 +791,7 @@ void path_searcht::do_show_vcc(statet &state)
       s_it=steps.begin();
       s_it!=steps.end();
       s_it++)
-  {      
+  {
     if((*s_it)->guard.is_not_nil())
     {
       std::string string_value=from_expr(ns, "", (*s_it)->guard);
@@ -592,7 +809,7 @@ void path_searcht::do_show_vcc(statet &state)
   }
 
   out << "|--------------------------" << '\n';
-  
+
   exprt assertion=state.read(instruction.guard);
 
   out << "{" << 1 << "} "
@@ -600,7 +817,7 @@ void path_searcht::do_show_vcc(statet &state)
 
   if(!assertion.is_true())
     number_of_VCCs_after_simplification++;
-  
+
   out << eom;
 }
 
@@ -621,15 +838,15 @@ bool path_searcht::drop_state(const statet &state) const
   // depth limit
   if(depth_limit_set && state.get_depth()>depth_limit)
     return true;
-  
+
   // context bound
   if(context_bound_set && state.get_no_thread_interleavings()>context_bound)
     return true;
-  
+
   // branch bound
   if(branch_bound_set && state.get_no_branches()>branch_bound)
     return true;
-  
+
   // unwinding limit -- loops
   if(unwind_limit_set && state.get_instruction()->is_backwards_goto())
   {
@@ -640,7 +857,7 @@ bool path_searcht::drop_state(const statet &state) const
       if(it->second>unwind_limit)
         return true;
   }
-  
+
   // unwinding limit -- recursion
   if(unwind_limit_set && state.get_instruction()->is_function_call())
   {
@@ -651,7 +868,7 @@ bool path_searcht::drop_state(const statet &state) const
       if(it->second>unwind_limit)
         return true;
   }
-  
+
   return false;
 }
 
@@ -671,13 +888,13 @@ void path_searcht::check_assertion(statet &state)
 {
   // keep statistics
   number_of_VCCs++;
-  
+
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
 
   irep_idt property_name=instruction.source_location.get_property_id();
   property_entryt &property_entry=property_map[property_name];
-  
+
   if(property_entry.status==FAILURE)
     return; // already failed
   else if(property_entry.status==NOT_REACHED)
@@ -685,13 +902,13 @@ void path_searcht::check_assertion(statet &state)
 
   // the assertion in SSA
   exprt assertion=
-    state.read(instruction.guard);
+    state.read_no_propagate(instruction.guard);
 
   if(assertion.is_true()) return; // no error, trivially
 
   // keep statistics
   number_of_VCCs_after_simplification++;
-  
+
   status() << "Checking property " << property_name << eom;
 
   // take the time
@@ -699,7 +916,7 @@ void path_searcht::check_assertion(statet &state)
 
   satcheckt satcheck;
   bv_pointerst bv_pointers(ns, satcheck);
-  
+
   satcheck.set_message_handler(get_message_handler());
   bv_pointers.set_message_handler(get_message_handler());
 
@@ -709,7 +926,7 @@ void path_searcht::check_assertion(statet &state)
     property_entry.status=FAILURE;
     number_of_failed_properties++;
   }
-  
+
   sat_time+=current_time()-sat_start_time;
 }
 
@@ -734,14 +951,14 @@ bool path_searcht::is_feasible(statet &state)
 
   satcheckt satcheck;
   bv_pointerst bv_pointers(ns, satcheck);
-  
+
   satcheck.set_message_handler(get_message_handler());
   bv_pointers.set_message_handler(get_message_handler());
 
   bool result=state.is_feasible(bv_pointers);
-  
+
   sat_time+=current_time()-sat_start_time;
-  
+
   return result;
 }
 
@@ -767,7 +984,7 @@ void path_searcht::initialize_property_map(
     if(!it->second.is_inlined())
     {
       const goto_programt &goto_program=it->second.body;
-    
+
       for(goto_programt::instructionst::const_iterator
           it=goto_program.instructions.begin();
           it!=goto_program.instructions.end();
@@ -775,15 +992,15 @@ void path_searcht::initialize_property_map(
       {
         if(!it->is_assert())
           continue;
-      
+
         const source_locationt &source_location=it->source_location;
-      
+
         irep_idt property_name=source_location.get_property_id();
-        
+
         property_entryt &property_entry=property_map[property_name];
         property_entry.status=NOT_REACHED;
         property_entry.description=source_location.get_comment();
         property_entry.source_location=source_location;
       }
-    }    
+    }
 }

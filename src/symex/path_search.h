@@ -32,12 +32,11 @@ public:
     unwind_limit_set(false),
     branch_bound_set(false),
     search_heuristic(search_heuristict::DFS),
-    merge_heuristic(merge_heuristict::AGGRESSIVE)
+    merge_heuristic(merge_heuristict::NONE)
   {
   }
 
-  virtual resultt operator()(
-    const goto_functionst &goto_functions);
+  virtual resultt operator()( const goto_functionst &goto_functions );
     
   void set_depth_limit(unsigned limit)
   {
@@ -171,6 +170,32 @@ protected:
       int reverse_steps, path_symex_step_reft &reverse_step,
       std::vector<exprt> &guards);
 
+  void calculate_hotsets(const goto_functionst &goto_functions);
+
+  void calculate_hotset( unsigned location,
+      const goto_functionst &goto_functions,
+      std::vector<symbolt> &symbols);
+
+  struct searchert {
+    unsigned location;
+    int lhs;
+    int rhs;
+    unsigned loop_count; // needs to be per loop.
+    bool work;
+    double value;
+    unsigned branches_found,
+    std::vector<unsigned> returns;
+
+    searchert(unsigned _location) :
+      location(_location),
+      lhs(-1),
+      rhs(-1),
+      loop_count(0),
+      work(true),
+      value(0.0),
+      branches_found(0)
+    {}
+  };
 
 };
 
