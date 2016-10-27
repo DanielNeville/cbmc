@@ -16,7 +16,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 // Move to appropriate file.
 #include <util/simplify_expr.h>
+#include <util/prefix.h>
 #include <util/base_type.h>
+#include <math.h>
 #include <analyses/dependence_graph.h>
 
 
@@ -24,6 +26,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <iostream>
 
 #include "path_search.h"
+
+
 
 /*******************************************************************\
 
@@ -66,9 +70,9 @@ path_searcht::resultt path_searcht::operator()(
 
   initialize_property_map(goto_functions);
 
-  calculate_hotsets(goto_functions);
-
-  return SAFE;
+//  calculate_hotsets(goto_functions);
+//
+//  return SAFE;
 
   while(!queue.empty())
   {
@@ -379,6 +383,33 @@ void path_searcht::merge(
   state_historyt cmp_state_history;
   cmp_state->history.build_history(cmp_state_history);
   state_historyt::iterator cmp_state_it = cmp_state_history.begin();
+//
+//  std::cout << "Left hand side.\n";
+//
+//  int i = 0;
+//  for(auto it: state_history) {
+//    if(it->ssa_rhs.is_not_nil())
+//      std::cout << ++i << " : "
+//          << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
+//    if(it->guard.is_not_nil())
+//      std::cout << ++i << " : "
+//          << it->guard.pretty() << "\n\n";
+//  }
+
+//  std::cout << "Right hand side.\n";
+//
+//  i = 0;
+//   for(auto it: cmp_state_history) {
+//     if(it->ssa_rhs.is_not_nil())
+//       std::cout << ++i << " : "
+//           << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
+//     if(it->guard.is_not_nil())
+//       std::cout << ++i << " : "
+//           << it->guard.pretty() << "\n\n";
+//   }
+
+
+
 
   unsigned steps = 0;
   /* This code places both states at the first location of their divergence. */
@@ -428,6 +459,8 @@ void path_searcht::merge(
       state_history.size() - steps, reverse_step,
       state_conjunction_guards.operands());
 
+//  std::cout << "Guarded expression\n\n:";
+
   construct_guarded_expression(cmp_state_guarded_expression,
       cmp_state_history.size() - steps, cmp_reverse_step,
       cmp_state_conjunction_guards.operands());
@@ -435,19 +468,32 @@ void path_searcht::merge(
   exprt guarded_expression=or_exprt(state_guarded_expression,
       cmp_state_guarded_expression);
 
-  guarded_expression=simplify_expr(guarded_expression, ns);
+//  std::cout << guarded_expression.pretty() << "\n\n";
+
+//  guarded_expression=simplify_expr(guarded_expression, ns);
 
   /* Update history */
   /* Reverse step was moved by construct_guarded_expression! */
-  reverse_step->guard=nil_exprt();
+  reverse_step->guard=guarded_expression;
   reverse_step->full_lhs=true_exprt();
   reverse_step->ssa_lhs=symbol_exprt();
   reverse_step->ssa_rhs=nil_exprt();
-  reverse_step->arbitrary_expr=guarded_expression;
+//  reverse_step->arbitrary_expr=guarded_expression;
 
   /* Rewrite history */
   state->history=reverse_step;
   /* This step changes history! */
+
+//  state->history.build_history(state_history);
+//  i = 0;
+//  for(auto it: state_history) {
+//    if(it->ssa_rhs.is_not_nil())
+//      std::cout << ++i << " : "
+//          << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
+//    if(it->guard.is_not_nil())
+//      std::cout << ++i << " : "
+//          << it->guard.pretty() << "\n\n";
+//  }
 
   /* Update internal variable mappings */
 
@@ -457,6 +503,32 @@ void path_searcht::merge(
   exprt cond = state_conjunction_guards;
 
   cond=simplify_expr(cond, ns);
+
+  /* We do not handle concurrency yet. */
+  assert(state->threads.size() == 1);
+  assert(cmp_state->threads.size() == 1);
+
+  /* Update the SSA */
+  for(auto var_ptr : state->var_map.id_map) {
+    var_mapt::var_infot &var = state->var_map.id_map[var_ptr.first];
+    state->get_var_state(var).ssa_symbol = var.ssa_symbol();
+  }
+
+//  for (auto cmp_var_ptr : cmp_state->var_map.id_map)
+//  {
+//    var_mapt::var_infot &var = state->var_map.id_map[cmp_var_ptr.first];
+//    var_mapt::var_infot &cmp_var = cmp_var_ptr.second;
+//
+//    std::cout << cmp_var_ptr.first << " MAINTAINED: " << var.ssa_identifier()
+//        << " AND " << state->get_var_state(var).ssa_symbol.get_identifier() << "\n";
+////    << " VS "
+////        << " REMOVED" << cmp_var.ssa_identifier() << " AND "
+////        << cmp_state->get_var_state(cmp_var).ssa_symbol.get_identifier() << "\n";
+//
+//
+//
+//  }
+
 
 //  std::cout << "Size!: " << state->var_map.id_map.size() << "\n";
 //
@@ -560,6 +632,42 @@ void path_searcht::calculate_hotset(
   dependence_grapht dependence_graph(ns);
   dependence_graph(goto_functions, ns);
 
+  forall_goto_functions(f_it, goto_functions)
+  {
+    if(f_it->second.body_available())
+    {
+      std::cout << "////" << std::endl;
+      std::cout << "//// Function: " << f_it->first << std::endl;
+      std::cout << "////" << std::endl;
+      std::cout << std::endl;
+      dependence_graph.output(ns, f_it->second.body, std::cout);
+    }
+  }
+
+  dependence_graph.output_dot(std::cout);
+
+  forall_goto_functions(f_it, goto_functions)
+  {
+    if(!f_it->second.body_available())
+      continue;
+
+    forall_goto_program_instructions(it, f_it->second.body) {
+      std::cout << "At: " << it->location_number << " control: ";
+      for(auto control : dependence_graph[it].get_control_deps()) {
+        std::cout << control->location_number << ",";
+      }
+      std::cout << ".  Data: ";
+      for(auto data : dependence_graph[it].get_data_deps()) {
+        std::cout << data->location_number << ",";
+      }
+
+
+      std::cout << "\n";
+    }
+  }
+
+  return;
+
 
   std::map<unsigned int, searchert> searchers;
   std::map<unsigned int, searchert> completed_searchers;
@@ -640,9 +748,14 @@ void path_searcht::calculate_hotset(
         current.lhs = lhs_id;
         current.rhs = rhs_id;
 
+        lhs.branches++;
+        rhs.branches++;
+
         current.work = false;
 
         /* Calculate value */
+//        current.value = current.value + 1;
+
         completed_searchers.insert(std::make_pair(id, current));
         searchers.insert(std::make_pair(lhs_id, lhs));
         searchers.insert(std::make_pair(rhs_id, rhs));
@@ -682,23 +795,9 @@ void path_searcht::calculate_hotset(
             break;
           }
 
-          searchert lhs=current;
-          searchert rhs=current;
-
-          unsigned lhs_id = states++;
-          unsigned rhs_id = states++;
-
-          lhs.location=function_entry_point.loc_number;
-          rhs.location++;
-
-          current.lhs=lhs_id;
-          current.rhs=rhs_id;
-
-          current.work=false;
-
-          completed_searchers.insert(std::make_pair(id, current));
-          searchers.insert(std::make_pair(lhs_id, lhs));
-          searchers.insert(std::make_pair(rhs_id, rhs));
+          current.returns.push_back(current.location + 1);
+          current.location=function_entry_point.loc_number;
+          searchers.insert(std::make_pair(id, current));
         }
         else
         {
@@ -709,8 +808,17 @@ void path_searcht::calculate_hotset(
 
 
       case END_FUNCTION:
-        current.work = false;
-        completed_searchers.insert(std::make_pair(id, current));
+        if(current.returns.empty())
+        {
+          current.work = false;
+          completed_searchers.insert(std::make_pair(id, current));
+          break;
+        }
+
+        current.location=current.returns.back();
+        current.returns.pop_back();
+        searchers.insert(std::make_pair(id, current));
+
         break;
 
       default:
@@ -724,6 +832,46 @@ void path_searcht::calculate_hotset(
   for(auto it:completed_searchers) {
     std::cout << it.first << ":" << it.second.location << " - " << it.second.branches_found << "\n";
   }
+
+  /* q_tot */
+  double q_tot = 0;
+
+  std::map<unsigned int, searchert>::iterator item;
+  item = completed_searchers.begin();
+
+  std::vector<unsigned> to_add;
+  to_add.push_back(item->first);
+
+  while(!to_add.empty()) {
+    unsigned ptr_id = to_add.back();
+    to_add.pop_back();
+
+    item = completed_searchers.find(ptr_id);
+
+    q_tot +=
+        std::pow(0.8, item->second.branches) * item->second.branches_found;
+
+    if(item->second.lhs > -1 && item->second.rhs > -1)
+    {
+      to_add.push_back(item->second.lhs);
+      to_add.push_back(item->second.rhs);
+    }
+  }
+
+  std::cout << "\n\nSymbol table.\n";
+
+  for (auto symbol : ns.get_symbol_table().symbols)
+  {
+    /* For now */
+    if(has_prefix(symbol.first.c_str(), "__CPROVER"))
+      continue;
+
+
+
+    std::cout << symbol.first << "\n";
+  }
+
+  std::cout << "q_tot:" << q_tot << "\n";
 }
 
 
@@ -922,6 +1070,7 @@ void path_searcht::check_assertion(statet &state)
 
   if(!state.check_assertion(bv_pointers))
   {
+    bv_pointers.print_assignment(std::cout);
     build_goto_trace(state, bv_pointers, property_entry.error_trace);
     property_entry.status=FAILURE;
     number_of_failed_properties++;
