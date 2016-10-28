@@ -22,8 +22,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <math.h>
 #include <analyses/dependence_graph.h>
 
-
-
 #include <iostream>
 
 #include "path_search.h"
@@ -480,9 +478,13 @@ void path_searcht::merge(
 
   /* Update the SSA */
   /* Var map SHARED! (Combine to one loop, but not yet -- readability) */
+  exprt cond = state_conjunction_guards;
+
   for (auto var_ptr : state->var_map.id_map)
   {
     var_mapt::var_infot &var=state->var_map.id_map[var_ptr.first];
+    var_mapt::var_infot &cmp_var=cmp_state->var_map.id_map[var_ptr.first];
+
 
     if(state->get_var_state(var).ssa_symbol != var.ssa_symbol())
     {
@@ -492,23 +494,45 @@ void path_searcht::merge(
           equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
       state->get_var_state(var).ssa_symbol=var.ssa_symbol();
     }
-  }
 
-  for (auto var_ptr : cmp_state->var_map.id_map)
-  {
-    var_mapt::var_infot &var=cmp_state->var_map.id_map[var_ptr.first];
-
-    if(cmp_state->get_var_state(var).ssa_symbol != var.ssa_symbol())
+    if(cmp_state->get_var_state(cmp_var).ssa_symbol != cmp_var.ssa_symbol())
     {
 //      replace_expr(cmp_state->get_var_state(var).ssa_symbol, var.ssa_symbol(), cmp_state_guarded_expression);
       cmp_state_guarded_expression.operands().push_back(
-          equal_exprt(cmp_state->get_var_state(var).ssa_symbol,
-              var.ssa_symbol()));
+          equal_exprt(cmp_state->get_var_state(cmp_var).ssa_symbol,
+              cmp_var.ssa_symbol()));
+    }
+
+    if(state->get_var_state(var).value != cmp_state->get_var_state(cmp_var).value)
+    {
+      if_exprt ternary;
+
+      ternary.cond() = cond;
+      ternary.true_case() = state->get_var_state(var).value;
+      ternary.false_case() = cmp_state->get_var_state(cmp_var).value;
+
+      if(path_symext::propagate(ternary)
+        &&
+      base_type_eq(ternary.true_case(), ternary.false_case(), ns)) {
+        state->get_var_state(var).value = ternary;
+      } else {
+        state->get_var_state(var).value = nil_exprt();
+      }
+//      std::cout << "Different.\n";
+//      std::cout << var.full_identifier << "\n";
+//      std::cout << "LHS : " << state->get_var_state(var).value.pretty() << " - RHS : "
+//          << cmp_state->get_var_state(var).value.pretty() << "\n";
     }
   }
 
-  exprt guarded_expression=or_exprt(state_guarded_expression,
-      cmp_state_guarded_expression);
+//  for (auto var_ptr : cmp_state->var_map.id_map)
+//  {
+//
+//
+//  }
+
+  exprt guarded_expression=or_exprt(simplify_expr(state_guarded_expression, ns),
+      simplify_expr(cmp_state_guarded_expression, ns));
 
 //  std::cout << guarded_expression.pretty() << "\n\n";
 
@@ -542,7 +566,6 @@ void path_searcht::merge(
   // a and !b
 //  exprt cond=and_exprt(state_conjunction_guards,
 //      not_exprt(cmp_state_conjunction_guards));
-//  exprt cond = state_conjunction_guards;
 
 //  cond=simplify_expr(cond, ns);
 

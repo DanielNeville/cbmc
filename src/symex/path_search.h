@@ -15,6 +15,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/safety_checker.h>
 
 #include <path-symex/path_symex_state.h>
+#include <path-symex/path_symex_class.h>
+
 
 // Todo: Move
   typedef std::vector<path_symex_step_reft> state_historyt;
@@ -166,9 +168,9 @@ protected:
     return locs[state.pc()].target->incoming_edges.size() > 1;
   }
 
-  void construct_guarded_expression(exprt &expr,
+  void construct_guarded_expression(exprt::operandst &expr,
       int reverse_steps, path_symex_step_reft &reverse_step,
-      std::vector<exprt> &guards);
+      exprt::operandst &guards);
 
   void calculate_hotsets(const goto_functionst &goto_functions);
 
@@ -183,7 +185,8 @@ protected:
     unsigned loop_count; // needs to be per loop.
     bool work;
     double value;
-    unsigned branches_found,
+    unsigned branches_found;
+    unsigned branches;
     std::vector<unsigned> returns;
 
     searchert(unsigned _location) :
@@ -193,7 +196,8 @@ protected:
       loop_count(0),
       work(true),
       value(0.0),
-      branches_found(0)
+      branches_found(0),
+      branches(0)
     {}
   };
 

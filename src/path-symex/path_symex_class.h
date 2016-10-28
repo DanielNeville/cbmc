@@ -41,6 +41,8 @@ public:
   
   typedef path_symex_stept stept;
 
+  static bool propagate(const exprt &src);
+
 protected:
   void do_goto(
     path_symex_statet &state,
@@ -87,8 +89,6 @@ protected:
     exprt::operandst &guard, // instantiated
     const exprt &ssa_lhs, // instantiated, recursion here
     const exprt &ssa_rhs); // instantiated
-
-  static bool propagate(const exprt &src);
 };
 
 
