@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 // Move to appropriate file.
 #include <util/simplify_expr.h>
+#include <util/replace_expr.h>
 #include <util/prefix.h>
 #include <util/base_type.h>
 #include <math.h>
@@ -161,6 +162,9 @@ path_searcht::resultt path_searcht::operator()(
 
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
+
+      std::cout << state.get_pc().loc_number << " " << state.get_instruction()->type << " -- Number of states: " << queue.size() << "\n";
+
     }
     catch(const std::string &e)
     {
@@ -452,8 +456,8 @@ void path_searcht::merge(
    * Each guard generates a new conjunction of
    */
 
-  exprt state_guarded_expression=true_exprt();
-  exprt cmp_state_guarded_expression=true_exprt();
+  and_exprt state_guarded_expression;
+  and_exprt cmp_state_guarded_expression;
 
   path_symex_step_reft reverse_step=state->history;
   path_symex_step_reft cmp_reverse_step=cmp_state->history;
@@ -464,34 +468,42 @@ void path_searcht::merge(
 
 
   /* This alters reverse_step! */
-  construct_guarded_expression(state_guarded_expression,
+  construct_guarded_expression(state_guarded_expression.operands(),
       state_history.size() - steps, reverse_step,
       state_conjunction_guards.operands());
 
 //  std::cout << "Guarded expression\n\n:";
 
-  construct_guarded_expression(cmp_state_guarded_expression,
+  construct_guarded_expression(cmp_state_guarded_expression.operands(),
       cmp_state_history.size() - steps, cmp_reverse_step,
       cmp_state_conjunction_guards.operands());
 
   /* Update the SSA */
   /* Var map SHARED! (Combine to one loop, but not yet -- readability) */
-  for(auto var_ptr : state->var_map.id_map) {
-    var_mapt::var_infot &var = state->var_map.id_map[var_ptr.first];
+  for (auto var_ptr : state->var_map.id_map)
+  {
+    var_mapt::var_infot &var=state->var_map.id_map[var_ptr.first];
 
-    if(state->get_var_state(var).ssa_symbol != var.ssa_symbol()) {
+    if(state->get_var_state(var).ssa_symbol != var.ssa_symbol())
+    {
+//      replace_expr(state->get_var_state(var).ssa_symbol, var.ssa_symbol(), state_guarded_expression);
+
       state_guarded_expression.operands().push_back(
           equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
-      state->get_var_state(var).ssa_symbol = var.ssa_symbol();
+      state->get_var_state(var).ssa_symbol=var.ssa_symbol();
     }
   }
 
-  for(auto var_ptr : cmp_state->var_map.id_map) {
-    var_mapt::var_infot &var = cmp_state->var_map.id_map[var_ptr.first];
+  for (auto var_ptr : cmp_state->var_map.id_map)
+  {
+    var_mapt::var_infot &var=cmp_state->var_map.id_map[var_ptr.first];
 
-    if(cmp_state->get_var_state(var).ssa_symbol != var.ssa_symbol()) {
+    if(cmp_state->get_var_state(var).ssa_symbol != var.ssa_symbol())
+    {
+//      replace_expr(cmp_state->get_var_state(var).ssa_symbol, var.ssa_symbol(), cmp_state_guarded_expression);
       cmp_state_guarded_expression.operands().push_back(
-          equal_exprt(cmp_state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
+          equal_exprt(cmp_state->get_var_state(var).ssa_symbol,
+              var.ssa_symbol()));
     }
   }
 
@@ -608,7 +620,7 @@ void path_searcht::merge(
   // ...
 }
 
-void path_searcht::construct_guarded_expression(exprt &expr,
+void path_searcht::construct_guarded_expression(exprt::operandst &expr,
     int reverse_steps, path_symex_step_reft &reverse_step,
     exprt::operandst &guards)
 {
@@ -618,18 +630,16 @@ void path_searcht::construct_guarded_expression(exprt &expr,
      /* We could generate the guarded expression through backwards recursion. */
      /* TODO:  The above. */
      if(reverse_step->guard.is_not_nil()) {
-       expr = and_exprt(reverse_step->guard, expr);
+       expr.push_back(reverse_step->guard);
        guards.push_back(reverse_step->guard);
      }
 
      if(reverse_step->ssa_rhs.is_not_nil()) {
-       expr=and_exprt(expr,
-           equal_exprt(reverse_step->ssa_lhs, reverse_step->ssa_rhs));
+       expr.push_back(equal_exprt(reverse_step->ssa_lhs, reverse_step->ssa_rhs));
      }
 
      if(reverse_step->arbitrary_expr.is_not_nil()) {
-       expr=and_exprt(expr,
-                 reverse_step->arbitrary_expr);
+       expr.push_back(reverse_step->arbitrary_expr);
      }
 
      if(reverse_steps > 0) {
