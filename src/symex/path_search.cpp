@@ -68,6 +68,8 @@ path_searcht::resultt path_searcht::operator()(
   // stop the time
   start_time=current_time();
 
+  time_periodt merging_time;
+
   initialize_property_map(goto_functions);
 
 //  calculate_hotsets(goto_functions);
@@ -80,7 +82,9 @@ path_searcht::resultt path_searcht::operator()(
 
 //    at_merge_point(*queue.begin());
 
+    absolute_timet merging_start = current_time();
     merge_states();
+    merging_time += current_time() - merging_start;
 
     // Pick a state from the queue,
     // according to some heuristic.
@@ -173,6 +177,8 @@ path_searcht::resultt path_searcht::operator()(
       number_of_dropped_states++;
     }
   }
+
+  std::cout << "Merging time: " << merging_time.as_string() << "s\n";
 
   report_statistics();
 
@@ -363,6 +369,8 @@ void path_searcht::merge(
   assert(state->pc() == cmp_state->pc());
 
   assert(state->get_current_thread() == cmp_state->get_current_thread());
+  assert(state->threads.size() == 1);
+  assert(cmp_state->threads.size() == 1);
 
   progress() << "Merging states at program location: " << state->pc() << eom;
   // Specific semantics.  State is updated to be the 'new' state.
@@ -454,6 +462,7 @@ void path_searcht::merge(
   and_exprt cmp_state_conjunction_guards;
 
 
+
   /* This alters reverse_step! */
   construct_guarded_expression(state_guarded_expression,
       state_history.size() - steps, reverse_step,
@@ -464,6 +473,27 @@ void path_searcht::merge(
   construct_guarded_expression(cmp_state_guarded_expression,
       cmp_state_history.size() - steps, cmp_reverse_step,
       cmp_state_conjunction_guards.operands());
+
+  /* Update the SSA */
+  /* Var map SHARED! (Combine to one loop, but not yet -- readability) */
+  for(auto var_ptr : state->var_map.id_map) {
+    var_mapt::var_infot &var = state->var_map.id_map[var_ptr.first];
+
+    if(state->get_var_state(var).ssa_symbol != var.ssa_symbol()) {
+      state_guarded_expression.operands().push_back(
+          equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
+      state->get_var_state(var).ssa_symbol = var.ssa_symbol();
+    }
+  }
+
+  for(auto var_ptr : cmp_state->var_map.id_map) {
+    var_mapt::var_infot &var = cmp_state->var_map.id_map[var_ptr.first];
+
+    if(cmp_state->get_var_state(var).ssa_symbol != var.ssa_symbol()) {
+      cmp_state_guarded_expression.operands().push_back(
+          equal_exprt(cmp_state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
+    }
+  }
 
   exprt guarded_expression=or_exprt(state_guarded_expression,
       cmp_state_guarded_expression);
@@ -500,19 +530,14 @@ void path_searcht::merge(
   // a and !b
 //  exprt cond=and_exprt(state_conjunction_guards,
 //      not_exprt(cmp_state_conjunction_guards));
-  exprt cond = state_conjunction_guards;
+//  exprt cond = state_conjunction_guards;
 
-  cond=simplify_expr(cond, ns);
+//  cond=simplify_expr(cond, ns);
 
   /* We do not handle concurrency yet. */
-  assert(state->threads.size() == 1);
-  assert(cmp_state->threads.size() == 1);
 
-  /* Update the SSA */
-  for(auto var_ptr : state->var_map.id_map) {
-    var_mapt::var_infot &var = state->var_map.id_map[var_ptr.first];
-    state->get_var_state(var).ssa_symbol = var.ssa_symbol();
-  }
+
+
 
 //  for (auto cmp_var_ptr : cmp_state->var_map.id_map)
 //  {
@@ -1070,7 +1095,7 @@ void path_searcht::check_assertion(statet &state)
 
   if(!state.check_assertion(bv_pointers))
   {
-    bv_pointers.print_assignment(std::cout);
+//    bv_pointers.print_assignment(std::cout);
     build_goto_trace(state, bv_pointers, property_entry.error_trace);
     property_entry.status=FAILURE;
     number_of_failed_properties++;

@@ -137,6 +137,20 @@ static inline decision_proceduret &operator << (
   return dest;
 }
 
+// converts the full history
+static inline std::ostream& operator << (
+    std::ostream &dest,
+  path_symex_step_reft src)
+{
+  while(!src.is_nil())
+  {
+    src->output(dest);
+    --src;
+  }
+
+  return dest;
+}
+
 // this stores the forest of histories
 class path_symex_historyt
 {
