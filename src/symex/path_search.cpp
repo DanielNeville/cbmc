@@ -161,7 +161,7 @@ path_searcht::resultt path_searcht::operator()(
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
 
-      std::cout << state.get_pc().loc_number << " " << state.get_instruction()->type << " -- Number of states: " << queue.size() << "\n";
+//      std::cout << state.get_pc().loc_number << " " << state.get_instruction()->type << " -- Number of states: " << queue.size() << "\n";
 
     }
     catch(const std::string &e)
@@ -368,8 +368,15 @@ bool path_searcht::do_qce_merge(
 void path_searcht::merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
-  assert(state->pc() == cmp_state->pc());
+  /* The steps here are:
+   * 1) Assert the states are in a position to be merged.
+   * 2) Find the common prefix of both states, and the number of steps required.
+   * 3) Generate
+   *
+   */
 
+
+  assert(state->pc() == cmp_state->pc());
   assert(state->get_current_thread() == cmp_state->get_current_thread());
   assert(state->threads.size() == 1);
   assert(cmp_state->threads.size() == 1);
@@ -393,33 +400,6 @@ void path_searcht::merge(
   state_historyt cmp_state_history;
   cmp_state->history.build_history(cmp_state_history);
   state_historyt::iterator cmp_state_it = cmp_state_history.begin();
-//
-//  std::cout << "Left hand side.\n";
-//
-//  int i = 0;
-//  for(auto it: state_history) {
-//    if(it->ssa_rhs.is_not_nil())
-//      std::cout << ++i << " : "
-//          << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
-//    if(it->guard.is_not_nil())
-//      std::cout << ++i << " : "
-//          << it->guard.pretty() << "\n\n";
-//  }
-
-//  std::cout << "Right hand side.\n";
-//
-//  i = 0;
-//   for(auto it: cmp_state_history) {
-//     if(it->ssa_rhs.is_not_nil())
-//       std::cout << ++i << " : "
-//           << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
-//     if(it->guard.is_not_nil())
-//       std::cout << ++i << " : "
-//           << it->guard.pretty() << "\n\n";
-//   }
-
-
-
 
   unsigned steps = 0;
   /* This code places both states at the first location of their divergence. */
@@ -463,21 +443,17 @@ void path_searcht::merge(
   and_exprt state_conjunction_guards;
   and_exprt cmp_state_conjunction_guards;
 
-
-
   /* This alters reverse_step! */
   construct_guarded_expression(state_guarded_expression.operands(),
       state_history.size() - steps, reverse_step,
       state_conjunction_guards.operands());
-
-//  std::cout << "Guarded expression\n\n:";
 
   construct_guarded_expression(cmp_state_guarded_expression.operands(),
       cmp_state_history.size() - steps, cmp_reverse_step,
       cmp_state_conjunction_guards.operands());
 
   /* Update the SSA */
-  /* Var map SHARED! (Combine to one loop, but not yet -- readability) */
+  /* Var map SHARED! */
   exprt cond = state_conjunction_guards;
 
   for (auto var_ptr : state->var_map.id_map)
@@ -488,8 +464,6 @@ void path_searcht::merge(
 
     if(state->get_var_state(var).ssa_symbol != var.ssa_symbol())
     {
-//      replace_expr(state->get_var_state(var).ssa_symbol, var.ssa_symbol(), state_guarded_expression);
-
       state_guarded_expression.operands().push_back(
           equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
       state->get_var_state(var).ssa_symbol=var.ssa_symbol();
@@ -497,7 +471,6 @@ void path_searcht::merge(
 
     if(cmp_state->get_var_state(cmp_var).ssa_symbol != cmp_var.ssa_symbol())
     {
-//      replace_expr(cmp_state->get_var_state(var).ssa_symbol, var.ssa_symbol(), cmp_state_guarded_expression);
       cmp_state_guarded_expression.operands().push_back(
           equal_exprt(cmp_state->get_var_state(cmp_var).ssa_symbol,
               cmp_var.ssa_symbol()));
@@ -518,25 +491,11 @@ void path_searcht::merge(
       } else {
         state->get_var_state(var).value = nil_exprt();
       }
-//      std::cout << "Different.\n";
-//      std::cout << var.full_identifier << "\n";
-//      std::cout << "LHS : " << state->get_var_state(var).value.pretty() << " - RHS : "
-//          << cmp_state->get_var_state(var).value.pretty() << "\n";
     }
   }
 
-//  for (auto var_ptr : cmp_state->var_map.id_map)
-//  {
-//
-//
-//  }
-
   exprt guarded_expression=or_exprt(simplify_expr(state_guarded_expression, ns),
       simplify_expr(cmp_state_guarded_expression, ns));
-
-//  std::cout << guarded_expression.pretty() << "\n\n";
-
-//  guarded_expression=simplify_expr(guarded_expression, ns);
 
   /* Update history */
   /* Reverse step was moved by construct_guarded_expression! */
@@ -550,97 +509,11 @@ void path_searcht::merge(
   state->history=reverse_step;
   /* This step changes history! */
 
-//  state->history.build_history(state_history);
-//  i = 0;
-//  for(auto it: state_history) {
-//    if(it->ssa_rhs.is_not_nil())
-//      std::cout << ++i << " : "
-//          << equal_exprt(it->ssa_lhs, it->ssa_rhs).pretty() << "\n\n";
-//    if(it->guard.is_not_nil())
-//      std::cout << ++i << " : "
-//          << it->guard.pretty() << "\n\n";
-//  }
-
-  /* Update internal variable mappings */
-
-  // a and !b
-//  exprt cond=and_exprt(state_conjunction_guards,
-//      not_exprt(cmp_state_conjunction_guards));
-
-//  cond=simplify_expr(cond, ns);
-
-  /* We do not handle concurrency yet. */
-
-
-
-
-//  for (auto cmp_var_ptr : cmp_state->var_map.id_map)
-//  {
-//    var_mapt::var_infot &var = state->var_map.id_map[cmp_var_ptr.first];
-//    var_mapt::var_infot &cmp_var = cmp_var_ptr.second;
-//
-//    std::cout << cmp_var_ptr.first << " MAINTAINED: " << var.ssa_identifier()
-//        << " AND " << state->get_var_state(var).ssa_symbol.get_identifier() << "\n";
-////    << " VS "
-////        << " REMOVED" << cmp_var.ssa_identifier() << " AND "
-////        << cmp_state->get_var_state(cmp_var).ssa_symbol.get_identifier() << "\n";
-//
-//
-//
-//  }
-
-
-//  std::cout << "Size!: " << state->var_map.id_map.size() << "\n";
-//
-//  for (var_mapt::id_mapt::iterator it=state->var_map.id_map.begin();
-//      it != state->var_map.id_map.end(); it++)
-//  {
-//    if(!(state->get_var_state(it->second).value
-//        == cmp_state->get_var_state(it->second).value))
-//    {
-//      if_exprt phi_node=if_exprt();
-//
-//      phi_node.cond()=cond;
-//
-//      if(state->get_var_state(it->second).value.is_not_nil()
-//          && cmp_state->get_var_state(it->second).value.is_not_nil())
-//      {
-//        phi_node.type()=state->get_var_state(it->second).value.type();
-//        phi_node.true_case()=state->get_var_state(it->second).value;
-//        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
-//      }
-//      else if(state->get_var_state(it->second).value.is_not_nil()
-//          && cmp_state->get_var_state(it->second).value.is_nil())
-//      {
-//        phi_node.type()=state->get_var_state(it->second).value.type();
-//        phi_node.true_case()=state->get_var_state(it->second).value;
-//        phi_node.false_case()=it->second.ssa_symbol();
-//      }
-//      else if(cmp_state->get_var_state(it->second).value.is_not_nil()
-//          && state->get_var_state(it->second).value.is_nil())
-//      {
-//        phi_node.type()=cmp_state->get_var_state(it->second).value.type();
-//        phi_node.true_case()=it->second.ssa_symbol();
-//        phi_node.false_case()=cmp_state->get_var_state(it->second).value;
-//      }
-//      else
-//      {
-//        assert(0); // They're both the same via the previous IF, so if they're both NIL, they're the same.
-//        // This should not be reached.
-//      }
-////      base_type_eq(phi_node.true_case(), phi_node.false_case(), ns);
-//      state->get_var_state(it->second).value=phi_node;
-//
-////      std::cout << phi_node.pretty() << "\n\n\n\n\n\n\n\n\n______\n\n\n\n\n\n";
-//    }
-//  }
-
   /* Update statistics */
   // Max depth.
   state->set_depth(
       (state->get_depth() < cmp_state->get_depth()) ?
           state->get_depth() : cmp_state->get_depth());
-  // ...
 }
 
 void path_searcht::construct_guarded_expression(exprt::operandst &expr,
@@ -786,7 +659,7 @@ void path_searcht::calculate_hotset(
           break;
         }
 
-        std::cout << state.read_no_propagate(guard).pretty();
+//        std::cout << state.read_no_propagate(guard).pretty();
 
         searchert lhs = current;
         searchert rhs = current;
@@ -1108,7 +981,7 @@ void path_searcht::check_assertion(statet &state)
 
   // the assertion in SSA
   exprt assertion=
-    state.read_no_propagate(instruction.guard);
+    state.read(instruction.guard);
 
   if(assertion.is_true()) return; // no error, trivially
 
