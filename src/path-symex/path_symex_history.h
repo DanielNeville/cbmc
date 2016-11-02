@@ -73,7 +73,7 @@ class path_symex_stept
 {
 public:
   enum kindt {
-    NON_BRANCH, BRANCH_TAKEN, BRANCH_NOT_TAKEN
+    NON_BRANCH, BRANCH_ALWAYS_TAKEN, BRANCH_NEVER_TAKEN, BRANCH_TAKEN, BRANCH_NOT_TAKEN
   } branch;
   
   inline bool is_branch_taken() const
