@@ -813,15 +813,27 @@ void path_symext::do_goto(
   if(guard.is_true()) // branch taken always
   {
     state.record_step();
-    state.history->branch=stept::BRANCH_TAKEN;
+    state.history->branch=stept::BRANCH_ALWAYS_TAKEN;
     state.set_pc(loc.branch_target);
     return; // we are done
   }
-
-  if(!guard.is_false())
+  else if(guard.is_false())
   {
-    // branch taken case
-    // copy the state into 'furhter_states'
+    exprt negated_guard=not_exprt(guard);
+    state.record_step();
+    state.history->branch=stept::BRANCH_NEVER_TAKEN;
+    state.next_pc();
+    state.history->guard=negated_guard;
+    return;
+  }
+  else
+  {
+    exprt negated_guard=not_exprt(guard);
+    state.record_step();
+    state.history->branch=stept::BRANCH_NOT_TAKEN;
+    state.next_pc();
+    state.history->guard=negated_guard;
+
     further_states.push_back(state);
     further_states.back().record_step();
     state.history->branch=stept::BRANCH_TAKEN;
@@ -830,11 +842,7 @@ void path_symext::do_goto(
   }
 
   // branch not taken case
-  exprt negated_guard=not_exprt(guard);
-  state.record_step();
-  state.history->branch=stept::BRANCH_NOT_TAKEN;
-  state.next_pc();
-  state.history->guard=negated_guard;
+
 }
 
 /*******************************************************************\
