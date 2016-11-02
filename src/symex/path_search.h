@@ -178,6 +178,10 @@ protected:
       const goto_functionst &goto_functions,
       std::vector<symbolt> &symbols);
 
+  std::map<goto_programt::const_targett, double> q_tot;
+
+  bool calculate_qce_tot(goto_programt::const_targett &l);
+
   struct searchert {
     unsigned location;
     int lhs;

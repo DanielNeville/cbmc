@@ -71,7 +71,7 @@ path_searcht::resultt path_searcht::operator()(
 
   initialize_property_map(goto_functions);
 
-//  calculate_hotsets(goto_functions);
+  calculate_hotsets(goto_functions);
 //
 //  return SAFE;
 
@@ -805,32 +805,165 @@ void path_searcht::calculate_hotset(
   std::cout << "q_tot:" << q_tot << "\n";
 }
 
+bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
+  goto_programt::const_targett l_jump;
+  goto_programt::const_targett l_next;
 
+  std::cout << l->location_number << ":" << l->type;
+
+  switch(l->type) {
+    case GOTO:
+
+      assert(l->targets.size() == 1);
+
+      if(l->guard.is_false())
+      {
+        l_next = l;
+        l_next++;
+
+        if(q_tot[l_next] < 0) {
+          return false;
+        }
+
+        q_tot[l] = q_tot[l_next];
+
+        return true;
+      }
+
+      if(l->guard.is_true())
+      {
+        l_jump = *(l->targets.begin());
+
+        if(q_tot[l_jump] < 0) {
+          return false;
+        }
+
+        q_tot[l]=q_tot[l_jump];
+
+        return true;
+      }
+
+      assert(!l->guard.is_false() && !l->guard.is_true());
+
+      l_next=l;
+      l_next++;
+
+      l_jump = *(l->targets.begin());
+
+      if(q_tot[l_next] < 0 || q_tot[l_jump] < 0)
+      {
+        return false;
+      }
+
+      q_tot[l]=0.8 * q_tot[l_next] + 0.8 * q_tot[l_jump] + 1;
+
+      return true;
+
+    case END_FUNCTION:
+      assert(0); // Should be handled.
+      break;
+
+    default:
+      if(l->targets.size() > 0) {
+        assert(0); // Should be GOTO.
+      }
+
+      l_next = l;
+      l_next++;
+
+      if(q_tot[l_next] < 0) {
+        return false;
+      }
+
+      q_tot[l] = q_tot[l_next];
+      return true;
+
+  }
+
+}
 
 void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
 {
-  std::cout << "Calculating hotsets\n";
+//  std::cout << "Calculating hotsets\n";
+//
+//  goto_functionst goto_functions_copy;
+//  goto_functions_copy.copy_from(goto_functions);
+//
+//  forall_goto_functions(it_f, goto_functions)
+//  {
+//
+//  if(!it_f->second.body_available() ||
+//      it_f->second.body.instructions.size() < 1)
+//  {
+//    continue;
+//
+//  }
+//
+//  std::vector<symbolt> symbols;
+////      calculate_hotset(it->location_number, goto_functions, symbols);
+//  calculate_hotset(it_f->second.body.instructions.begin()->location_number, goto_functions, symbols);
+//  return;
+//
+//  }
+    forall_goto_functions(it_f, goto_functions)
+    {
 
-  goto_functionst goto_functions_copy;
-  goto_functions_copy.copy_from(goto_functions);
+        if(!it_f->second.body_available() ||
+            it_f->second.body.instructions.size() < 1 ||
+            it_f->first != "main")
+        {
+          continue;
+        }
 
-  forall_goto_functions(it_f, goto_functions){
+        auto it = it_f->second.body.instructions.end();
+        it--;
 
-  if(!it_f->second.body_available() ||
-      it_f->second.body.instructions.size() < 1)
-  {
-    continue;
+        if(it->type != END_FUNCTION)
+          continue;
 
-  }
+        std::vector<goto_programt::const_targett> work;
 
-  std::vector<symbolt> symbols;
-//      calculate_hotset(it->location_number, goto_functions, symbols);
-  calculate_hotset(it_f->second.body.instructions.begin()->location_number, goto_functions, symbols);
-  return;
+        work.push_back(it);
+        q_tot[it] = 0;
 
-}
 
+        int size;
+
+        size = 0;
+
+        std::cout << it->function;
+
+        while(work.size() > size) {
+          size = work.size();
+
+          for(auto w_it: work)
+          {
+              for(goto_programt::const_targett t_it : w_it->incoming_edges)
+              {
+                if(std::find(work.begin(), work.end(), t_it) == work.end()
+                    &&
+                    t_it->function == it->function) {
+                  work.push_back(t_it);
+                  q_tot[t_it] = -1;
+                }
+              }
+
+          }
+        }
+
+        work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
+
+        while(!work.empty()) {
+          goto_programt::const_targett item = work.front();
+          work.erase(work.begin());
+
+          if(!calculate_qce_tot(item))
+            work.push_back(item);
+        }
+
+
+    }
 }
 
 /*******************************************************************\
@@ -1001,7 +1134,6 @@ void path_searcht::check_assertion(statet &state)
 
   if(!state.check_assertion(bv_pointers))
   {
-//    bv_pointers.print_assignment(std::cout);
     build_goto_trace(state, bv_pointers, property_entry.error_trace);
     property_entry.status=FAILURE;
     number_of_failed_properties++;
