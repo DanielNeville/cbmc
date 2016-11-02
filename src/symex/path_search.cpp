@@ -960,6 +960,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
           if(!calculate_qce_tot(item))
             work.push_back(item);
+          else
+            std::cout << item->location_number << " : " <<  q_tot[item] << "\n";
         }
 
 
