@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/symbol_table.h>
 #include <util/source_location.h>
 #include <util/std_expr.h>
+#include <util/i2string.h>
 
 typedef enum { NO_INSTRUCTION_TYPE=0,
                GOTO=1,          // branch, possibly guarded
@@ -158,6 +159,12 @@ public:
       targets.push_back(_target);
     }
     
+    inline void make_goto(const_targett _target)
+    {
+      make_goto();
+      targets.push_back(_target);
+    }
+
     inline void make_goto(targett _target, const guardT &g)
     {
       make_goto(_target);
@@ -294,6 +301,13 @@ public:
     return instructions.insert(target, instructiont());
   }
   
+  //! Insertion before the given target
+  //! \return newly inserted location
+  inline targett insert_before(const_targett target)
+  {
+    return instructions.insert(target, instructiont());
+  }
+
   //! Insertion after the given target
   //! \return newly inserted location
   inline targett insert_after(targett target)
@@ -319,6 +333,15 @@ public:
   {
     instructions.splice(target,
                         p.instructions);
+    // BUG: The iterators to p-instructions are invalidated!
+  }
+
+  //! Inserts the given program at the given location.
+  //! The program is destroyed.
+  inline void destructive_insert(const_targett target,
+      goto_program_templatet<codeT, guardT> &p)
+  {
+    instructions.splice(target, p.instructions);
     // BUG: The iterators to p-instructions are invalidated!
   }
 

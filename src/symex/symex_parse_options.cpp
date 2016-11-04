@@ -38,6 +38,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/expr_util.h>
 #include <goto-programs/remove_skip.h>
+#include <analyses/unwind_bounds.h>
 
 #include <analyses/goto_check.h>
 
@@ -243,46 +244,62 @@ int symex_parse_optionst::doit()
 
   if(cmdline.isset("static-unwind"))
   {
-    debug() << "Unwinding " << unsafe_string2unsigned(cmdline.get_value("static-unwind")) << " times." << eom;
-    goto_unwind(goto_model.goto_functions, unsafe_string2unsigned(cmdline.get_value("static-unwind")));
-  }
+    unwind_boundst unwind_bounds(goto_model);
+    unwind_bounds();
 
+    unwind_sett unwind_set;
 
-  {
-    bool remove_next=false;
-    exprt guard;
-
-    Forall_goto_functions(f_it, goto_model.goto_functions){
-    if(!f_it->second.body_available())
-    continue;
-    Forall_goto_program_instructions(it, f_it->second.body)
+    for(auto bound : unwind_bounds.max_bounds)
     {
-      if(remove_next &&
-          it->is_goto() &&
-          (
-              not_exprt(it->guard) == guard ||
-              guard == not_exprt(it->guard)
-          )
-      )
-      {
-        it->make_skip();
-        remove_next = false;
-        std::cout << "Replacing\n";
-      }
+      unwind_set[bound.first->function][bound.first->loop_number] = bound.second;
+      debug() << "Unwinding loop " << bound.first->function << ":" << bound.first->loop_number
+          << " at location " << bound.first->location_number << " a total of " << bound.second << " times"
+          << eom;
+    }
 
-      if(it->is_assert())
-      {
-        guard = it->guard;
-        remove_next = true;
-      }
+    debug() << "Using a default unwinding of " << cmdline.get_value("static-unwind") << eom;
 
-      if(it->is_other() && it->code.get_statement() == ID_expression
-          && it->code.has_operands() && it->code.op0().id() == ID_typecast
-          && it->code.op0().has_operands() && it->code.op0().op0().id() == ID_constant)
+    goto_unwindt goto_unwind;
+    goto_unwind(goto_model.goto_functions, unwind_set,
+        unsafe_string2unsigned(cmdline.get_value("static-unwind")),
+        goto_unwindt::PARTIAL);
+
+    {
+      bool remove_next=false;
+      exprt guard;
+
+      Forall_goto_functions(f_it, goto_model.goto_functions){
+      if(!f_it->second.body_available())
+      continue;
+      Forall_goto_program_instructions(it, f_it->second.body)
       {
-        it->make_skip();
+        if(remove_next &&
+            it->is_goto() &&
+            (
+                not_exprt(it->guard) == guard ||
+                guard == not_exprt(it->guard)
+            )
+        )
+        {
+          it->make_skip();
+          remove_next = false;
+        }
+
+        if(it->is_assert())
+        {
+          guard = it->guard;
+          remove_next = true;
+        }
+
+        if(it->is_other() && it->code.get_statement() == ID_expression
+            && it->code.has_operands() && it->code.op0().id() == ID_typecast
+            && it->code.op0().has_operands() && it->code.op0().op0().id() == ID_constant)
+        {
+          it->make_skip();
+        }
       }
     }
+
   }
 
 }
