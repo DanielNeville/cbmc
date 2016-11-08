@@ -20,6 +20,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "path_symex_state.h"
 
+#include <iostream>
+
 //#define DEBUG
 
 #ifdef DEBUG
@@ -163,7 +165,8 @@ void path_symex_statet::record_step()
   // update our statistics
   depth++;
   
-  if(get_instruction()->is_goto())
+  if(get_instruction()->is_goto() && !get_instruction()->guard.is_false()
+      && !get_instruction()->guard.is_true())
     no_branches++;
     
   // add the step
@@ -229,9 +232,17 @@ bool path_symex_statet::check_assertion(
 
   // the assertion in SSA
   exprt assertion=read(instruction.guard);
-  
+
+//  std::cout << "Assertion at " << pc().loc_number << " is " << assertion.pretty() << "\n";
+
+
+//  std::cout << "Query: " << assertion.pretty() << "\n";
+
   // trivial?
-  if(assertion.is_true()) return true; // no error
+  if(assertion.is_true())
+    return true; // no error
+
+//  std::cout << history;
 
   // the path constraint
   decision_procedure << history;
@@ -239,17 +250,17 @@ bool path_symex_statet::check_assertion(
   // negate the assertion
   decision_procedure.set_to(assertion, false);
 
-  // check whether SAT  
-  switch(decision_procedure.dec_solve())
+  // check whether SAT
+  switch (decision_procedure.dec_solve())
   {
-  case decision_proceduret::D_SATISFIABLE:
-    return false; // error
-   
-  case decision_proceduret::D_UNSATISFIABLE:
-    return true; // no error
-  
-  default:
-    throw "error from decision procedure";
+    case decision_proceduret::D_SATISFIABLE:
+      return false; // error
+
+    case decision_proceduret::D_UNSATISFIABLE:
+      return true; // no error
+
+    default:
+      throw "error from decision procedure";
   }
 
   return true; // not really reachable

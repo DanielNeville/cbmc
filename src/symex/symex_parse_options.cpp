@@ -249,63 +249,64 @@ int symex_parse_optionst::doit()
 
     unwind_sett unwind_set;
 
-    for(auto bound : unwind_bounds.max_bounds)
+    for (auto bound : unwind_bounds.max_bounds)
     {
-      unwind_set[bound.first->function][bound.first->loop_number] = bound.second;
-      debug() << "Unwinding loop " << bound.first->function << ":" << bound.first->loop_number
-          << " at location " << bound.first->location_number << " a total of " << bound.second << " times"
-          << eom;
+      unwind_set[bound.first->function][bound.first->loop_number]=bound.second;
+      debug() << "Unwinding loop " << bound.first->function << ":"
+          << bound.first->loop_number << " at location "
+          << bound.first->location_number << " a total of " << bound.second
+          << " times" << eom;
     }
 
-    debug() << "Using a default unwinding of " << cmdline.get_value("static-unwind") << eom;
+    debug() << "Using a default unwinding of "
+        << cmdline.get_value("static-unwind") << eom;
 
     goto_unwindt goto_unwind;
     goto_unwind(goto_model.goto_functions, unwind_set,
         unsafe_string2unsigned(cmdline.get_value("static-unwind")),
         goto_unwindt::PARTIAL);
-
-    {
-      bool remove_next=false;
-      exprt guard;
-
-      Forall_goto_functions(f_it, goto_model.goto_functions){
-      if(!f_it->second.body_available())
-      continue;
-      Forall_goto_program_instructions(it, f_it->second.body)
-      {
-        if(remove_next &&
-            it->is_goto() &&
-            (
-                not_exprt(it->guard) == guard ||
-                guard == not_exprt(it->guard)
-            )
-        )
-        {
-          it->make_skip();
-          remove_next = false;
-        }
-
-        if(it->is_assert())
-        {
-          guard = it->guard;
-          remove_next = true;
-        }
-
-        if(it->is_other() && it->code.get_statement() == ID_expression
-            && it->code.has_operands() && it->code.op0().id() == ID_typecast
-            && it->code.op0().has_operands() && it->code.op0().op0().id() == ID_constant)
-        {
-          it->make_skip();
-        }
-      }
-    }
-
   }
 
-}
-  remove_skip(goto_model.goto_functions);
-  goto_model.goto_functions.update();
 
+  {
+    bool remove_next=false;
+    exprt guard;
+
+    Forall_goto_functions(f_it, goto_model.goto_functions){
+    if(!f_it->second.body_available())
+    continue;
+    Forall_goto_program_instructions(it, f_it->second.body)
+    {
+      if(remove_next &&
+          it->is_goto() &&
+          (
+              not_exprt(it->guard) == guard ||
+              guard == not_exprt(it->guard)
+          )
+      )
+      {
+        it->make_skip();
+        remove_next = false;
+      }
+
+      if(it->is_assert())
+      {
+        guard = it->guard;
+        remove_next = true;
+      }
+
+      if(it->is_other() && it->code.get_statement() == ID_expression
+          && it->code.has_operands() && it->code.op0().id() == ID_typecast
+          && it->code.op0().has_operands() && it->code.op0().op0().id() == ID_constant)
+      {
+        it->make_skip();
+      }
+    }
+  }
+
+    remove_skip(goto_model.goto_functions);
+    goto_model.goto_functions.update();
+  }
 
   if(set_properties())
     return 7;
@@ -350,6 +351,11 @@ int symex_parse_optionst::doit()
     {
       debug() << "Setting fast forward." << eom;
       path_search.set_fast_forward();
+    }
+
+    if(cmdline.isset("no-solver-propagation")) {
+      debug() << "Propagation switched OFF for solver queries.";
+//      path_search.set_no_solver_propagation();
     }
 
     if(cmdline.isset("aggressive-merging"))

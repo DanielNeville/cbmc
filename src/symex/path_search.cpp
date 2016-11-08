@@ -422,6 +422,10 @@ void path_searcht::merge(
     throw "Error.\n";
   }
 
+  debug() << "First " << steps << " steps are contained within both states to be merged." << eom;
+
+  debug() << "First different steps: " << (*state_it)->pc.loc_number << " and " << (*cmp_state_it)->pc << eom;
+
   /*
    * One will have guard: g, and one will have not_exprt(g).
    * This isn't relevant or assumed.  Both are treated as "just some" guard.
@@ -494,6 +498,8 @@ void path_searcht::merge(
     }
   }
 
+  debug() << "Removed guard: " << from_expr(reverse_step->guard) << eom;
+
   exprt guarded_expression=or_exprt(simplify_expr(state_guarded_expression, ns),
       simplify_expr(cmp_state_guarded_expression, ns));
 
@@ -508,6 +514,37 @@ void path_searcht::merge(
   /* Rewrite history */
   state->history=reverse_step;
   /* This step changes history! */
+
+
+  count=1;
+
+  state->history.build_history(stepsc);
+
+  std::cout << "After\n";
+
+  for(std::vector<path_symex_step_reft>::const_iterator
+      s_it=stepsc.begin();
+      s_it!=stepsc.end();
+      s_it++)
+  {
+    if((*s_it)->guard.is_not_nil())
+    {
+      std::string string_value=from_expr(ns, "", (*s_it)->guard);
+      std::cout << "{-" << count << "} " << string_value << '\n';
+      count++;
+    }
+
+    if((*s_it)->ssa_rhs.is_not_nil())
+    {
+      equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
+      std::string string_value=from_expr(ns, "", equality);
+      std::cout << "{-" << count << "} " << string_value << '\n';
+      count++;
+    }
+  }
+
+
+  debug() << "New guard: " << from_expr(state->history->guard) << eom;
 
   /* Update statistics */
   // Max depth.
@@ -809,7 +846,9 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
 
-  std::cout << l->location_number << ":" << l->type;
+  double beta = 0.8;
+
+//  std::cout << l->location_number << ":" << l->type;
 
   switch(l->type) {
     case GOTO:
@@ -855,7 +894,7 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
         return false;
       }
 
-      q_tot[l]=0.8 * q_tot[l_next] + 0.8 * q_tot[l_jump] + 1;
+      q_tot[l]= beta * q_tot[l_next] + beta * q_tot[l_jump] + 1;
 
       return true;
 
@@ -877,7 +916,6 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
 
       q_tot[l] = q_tot[l_next];
       return true;
-
   }
 
 }
@@ -906,66 +944,72 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 //  return;
 //
 //  }
-    forall_goto_functions(it_f, goto_functions)
+
+
+  forall_goto_functions(it_f, goto_functions)
+  {
+//    natural_loops_mutablet natural_loops(it_f->second);
+
+    if(!it_f->second.body_available() ||
+        it_f->second.body.instructions.size() < 1 ||
+        it_f->first != "main")
     {
+      continue;
+    }
 
-        if(!it_f->second.body_available() ||
-            it_f->second.body.instructions.size() < 1 ||
-            it_f->first != "main")
+    auto it = it_f->second.body.instructions.end();
+    it--;
+
+    if(it->type != END_FUNCTION)
+    continue;
+
+    std::vector<goto_programt::const_targett> work;
+
+    work.push_back(it);
+    q_tot[it] = 0;
+
+    int size;
+
+    size = 0;
+
+    std::cout << it->function;
+
+    while(work.size() > size)
+    {
+      size = work.size();
+
+      for(auto w_it: work)
+      {
+        for(goto_programt::const_targett t_it : w_it->incoming_edges)
         {
-          continue;
-        }
-
-        auto it = it_f->second.body.instructions.end();
-        it--;
-
-        if(it->type != END_FUNCTION)
-          continue;
-
-        std::vector<goto_programt::const_targett> work;
-
-        work.push_back(it);
-        q_tot[it] = 0;
-
-
-        int size;
-
-        size = 0;
-
-        std::cout << it->function;
-
-        while(work.size() > size) {
-          size = work.size();
-
-          for(auto w_it: work)
+          if(std::find(work.begin(), work.end(), t_it) == work.end()
+              &&
+              t_it->function == it->function)
           {
-              for(goto_programt::const_targett t_it : w_it->incoming_edges)
-              {
-                if(std::find(work.begin(), work.end(), t_it) == work.end()
-                    &&
-                    t_it->function == it->function) {
-                  work.push_back(t_it);
-                  q_tot[t_it] = -1;
-                }
-              }
-
+            work.push_back(t_it);
+            q_tot[t_it] = -1;
           }
         }
 
-        work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
-
-        while(!work.empty()) {
-          goto_programt::const_targett item = work.front();
-          work.erase(work.begin());
-
-          if(!calculate_qce_tot(item))
-            work.push_back(item);
-          else
-            std::cout << item->location_number << " : " <<  q_tot[item] << "\n";
-        }
-
-
+      }
     }
+
+    work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
+
+    while(!work.empty())
+    {
+      goto_programt::const_targett item = work.front();
+      work.erase(work.begin());
+
+      if(!calculate_qce_tot(item))
+      work.push_back(item);
+      else
+      std::cout << item->location_number << " : " << q_tot[item] << "\n";
+    }
+
+
+
+  }
 }
 
 /*******************************************************************\

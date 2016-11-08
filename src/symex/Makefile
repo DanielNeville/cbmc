@@ -17,6 +17,8 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
        ../pointer-analysis/pointer-analysis$(LIBEXT) \
        ../pointer-analysis/dereference$(OBJEXT) \
        ../goto-instrument/cover$(OBJEXT) \
+       ../goto-instrument/loop_utils$(OBJEXT) \
+       ../goto-instrument/unwind$(OBJEXT) \
        ../path-symex/path-symex$(LIBEXT)
 
 INCLUDES= -I ..
