@@ -163,7 +163,8 @@ void path_symex_statet::record_step()
   // update our statistics
   depth++;
   
-  if(get_instruction()->is_goto())
+  if(get_instruction()->is_goto() && !get_instruction()->guard.is_false()
+      && !get_instruction()->guard.is_true())
     no_branches++;
     
   // add the step

@@ -34,6 +34,11 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/remove_virtual_functions.h>
 
 #include <goto-instrument/cover.h>
+#include <goto-instrument/unwind.h>
+
+#include <util/expr_util.h>
+#include <goto-programs/remove_skip.h>
+#include <analyses/unwind_bounds.h>
 
 #include <analyses/goto_check.h>
 
@@ -168,6 +173,9 @@ void symex_parse_optionst::get_command_line_options(optionst &options)
   else
     options.set_option("memory-leak-check", false);
 
+  if(cmdline.isset("static-unwind"))
+    options.set_option("static-unwind", cmdline.get_value("static-unwind"));
+
   // check assertions
   if(cmdline.isset("no-assertions"))
     options.set_option("assertions", false);
@@ -234,6 +242,72 @@ int symex_parse_optionst::doit()
     return 0;
   }
 
+  if(cmdline.isset("static-unwind"))
+  {
+    unwind_boundst unwind_bounds(goto_model);
+    unwind_bounds();
+
+    unwind_sett unwind_set;
+
+    for (auto bound : unwind_bounds.max_bounds)
+    {
+      unwind_set[bound.first->function][bound.first->loop_number]=bound.second;
+      debug() << "Unwinding loop " << bound.first->function << ":"
+          << bound.first->loop_number << " at location "
+          << bound.first->location_number << " a total of " << bound.second
+          << " times" << eom;
+    }
+
+    debug() << "Using a default unwinding of "
+        << cmdline.get_value("static-unwind") << eom;
+
+    goto_unwindt goto_unwind;
+    goto_unwind(goto_model.goto_functions, unwind_set,
+        unsafe_string2unsigned(cmdline.get_value("static-unwind")),
+        goto_unwindt::PARTIAL);
+  }
+
+
+  {
+    bool remove_next=false;
+    exprt guard;
+
+    Forall_goto_functions(f_it, goto_model.goto_functions){
+    if(!f_it->second.body_available())
+    continue;
+    Forall_goto_program_instructions(it, f_it->second.body)
+    {
+      if(remove_next &&
+          it->is_goto() &&
+          (
+              not_exprt(it->guard) == guard ||
+              guard == not_exprt(it->guard)
+          )
+      )
+      {
+        it->make_skip();
+        remove_next = false;
+      }
+
+      if(it->is_assert())
+      {
+        guard = it->guard;
+        remove_next = true;
+      }
+
+      if(it->is_other() && it->code.get_statement() == ID_expression
+          && it->code.has_operands() && it->code.op0().id() == ID_typecast
+          && it->code.op0().has_operands() && it->code.op0().op0().id() == ID_constant)
+      {
+        it->make_skip();
+      }
+    }
+  }
+
+    remove_skip(goto_model.goto_functions);
+    goto_model.goto_functions.update();
+  }
+
   if(set_properties())
     return 7;
     
@@ -272,6 +346,23 @@ int symex_parse_optionst::doit()
 
     if(cmdline.isset("bfs"))
       path_search.set_bfs();
+
+    if(cmdline.isset("fast-forward"))
+    {
+      debug() << "Setting fast forward." << eom;
+      path_search.set_fast_forward();
+    }
+
+    if(cmdline.isset("no-solver-propagation")) {
+      debug() << "Propagation switched OFF for solver queries.";
+//      path_search.set_no_solver_propagation();
+    }
+
+    if(cmdline.isset("aggressive-merging"))
+    {
+      debug() << "Setting aggressive state merging." << eom;
+      path_search.set_aggressive_merging();
+    }
 
     if(cmdline.isset("locs"))
       path_search.set_locs();

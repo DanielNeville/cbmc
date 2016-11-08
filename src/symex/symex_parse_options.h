@@ -33,7 +33,8 @@ class optionst;
   "(little-endian)(big-endian)" \
   "(error-label):(verbosity):(no-library)" \
   "(version)" \
-  "(bfs)(dfs)(locs)" \
+  "(bfs)(dfs)(locs)(fast-forward)" \
+  "(aggressive-merging)" \
   "(cover):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
   "(ppc-macos)(unsigned-char)" \
@@ -41,7 +42,7 @@ class optionst;
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(show-locs)(show-vcc)(show-properties)(show-goto-functions)" \
   "(property):(trace)(show-trace)(stop-on-fail)(eager-infeasibility)" \
-  "(no-simplify)(no-unwinding-assertions)(no-propagation)"
+  "(no-simplify)(no-unwinding-assertions)(no-propagation)(static-unwind):"
   // the last line is for CBMC-regression testing only
 
 class symex_parse_optionst:

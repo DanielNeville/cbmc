@@ -185,6 +185,11 @@ public:
     return depth;
   }
   
+  inline void set_depth(unsigned _depth)
+  {
+    depth = _depth;
+  }
+
   inline unsigned get_no_branches() const
   {
     return no_branches;

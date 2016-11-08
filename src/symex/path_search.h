@@ -15,6 +15,11 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/safety_checker.h>
 
 #include <path-symex/path_symex_state.h>
+#include <path-symex/path_symex_class.h>
+
+
+// Todo: Move
+  typedef std::vector<path_symex_step_reft> state_historyt;
 
 class path_searcht:public safety_checkert
 {
@@ -23,11 +28,13 @@ public:
     safety_checkert(_ns),
     show_vcc(false),
     eager_infeasibility(false),
+    locs(_ns),
     depth_limit_set(false), // no limit
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
-    search_heuristic(search_heuristict::DFS)
+    search_heuristic(search_heuristict::DFS),
+    merge_heuristic(merge_heuristict::NONE)
   {
   }
 
@@ -61,6 +68,8 @@ public:
   bool show_vcc;
   bool eager_infeasibility;
   
+  locst locs;
+
   // statistics
   unsigned number_of_dropped_states;
   unsigned number_of_paths;
@@ -70,6 +79,7 @@ public:
   unsigned number_of_VCCs;
   unsigned number_of_VCCs_after_simplification;
   unsigned number_of_failed_properties;
+  unsigned number_of_merged_states;
   std::size_t number_of_locs;
   absolute_timet start_time;
   time_periodt sat_time;
@@ -91,16 +101,21 @@ public:
   inline void set_dfs() { search_heuristic=search_heuristict::DFS; }
   inline void set_bfs() { search_heuristic=search_heuristict::BFS; }
   inline void set_locs() { search_heuristic=search_heuristict::LOCS; }
+  // Really should support FF & DFS/BFS/etc.
+  inline void set_fast_forward() { search_heuristic=search_heuristict::FAST_FORWARD; }
   
+  inline void set_aggressive_merging() { merge_heuristic=merge_heuristict::AGGRESSIVE; }
+
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
-protected:
   typedef path_symex_statet statet;
+  typedef std::list<statet> queuet;
+
+protected:
 
   // State queue. Iterators are stable.
   // The states most recently executed are at the head.
-  typedef std::list<statet> queuet;
   queuet queue;
   
   // search heuristic
@@ -133,7 +148,64 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
-  enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
+  enum class search_heuristict { DFS, BFS, LOCS, FAST_FORWARD } search_heuristic;
+  enum class merge_heuristict { AGGRESSIVE, NONE } merge_heuristic;
+
+  void merge_states();
+
+  /* Following to be moved to separate class? */
+  bool do_aggressive_merge(
+      queuet::iterator &state, queuet::iterator &current_state);
+
+  bool do_qce_merge(
+      queuet::iterator &state, queuet::iterator &cmp_state);
+
+  void merge(
+      queuet::iterator &state, queuet::iterator &cmp_state);
+
+  bool inline at_merge_point(
+      statet &state)
+  {
+    return locs[state.pc()].target->incoming_edges.size() > 1;
+  }
+
+  void construct_guarded_expression(exprt::operandst &expr,
+      int reverse_steps, path_symex_step_reft &reverse_step,
+      exprt::operandst &guards);
+
+  void calculate_hotsets(const goto_functionst &goto_functions);
+
+  void calculate_hotset( unsigned location,
+      const goto_functionst &goto_functions,
+      std::vector<symbolt> &symbols);
+
+  std::map<goto_programt::const_targett, double> q_tot;
+
+  bool calculate_qce_tot(goto_programt::const_targett &l);
+
+  struct searchert {
+    unsigned location;
+    int lhs;
+    int rhs;
+    unsigned loop_count; // needs to be per loop.
+    bool work;
+    double value;
+    unsigned branches_found;
+    unsigned branches;
+    std::vector<unsigned> returns;
+
+    searchert(unsigned _location) :
+      location(_location),
+      lhs(-1),
+      rhs(-1),
+      loop_count(0),
+      work(true),
+      value(0.0),
+      branches_found(0),
+      branches(0)
+    {}
+  };
+
 };
 
 #endif
