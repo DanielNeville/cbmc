@@ -428,64 +428,6 @@ void path_searcht::merge(
   state->history.build_history(state_history);
   state_historyt::iterator state_it = state_history.begin();
 
-
-//  unsigned count=1;
-//
-//  std::cout << "maintained\n";
-//
-//  std::vector<path_symex_step_reft> stepsc;
-//  state->history.build_history(stepsc);
-//
-//  for(std::vector<path_symex_step_reft>::const_iterator
-//      s_it=stepsc.begin();
-//      s_it!=stepsc.end();
-//      s_it++)
-//  {
-//    if((*s_it)->guard.is_not_nil())
-//    {
-//      std::string string_value=from_expr(ns, "", (*s_it)->guard);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//
-//    if((*s_it)->ssa_rhs.is_not_nil())
-//    {
-//      equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
-//      std::string string_value=from_expr(ns, "", equality);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//  }
-
-
-//  count=1;
-//
-//  std::cout << "removed\n";
-//
-//  std::vector<path_symex_step_reft> stepsc2;
-//  cmp_state->history.build_history(stepsc2);
-//
-//  for(std::vector<path_symex_step_reft>::const_iterator
-//      s_it=stepsc2.begin();
-//      s_it!=stepsc2.end();
-//      s_it++)
-//  {
-//    if((*s_it)->guard.is_not_nil())
-//    {
-//      std::string string_value=from_expr(ns, "", (*s_it)->guard);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//
-//    if((*s_it)->ssa_rhs.is_not_nil())
-//    {
-//      equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
-//      std::string string_value=from_expr(ns, "", equality);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//  }
-
   state_historyt cmp_state_history;
   cmp_state->history.build_history(cmp_state_history);
   state_historyt::iterator cmp_state_it = cmp_state_history.begin();
@@ -510,10 +452,10 @@ void path_searcht::merge(
   {
     throw "Error.\n";
   }
-
-  debug() << "First " << steps << " steps are contained within both states to be merged." << eom;
-
-  debug() << "First different steps: " << (*state_it)->pc.loc_number << " and " << (*cmp_state_it)->pc << eom;
+//
+//  debug() << "First " << steps << " steps are contained within both states to be merged." << eom;
+//
+//  debug() << "First different steps: " << (*state_it)->pc.loc_number << " and " << (*cmp_state_it)->pc.loc_number << eom;
 
   /*
    * One will have guard: g, and one will have not_exprt(g).
@@ -557,26 +499,26 @@ void path_searcht::merge(
 
     if(state->get_var_state(var).ssa_symbol != var.ssa_symbol())
     {
-//      state_guarded_expression.operands().push_back(
-//          equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
+      state_guarded_expression.operands().push_back(
+          equal_exprt(state->get_var_state(var).ssa_symbol, var.ssa_symbol()));
       state->get_var_state(var).ssa_symbol=var.ssa_symbol();
 
-      exprt what=state->get_var_state(var).ssa_symbol;
-      exprt by=var.ssa_symbol();
-
-      replace_expr(what, by, state_guarded_expression);
+//      exprt what=state->get_var_state(var).ssa_symbol;
+//      exprt by=var.ssa_symbol();
+//
+//      replace_expr(what, by, state_guarded_expression);
     }
 
     if(cmp_state->get_var_state(cmp_var).ssa_symbol != cmp_var.ssa_symbol())
     {
-//      cmp_state_guarded_expression.operands().push_back(
-//          equal_exprt(cmp_state->get_var_state(cmp_var).ssa_symbol,
-//              cmp_var.ssa_symbol()));
+      cmp_state_guarded_expression.operands().push_back(
+          equal_exprt(cmp_state->get_var_state(cmp_var).ssa_symbol,
+              cmp_var.ssa_symbol()));
 
-      exprt what=cmp_state->get_var_state(cmp_var).ssa_symbol;
-      exprt by=var.ssa_symbol();
-
-      replace_expr(what, by, cmp_state_guarded_expression);
+//      exprt what=cmp_state->get_var_state(cmp_var).ssa_symbol;
+//      exprt by=var.ssa_symbol();
+//
+//      replace_expr(what, by, cmp_state_guarded_expression);
     }
 
     if(state->get_var_state(var).value != cmp_state->get_var_state(cmp_var).value)
@@ -614,36 +556,7 @@ void path_searcht::merge(
   state->history=reverse_step;
   /* This step changes history! */
 
-
-//  count=1;
-
-//  state->history.build_history(stepsc);
-//
-//  std::cout << "After\n";
-//
-//  for(std::vector<path_symex_step_reft>::const_iterator
-//      s_it=stepsc.begin();
-//      s_it!=stepsc.end();
-//      s_it++)
-//  {
-//    if((*s_it)->guard.is_not_nil())
-//    {
-//      std::string string_value=from_expr(ns, "", (*s_it)->guard);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//
-//    if((*s_it)->ssa_rhs.is_not_nil())
-//    {
-//      equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
-//      std::string string_value=from_expr(ns, "", equality);
-//      std::cout << "{-" << count << "} " << string_value << '\n';
-//      count++;
-//    }
-//  }
-
-
-  debug() << "New guard: " << from_expr(state->history->guard) << eom;
+//  debug() << "New guard: " << from_expr(state->history->guard) << eom;
 
   /* Update statistics */
   // Max depth.
@@ -938,6 +851,85 @@ void path_searcht::calculate_hotset(
 }
 
 bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
+  goto_programt::const_targett l_jump;
+  goto_programt::const_targett l_next;
+
+  double beta = 0.8;
+
+//  std::cout << l->location_number << ":" << l->type;
+
+  switch(l->type) {
+    case GOTO:
+
+      assert(l->targets.size() == 1);
+
+      if(l->guard.is_false())
+      {
+        l_next = l;
+        l_next++;
+
+        if(q_tot[l_next] < 0) {
+          return false;
+        }
+
+        q_tot[l] = q_tot[l_next];
+
+        return true;
+      }
+
+      if(l->guard.is_true())
+      {
+        l_jump = *(l->targets.begin());
+
+        if(q_tot[l_jump] < 0) {
+          return false;
+        }
+
+        q_tot[l]=q_tot[l_jump];
+
+        return true;
+      }
+
+      assert(!l->guard.is_false() && !l->guard.is_true());
+
+      l_next=l;
+      l_next++;
+
+      l_jump = *(l->targets.begin());
+
+      if(q_tot[l_next] < 0 || q_tot[l_jump] < 0)
+      {
+        return false;
+      }
+
+      q_tot[l]= beta * q_tot[l_next] + beta * q_tot[l_jump] + 1;
+
+      return true;
+
+    case END_FUNCTION:
+      assert(0); // Should be handled.
+      break;
+
+    default:
+      if(l->targets.size() > 0) {
+        assert(0); // Should be GOTO.
+      }
+
+      l_next = l;
+      l_next++;
+
+      if(q_tot[l_next] < 0) {
+        return false;
+      }
+
+      q_tot[l] = q_tot[l_next];
+      return true;
+  }
+
+}
+
+
+bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
 

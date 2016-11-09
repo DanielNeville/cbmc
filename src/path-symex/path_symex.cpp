@@ -1041,7 +1041,7 @@ void path_symext::operator()(
       {
         // ignore for SC
       }
-      else if(statement==ID_input)
+      else if(statement==ID_input || statement==ID_output)
       {
         // just needs to be recorded
       }

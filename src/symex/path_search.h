@@ -182,6 +182,7 @@ protected:
   std::map<goto_programt::const_targett, double> q_tot;
 
   bool calculate_qce_tot(goto_programt::const_targett &l);
+  bool calculate_qce_add(goto_programt::const_targett &l);
 
   struct searchert {
     unsigned location;
