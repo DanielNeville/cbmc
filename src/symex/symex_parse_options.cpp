@@ -242,12 +242,18 @@ int symex_parse_optionst::doit()
     return 0;
   }
 
-  if(cmdline.isset("static-unwind"))
+  if(cmdline.isset("static-unwind") || cmdline.isset("qce"))
   {
     unwind_boundst unwind_bounds(goto_model);
     unwind_bounds();
 
     unwind_sett unwind_set;
+    unsigned fixed_unwinding=10;
+
+    if(cmdline.isset("static-unwind"))
+    {
+      fixed_unwinding=unsafe_string2unsigned(cmdline.get_value("static-unwind"));
+    }
 
     for (auto bound : unwind_bounds.max_bounds)
     {
@@ -258,17 +264,19 @@ int symex_parse_optionst::doit()
           << " times" << eom;
     }
 
-    debug() << "Using a default unwinding of "
-        << cmdline.get_value("static-unwind") << eom;
+    status() << "Statically unwinding with prediction using a default unwinding of "
+        << fixed_unwinding << eom;
 
     goto_unwindt goto_unwind;
     goto_unwind(goto_model.goto_functions, unwind_set,
-        unsafe_string2unsigned(cmdline.get_value("static-unwind")),
+        fixed_unwinding,
         goto_unwindt::PARTIAL);
   }
 
 
   {
+    status() << "Modifying assertion if statements." << eom;
+
     bool remove_next=false;
     exprt guard;
 
@@ -351,6 +359,11 @@ int symex_parse_optionst::doit()
     {
       debug() << "Setting fast forward." << eom;
       path_search.set_fast_forward();
+    }
+
+    if(cmdline.isset("qce"))
+    {
+      path_search.set_qce();
     }
 
     if(cmdline.isset("no-solver-propagation")) {

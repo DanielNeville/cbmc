@@ -52,6 +52,8 @@ path_searcht::resultt path_searcht::operator()(
 
   queue.push_back(initial_state(var_map, locs, history));
 
+  calculate_hotsets(goto_functions);
+
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
@@ -593,263 +595,6 @@ void path_searcht::construct_guarded_expression(exprt::operandst &expr,
    }
 }
 
-void path_searcht::calculate_hotset(
-    unsigned location,
-    const goto_functionst &goto_functions,
-    std::vector<symbolt> &symbols)
-{
-  // q(l, c) = b * q(succ(l', c) + b * q(l'', c) + c(l', e).
-  // 0 halt
-  // q(succ(l', c)) else
-
-  // A recursive calculation here would kill everything.
-//  path_symex_statet &state = queue.back();
-
-//  dependence_grapht dependence_graph(ns);
-//  dependence_graph(goto_functions, ns);
-//
-//  forall_goto_functions(f_it, goto_functions)
-//  {
-//    if(f_it->second.body_available())
-//    {
-//      std::cout << "////" << std::endl;
-//      std::cout << "//// Function: " << f_it->first << std::endl;
-//      std::cout << "////" << std::endl;
-//      std::cout << std::endl;
-//      dependence_graph.output(ns, f_it->second.body, std::cout);
-//    }
-//  }
-//
-//  dependence_graph.output_dot(std::cout);
-//
-//  forall_goto_functions(f_it, goto_functions)
-//  {
-//    if(!f_it->second.body_available())
-//      continue;
-//
-//    forall_goto_program_instructions(it, f_it->second.body) {
-//      std::cout << "At: " << it->location_number << " control: ";
-//      for(auto control : dependence_graph[it].get_control_deps()) {
-//        std::cout << control->location_number << ",";
-//      }
-//      std::cout << ".  Data: ";
-//      for(auto data : dependence_graph[it].get_data_deps()) {
-//        std::cout << data->location_number << ",";
-//      }
-//
-//
-//      std::cout << "\n";
-//    }
-//  }
-
-  return;
-
-
-  std::map<unsigned int, searchert> searchers;
-  std::map<unsigned int, searchert> completed_searchers;
-
-  unsigned int states = 0;
-
-  searchert searcher(location);
-  searchers.insert(std::make_pair(states++, searcher));
-
-  std::cout << "Locs:" << locs.loc_vector.size() << " from " << location << "\n";
-
-  while(!searchers.empty()) {
-    std::map<unsigned int, searchert>::iterator item = searchers.begin();
-
-    unsigned id = item->first;
-    searchert current = item->second;
-
-    searchers.erase(searchers.begin());
-
-    std::cout << locs[current.location].target->type << " at " << current.location << "\n";
-
-
-    switch(locs[current.location].target->type) {
-      case GOTO:
-      {
-        const exprt &guard = locs[current.location].target->guard;
-
-
-        if(locs[current.location].target->is_backwards_goto()) {
-          current.loop_count++;
-          if(current.loop_count > 0) {
-            current.work = false;
-            completed_searchers.insert(std::make_pair(id, current));
-            std::cout << "Backwards at " << current.location << "\n";
-            break;
-          }
-        }
-
-        if(guard.is_true())
-        {
-          assert(!locs[current.location].target->targets.empty());
-
-          current.location=
-              (*locs[current.location].target->targets.begin())->location_number;
-          searchers.insert(std::make_pair(id, current));
-
-          std::cout << "(Always true -> " << current.location << ")\n";
-          break;
-        }
-
-        if(guard.is_false())
-        {
-          current.location++;
-          searchers.insert(std::make_pair(id, current));
-
-          std::cout << "(Always false -> " << current.location << ")\n";
-
-          break;
-        }
-
-//        std::cout << state.read_no_propagate(guard).pretty();
-
-        searchert lhs = current;
-        searchert rhs = current;
-
-        assert(!locs[current.location].target->targets.empty());
-
-        lhs.location = (*locs[current.location].target->targets.begin())->location_number;
-        rhs.location++;
-
-//        std::cout << "(Could be both: LHS -> " << lhs.location << " -- RHS ->" << rhs.location << "\n";
-
-        current.branches_found++;
-
-        unsigned lhs_id = states++;
-        unsigned rhs_id = states++;
-
-        current.lhs = lhs_id;
-        current.rhs = rhs_id;
-
-        lhs.branches++;
-        rhs.branches++;
-
-        current.work = false;
-
-        /* Calculate value */
-//        current.value = current.value + 1;
-
-        completed_searchers.insert(std::make_pair(id, current));
-        searchers.insert(std::make_pair(lhs_id, lhs));
-        searchers.insert(std::make_pair(rhs_id, rhs));
-
-        break;
-      }
-      case FUNCTION_CALL:
-      {
-        code_function_callt function_call=to_code_function_call(
-            locs[current.location].target->code);
-
-        if(function_call.function().id() == ID_symbol)
-        {
-          const irep_idt &function_identifier=
-              to_symbol_expr(function_call.function()).get_identifier();
-
-          // find the function
-          locst::function_mapt::const_iterator f_it=locs.function_map.find(
-              function_identifier);
-
-          if(f_it == locs.function_map.end())
-            throw "failed to find `" + id2string(function_identifier)
-                + "' in function_map";
-
-          const locst::function_entryt &function_entry=f_it->second;
-
-          loc_reft function_entry_point=function_entry.first_loc;
-
-          // do we have a body?
-          if(function_entry_point == loc_reft())
-          {
-            current.location++;
-            searchers.insert(std::make_pair(id, current));
-            // no body
-
-            // this is a skip
-            break;
-          }
-
-          current.returns.push_back(current.location + 1);
-          current.location=function_entry_point.loc_number;
-          searchers.insert(std::make_pair(id, current));
-        }
-        else
-        {
-          throw "Function w/o symbol.";
-        }
-        break;
-      }
-
-
-      case END_FUNCTION:
-        if(current.returns.empty())
-        {
-          current.work = false;
-          completed_searchers.insert(std::make_pair(id, current));
-          break;
-        }
-
-        current.location=current.returns.back();
-        current.returns.pop_back();
-        searchers.insert(std::make_pair(id, current));
-
-        break;
-
-      default:
-        current.location++;
-        searchers.insert(std::make_pair(id, current));
-        break;
-    }
-  }
-
-  std::cout << "number of completed workers: " << completed_searchers.size() << "\n";
-  for(auto it:completed_searchers) {
-    std::cout << it.first << ":" << it.second.location << " - " << it.second.branches_found << "\n";
-  }
-
-  /* q_tot */
-  double q_tot = 0;
-
-  std::map<unsigned int, searchert>::iterator item;
-  item = completed_searchers.begin();
-
-  std::vector<unsigned> to_add;
-  to_add.push_back(item->first);
-
-  while(!to_add.empty()) {
-    unsigned ptr_id = to_add.back();
-    to_add.pop_back();
-
-    item = completed_searchers.find(ptr_id);
-
-    q_tot +=
-        std::pow(0.8, item->second.branches) * item->second.branches_found;
-
-    if(item->second.lhs > -1 && item->second.rhs > -1)
-    {
-      to_add.push_back(item->second.lhs);
-      to_add.push_back(item->second.rhs);
-    }
-  }
-
-  std::cout << "\n\nSymbol table.\n";
-
-  for (auto symbol : ns.get_symbol_table().symbols)
-  {
-    /* For now */
-    if(has_prefix(symbol.first.c_str(), "__CPROVER"))
-      continue;
-
-
-
-    std::cout << symbol.first << "\n";
-  }
-
-  std::cout << "q_tot:" << q_tot << "\n";
-}
-
 bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
@@ -933,34 +678,36 @@ bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
 
+
   double beta = 0.8;
 
-//  std::cout << l->location_number << ":" << l->type;
-
-  switch(l->type) {
+  switch (l->type)
+  {
     case GOTO:
-
+    {
       assert(l->targets.size() == 1);
 
       if(l->guard.is_false())
       {
-        l_next = l;
+        l_next=l;
         l_next++;
 
-        if(q_tot[l_next] < 0) {
+        if(q_tot[l_next] < 0)
+        {
           return false;
         }
 
-        q_tot[l] = q_tot[l_next];
+        q_tot[l]=q_tot[l_next];
 
         return true;
       }
 
       if(l->guard.is_true())
       {
-        l_jump = *(l->targets.begin());
+        l_jump=*(l->targets.begin());
 
-        if(q_tot[l_jump] < 0) {
+        if(q_tot[l_jump] < 0)
+        {
           return false;
         }
 
@@ -974,16 +721,20 @@ bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
       l_next=l;
       l_next++;
 
-      l_jump = *(l->targets.begin());
+      l_jump=*(l->targets.begin());
 
       if(q_tot[l_next] < 0 || q_tot[l_jump] < 0)
       {
         return false;
       }
 
-      q_tot[l]= beta * q_tot[l_next] + beta * q_tot[l_jump] + 1;
+      q_tot[l]=beta * q_tot[l_next] + beta * q_tot[l_jump] + 1;
 
       return true;
+
+    }
+
+
 
     case END_FUNCTION:
       assert(0); // Should be handled.
@@ -1010,6 +761,8 @@ bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
 void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
 {
+  status() << "Calculating hotsets (method 1)." << eom;
+
 //  std::cout << "Calculating hotsets\n";
 //
 //  goto_functionst goto_functions_copy;

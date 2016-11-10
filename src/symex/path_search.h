@@ -11,6 +11,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/time_stopping.h>
 #include <util/expanding_vector.h>
+#include <tuple>
 
 #include <goto-programs/safety_checker.h>
 
@@ -33,6 +34,7 @@ public:
     context_bound_set(false),
     unwind_limit_set(false),
     branch_bound_set(false),
+    qce_set(false),
     search_heuristic(search_heuristict::DFS),
     merge_heuristic(merge_heuristict::NONE)
   {
@@ -106,6 +108,8 @@ public:
   
   inline void set_aggressive_merging() { merge_heuristic=merge_heuristict::AGGRESSIVE; }
 
+  inline void set_qce() { qce_set=true; }
+
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
@@ -147,6 +151,7 @@ protected:
   unsigned branch_bound;
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
+  bool qce_set;
 
   enum class search_heuristict { DFS, BFS, LOCS, FAST_FORWARD } search_heuristic;
   enum class merge_heuristict { AGGRESSIVE, NONE } merge_heuristic;
@@ -175,11 +180,9 @@ protected:
 
   void calculate_hotsets(const goto_functionst &goto_functions);
 
-  void calculate_hotset( unsigned location,
-      const goto_functionst &goto_functions,
-      std::vector<symbolt> &symbols);
-
   std::map<goto_programt::const_targett, double> q_tot;
+  typedef std::pair<goto_programt::const_targett, irep_idt> location_symbol_pairt;
+  std::map<location_symbol_pairt, double> q_add;
 
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);
