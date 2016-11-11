@@ -876,70 +876,6 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   dependence_graph(new_goto_functions, ns);
 
 
-  dependence_graph.output_dot(std::cout);
-
-  struct cfg_nodet
-  {
-    cfg_nodet():node_required(false)
-    {
-    }
-
-    bool node_required;
-#ifdef DEBUG_FULL_SLICERT
-    std::set<unsigned> required_by;
-#endif
-  };
-
-  typedef cfg_baset<cfg_nodet> cfgt;
-  cfgt cfg;
-//
-//  forall_goto_functions(f_it, new_goto_functions)
-//  {
-//    if(f_it->second.body_available())
-//    {
-//      forall_goto_program_instructions(it, f_it->second.body)
-//      {
-//        dep_nodet::node_indext n = dependence_graph[it].get_node_id();
-//        dependence_graph[n];
-//      }
-//    }
-//
-//  }
-
-  cfg(new_goto_functions);
-
-
-//  std::vector<cfgt::entryt> dep_node_to_cfg;
-//  dep_node_to_cfg.reserve(dependence_graph.size());
-//  for(unsigned i=0; i<dependence_graph.size(); ++i)
-//  {
-//    cfgt::entry_mapt::const_iterator entry=
-//      cfg.entry_map.find(dependence_graph[i].PC);
-//    assert(entry!=cfg.entry_map.end());
-//
-//    dep_node_to_cfg.push_back(entry->second);
-//  }
-//
-//  cfgt::entryt e=dep_node_to_cfg.front();
-//  cfgt::nodet &node=cfg[e];
-//
-//  std::cout << "First:" << dependence_graph[node.PC].get_control_deps().size();
-//  dependence_graph[node.PC].get_data_deps();
-
-
-
-  forall_goto_functions(f_it, new_goto_functions)
-  {
-    if(f_it->second.body_available())
-    {
-      std::cout << "////" << std::endl;
-      std::cout << "//// Function: " << f_it->first << std::endl;
-      std::cout << "////" << std::endl;
-      std::cout << std::endl;
-      dependence_graph.output(ns, f_it->second.body, std::cout);
-    }
-  }
-
 
   Forall_goto_functions(f_it, new_goto_functions)
   {
@@ -964,34 +900,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       }
 
       std::cout << "\n";
-
     }
   }
-
-//  for(unsigned i=0; i<dependence_graph.size(); ++i)
-//  {
-//    cfgt::entry_mapt::const_iterator entry=
-//      cfg.entry_map.find(dependence_graph[i].PC);
-//
-//    assert(entry!=cfg.entry_map.end());
-//
-////    cfgt::nodet &e = entry->second;
-//
-//    std::cout << i << "-" << dependence_graph[cfg[e].PC].get_control_deps().size()
-//        << "-" << dependence_graph[cfg[e].PC].get_data_deps().size() <<  "\n";
-//
-////    std::cout << dependence_graph[i].PC;
-////    cfgt::entry_mapt::const_iterator entry=
-////      cfg.entry_map.find(dependence_graph[i].PC);
-////    assert(entry!=cfg.entry_map.end());
-////
-////    dep_node_to_cfg.push_back(entry->second);
-//  }
-
-
-
-//  const dependence_grapht::nodet &d_node=
-//      dependence_graph[dependence_graph[node.PC].get_node_id()];
 }
 
 void path_searcht::collect_symbols(const exprt &expr,
