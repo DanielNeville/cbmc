@@ -53,10 +53,20 @@ public:
     return node_id;
   }
 
+  typedef std::set<goto_programt::const_targett> depst;
+
+  depst get_control_deps()
+  {
+    return control_deps;
+  }
+
+  depst get_data_deps()
+  {
+    return data_deps;
+  }
+
 protected:
   unsigned node_id;
-
-  typedef std::set<goto_programt::const_targett> depst;
   depst control_deps, data_deps;
 
   void control_dependencies(
