@@ -1497,6 +1497,10 @@ void invariant_sett::apply_code(const codet &code)
   {
     // ignore for now
   }
+  else if(statement == ID_output || statement == ID_input)
+  {
+
+  }
   else
   {
     std::cerr << code.pretty() << std::endl;

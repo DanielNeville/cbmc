@@ -20,7 +20,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/prefix.h>
 #include <util/base_type.h>
 #include <math.h>
-//#include <analyses/dependence_graph.h>
+#include <analyses/dependence_graph.h>
+#include <goto-programs/goto_functions.h>
+#include <goto-programs/cfg.h>
+#include <analyses/cfg_dominators.h>
 
 #include <iostream>
 
@@ -763,36 +766,11 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 {
   status() << "Calculating hotsets (method 1)." << eom;
 
-//  std::cout << "Calculating hotsets\n";
-//
-//  goto_functionst goto_functions_copy;
-//  goto_functions_copy.copy_from(goto_functions);
-//
-//  forall_goto_functions(it_f, goto_functions)
-//  {
-//
-//  if(!it_f->second.body_available() ||
-//      it_f->second.body.instructions.size() < 1)
-//  {
-//    continue;
-//
-//  }
-//
-//  std::vector<symbolt> symbols;
-////      calculate_hotset(it->location_number, goto_functions, symbols);
-//  calculate_hotset(it_f->second.body.instructions.begin()->location_number, goto_functions, symbols);
-//  return;
-//
-//  }
-
-
   forall_goto_functions(it_f, goto_functions)
   {
-//    natural_loops_mutablet natural_loops(it_f->second);
-
     if(!it_f->second.body_available() ||
         it_f->second.body.instructions.size() < 1 ||
-        it_f->first != "main")
+        it_f->first != "main") // TODO
     {
       continue;
     }
@@ -842,13 +820,149 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       work.erase(work.begin());
 
       if(!calculate_qce_tot(item))
-      work.push_back(item);
+      {
+        work.push_back(item);
+
+      }
       else
-      std::cout << item->location_number << " : " << q_tot[item] << "\n";
+      {
+        std::cout << item->location_number << " : " << q_tot[item] << "\n";
+
+        }
+      }
     }
 
 
 
+  goto_functionst new_goto_functions;
+  new_goto_functions.copy_from(goto_functions);
+
+  Forall_goto_functions(it_f, new_goto_functions)
+  {
+    if(!it_f->second.body_available() ||
+        it_f->second.body.instructions.size() < 1)
+    {
+      continue;
+    }
+
+    Forall_goto_program_instructions(it, it_f->second.body)
+    {
+      if(it->is_goto())
+      {
+        std::vector<exprt> symbols;
+        collect_symbols(it->guard, symbols);
+
+        for(auto symbol : symbols)
+        {
+          goto_programt::targett new_instruction =
+              it_f->second.body.insert_before(it);
+          new_instruction->make_assignment();
+          code_assignt code(symbol, symbol);
+          new_instruction->code=code;
+        }
+      }
+    }
+  }
+
+
+
+  locst new_locs(ns);
+  new_locs.build(new_goto_functions);
+  new_locs.output(std::cout);
+
+  dependence_grapht dependence_graph(ns);
+  dependence_graph(goto_functions, ns);
+
+  dependence_graph.output_dot(std::cout);
+
+  struct cfg_nodet
+  {
+    cfg_nodet():node_required(false)
+    {
+    }
+
+    bool node_required;
+#ifdef DEBUG_FULL_SLICERT
+    std::set<unsigned> required_by;
+#endif
+  };
+
+  typedef cfg_baset<cfg_nodet> cfgt;
+  cfgt cfg;
+
+  cfg(goto_functions);
+
+  std::vector<cfgt::entryt> dep_node_to_cfg;
+  dep_node_to_cfg.reserve(dependence_graph.size());
+  for(unsigned i=0; i<dependence_graph.size(); ++i)
+  {
+    cfgt::entry_mapt::const_iterator entry=
+      cfg.entry_map.find(dependence_graph[i].PC);
+    assert(entry!=cfg.entry_map.end());
+
+    dep_node_to_cfg.push_back(entry->second);
+  }
+
+  cfgt::entryt e=dep_node_to_cfg.front();
+  cfgt::nodet &node=cfg[e];
+
+  std::cout << "First:" << dependence_graph[node.PC].get_control_deps().size();
+  dependence_graph[node.PC].get_data_deps();
+
+//  Forall_goto_functions(f_it, new_goto_functions)
+//  {
+//    if(!f_it->second.body_available())
+//      continue;
+//
+//    Forall_goto_program_instructions(it, f_it->second.body)
+//    {
+//
+//      std::cout << it->location_number << ": " << dependence_graph[it].get_control_deps().size();
+////      std::cout << dependence_graph[it].get_data_deps().size();
+//    }
+//  }
+
+  for(unsigned i=0; i<dependence_graph.size(); ++i)
+  {
+    cfgt::entry_mapt::const_iterator entry=
+      cfg.entry_map.find(dependence_graph[i].PC);
+
+    assert(entry!=cfg.entry_map.end());
+
+//    cfgt::nodet &e = entry->second;
+
+    std::cout << i << "-" << dependence_graph[cfg[e].PC].get_control_deps().size()
+        << "-" << dependence_graph[cfg[e].PC].get_data_deps().size() <<  "\n";
+
+//    std::cout << dependence_graph[i].PC;
+//    cfgt::entry_mapt::const_iterator entry=
+//      cfg.entry_map.find(dependence_graph[i].PC);
+//    assert(entry!=cfg.entry_map.end());
+//
+//    dep_node_to_cfg.push_back(entry->second);
+  }
+
+
+
+  const dependence_grapht::nodet &d_node=
+      dependence_graph[dependence_graph[node.PC].get_node_id()];
+}
+
+void path_searcht::collect_symbols(const exprt &expr,
+    std::vector<exprt> &symbols)
+{
+  if(expr.id() == ID_symbol)
+  {
+    symbols.push_back(expr);
+  }
+  else
+  {
+    if(expr.has_operands()) {
+      forall_operands(it, expr) {
+        collect_symbols(*it, symbols);
+        /* To do, handle arrays and structs */
+      }
+    }
   }
 }
 

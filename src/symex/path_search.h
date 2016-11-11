@@ -187,29 +187,8 @@ protected:
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);
 
-  struct searchert {
-    unsigned location;
-    int lhs;
-    int rhs;
-    unsigned loop_count; // needs to be per loop.
-    bool work;
-    double value;
-    unsigned branches_found;
-    unsigned branches;
-    std::vector<unsigned> returns;
-
-    searchert(unsigned _location) :
-      location(_location),
-      lhs(-1),
-      rhs(-1),
-      loop_count(0),
-      work(true),
-      value(0.0),
-      branches_found(0),
-      branches(0)
-    {}
-  };
-
+  void collect_symbols(const exprt &expr,
+      std::vector<exprt> &symbols);
 };
 
 #endif
