@@ -875,33 +875,57 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   dependence_grapht dependence_graph(ns);
   dependence_graph(new_goto_functions, ns);
 
+  std::map<goto_programt::const_targett,
+    dep_graph_domaint::depst> data_deps_in;
+
+  std::map<goto_programt::const_targett,
+    dep_graph_domaint::depst> data_deps_out;
 
 
-  Forall_goto_functions(f_it, new_goto_functions)
-  {
+  Forall_goto_functions(f_it, new_goto_functions){
     if(!f_it->second.body_available())
       continue;
 
     Forall_goto_program_instructions(p_it, f_it->second.body)
     {
-      std::cout << p_it->location_number << ":";
+      data_deps_in[p_it]=dependence_graph[p_it].get_data_deps();
 
-      std::cout << "   Control: ";
-
-
-      for(auto it : dependence_graph[p_it].get_control_deps()){
-        std::cout << it->location_number << ",";
-      }
-
-      std::cout << "   Data: ";
-
-      for(auto it : dependence_graph[p_it].get_data_deps()){
-        std::cout << it->location_number << ",";
-      }
-
-      std::cout << "\n";
+//      for(auto &item : data_deps_in[p_it])
+//      {
+//        data_deps_out[item].insert(p_it);
+//      }
     }
   }
+
+
+  bool fixedpoint = false;
+
+  while(!fixedpoint)
+  {
+    fixedpoint=true;
+
+    for(std::map<goto_programt::const_targett,
+        dep_graph_domaint::depst>::reverse_iterator ptr =
+        data_deps_in.rbegin();  ptr != data_deps_in.rend(); ptr++)
+    {
+      unsigned size = ptr->second.size();
+
+      for(auto existing_target: ptr->second)
+      {
+        for(auto &new_target: data_deps_in[existing_target])
+        {
+          data_deps_in[ptr->first].insert(new_target);
+        }
+      }
+
+      if(data_deps_in[ptr->first].size() > size)
+      {
+        fixedpoint=false;
+      }
+    }
+  }
+
+
 }
 
 void path_searcht::collect_symbols(const exprt &expr,
