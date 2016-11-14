@@ -837,6 +837,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   goto_functionst new_goto_functions;
   new_goto_functions.copy_from(goto_functions);
 
+  unsigned inserted_symbols = 0;
+
   Forall_goto_functions(it_f, new_goto_functions)
   {
     if(!it_f->second.body_available() ||
@@ -859,10 +861,13 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
           new_instruction->make_assignment();
           code_assignt code(symbol, symbol);
           new_instruction->code=code;
+          inserted_symbols++;
         }
       }
     }
   }
+
+  std::cout << "Inserted symbols: " << inserted_symbols << "\n";
 
   new_goto_functions.update();
 
@@ -898,7 +903,9 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   }
 
 
+  /* Take the transitive closure */
   bool fixedpoint = false;
+
 
   while(!fixedpoint)
   {
@@ -925,7 +932,27 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
     }
   }
 
+  for(std::map<goto_programt::const_targett,
+      dep_graph_domaint::depst>::iterator ptr =
+      data_deps_in.begin();  ptr != data_deps_in.end(); ptr++)
+  {
+    for (auto &item : ptr->second)
+    {
+      if(ptr->first->is_goto() || ptr->first->is_assert())
+        data_deps_out[item].insert(ptr->first);
+    }
 
+  }
+
+  for(auto &out : data_deps_out)
+  {
+    std::cout << out.first->location_number << ":";
+    for(auto &targets : out.second)
+    {
+      std::cout << targets->location_number << ",";
+    }
+    std::cout << "\n";
+  }
 }
 
 void path_searcht::collect_symbols(const exprt &expr,
