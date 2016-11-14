@@ -184,11 +184,12 @@ protected:
   typedef std::pair<goto_programt::const_targett, irep_idt> location_symbol_pairt;
   std::map<location_symbol_pairt, double> q_add;
 
+  double beta = 0.8;
+
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);
-
-  void collect_symbols(const exprt &expr,
-      std::vector<exprt> &symbols);
+  void calculate_branches(goto_programt::const_targett &location,
+      std::map<goto_programt::const_targett, unsigned> &branches_hit);
 };
 
 #endif

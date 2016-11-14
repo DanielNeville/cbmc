@@ -602,8 +602,6 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
 
-  double beta = 0.8;
-
 //  std::cout << l->location_number << ":" << l->type;
 
   switch(l->type) {
@@ -680,9 +678,6 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
 bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
-
-
-  double beta = 0.8;
 
   switch (l->type)
   {
@@ -826,7 +821,7 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       }
       else
       {
-        std::cout << item->location_number << " : " << q_tot[item] << "\n";
+//        std::cout << item->location_number << " : " << q_tot[item] << "\n";
 
         }
       }
@@ -852,23 +847,33 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
     {
       for(auto &symbols : ns.get_symbol_table().symbols)
       {
+
+        if(has_prefix(symbols.second.display_name().c_str(), "__CPROVER")
+            ||
+            symbols.second.type.id() == ID_code)
+        {
+          continue;
+        }
+
+        if(symbols.second.type.id() == ID_array) {
+          // Do array specific stuff after John's changes.
+          continue;
+        }
+
         goto_programt::targett new_instruction =
         it_f->second.body.insert_before(it);
         new_instruction->make_assignment();
         code_assignt code(symbols.second.symbol_expr(), symbols.second.symbol_expr());
         new_instruction->code=code;
+        new_instruction->code.set(ID_generate_assign, ID_true);
+        new_instruction->function=it->function;
         inserted_symbols++;
       }
     }
   }
 }
 
-
-  std::cout << "Inserted symbols: " << inserted_symbols << "\n";
-
   new_goto_functions.update();
-
-
 
   locst new_locs(ns);
   new_locs.build(new_goto_functions);
@@ -883,6 +888,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   std::map<goto_programt::const_targett,
     dep_graph_domaint::depst> data_deps_out;
 
+//  dependence_graph.output_dot(std::cout);
+
 
   Forall_goto_functions(f_it, new_goto_functions){
     if(!f_it->second.body_available())
@@ -892,10 +899,11 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
     {
       data_deps_in[p_it]=dependence_graph[p_it].get_data_deps();
 
-//      for(auto &item : data_deps_in[p_it])
-//      {
-//        data_deps_out[item].insert(p_it);
+//      std::cout << p_it->location_number << " : ";
+//      for(auto a : data_deps_in[p_it]) {
+//        std::cout << a->location_number << ",";
 //      }
+//      std::cout << "\n";
     }
   }
 
@@ -935,37 +943,169 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   {
     for (auto &item : ptr->second)
     {
-      if(ptr->first->is_goto() || ptr->first->is_assert())
+      if((ptr->first->is_goto() || ptr->first->is_assert()))
+//          && ptr->first->function==item->function)
+      {
         data_deps_out[item].insert(ptr->first);
+      }
     }
-
   }
 
-  for(auto &out : data_deps_out)
+//  std::cout << "Data Deps Out\n";
+//
+//  for(auto a: data_deps_out)
+//  {
+//    std::cout << a.first->location_number << " : ";
+//    for(auto b:a.second)
+//    {
+//      std::cout << b->location_number << ",";
+//    }
+//    std::cout << "\n";
+//  }
+
+  std::map<goto_programt::const_targett, unsigned> branches_hit;
+  Forall_goto_functions(f_it, new_goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    goto_programt::const_targett start_inst = f_it->second.body.instructions.begin();
+    branches_hit[start_inst]=0;
+    calculate_branches(start_inst, branches_hit);
+  }
+
+  /* Calculate hot-set time! */
+
+  for(auto b : data_deps_out)
   {
-    std::cout << out.first->location_number << ":";
-    for(auto &targets : out.second)
-    {
-      std::cout << targets->location_number << ",";
-    }
-    std::cout << "\n";
+    std::cout << b.first->location_number << " : " << b.second.size() << "\n";
   }
+
+
+
+  forall_goto_functions(f_it, goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    auto insts =f_it->second.body.instructions;
+    auto new_insts = new_goto_functions.function_map.find(f_it->first)->second.body.instructions;
+
+    goto_programt::instructionst::const_iterator it=insts.begin();
+    goto_programt::instructionst::const_iterator new_it=new_insts.begin();
+
+    bool reached_end_of_function = false;
+
+    while(!reached_end_of_function)
+    {
+      if(new_it == new_insts.end()  ||  it == insts.end())
+      {
+        reached_end_of_function=true;
+      }
+      else
+      {
+        while(new_it->code.get(ID_generate_assign) == ID_true)
+        {
+          new_it++;
+        }
+
+        if(it->is_goto())
+        {
+          /* Do some work*/
+          std::cout << "Working at " << it->location_number << " - " << new_it->location_number << "\n";
+
+          assert(new_it->is_goto());
+
+          goto_programt::instructionst::const_iterator data_extraction = new_it;
+
+          data_extraction--;
+
+          while(data_extraction->code.get(ID_generate_assign) == ID_true)
+          {
+            assert(data_extraction->code.get(ID_generate_assign) == ID_true);
+            assert(data_extraction->is_assign());
+            assert(data_extraction->code.op0() == data_extraction->code.op1());
+
+            symbol_exprt symbol = to_symbol_expr(data_extraction->code.op0());
+
+            double q_add_calculation = 0;
+
+            for(auto finder : data_deps_out)
+            {
+              if(finder.first->location_number==data_extraction->location_number)
+              {
+                for(auto &reached_item: finder.second)
+                {
+                  q_add_calculation += pow((double) beta, (double) branches_hit[reached_item]);
+                }
+                break;
+              }
+            }
+
+            location_symbol_pairt location_symbol_pair = make_pair(it, symbol.get_identifier());
+            q_add[location_symbol_pair] = q_add_calculation;
+
+            data_extraction--;
+          }
+        }
+
+        it++;
+        new_it++;
+      }
+    }
+  }
+
+  for(auto &all:q_add)
+  {
+    std::cout << all.first.first->location_number << ":" << all.first.second << " : " <<
+        all.second << "\n";
+  }
+
+
 }
 
-void path_searcht::collect_symbols(const exprt &expr,
-    std::vector<exprt> &symbols)
+void path_searcht::calculate_branches(goto_programt::const_targett &location,
+    std::map<goto_programt::const_targett, unsigned> &branches_hit)
 {
-  if(expr.id() == ID_symbol)
+  std::vector<goto_programt::const_targett> work;
+
+  work.push_back(location);
+
+  while (!work.empty())
   {
-    symbols.push_back(expr);
-  }
-  else
-  {
-    if(expr.has_operands()) {
-      forall_operands(it, expr) {
-        collect_symbols(*it, symbols);
-        /* To do, handle arrays and structs */
+    goto_programt::const_targett l=work.back();
+    work.pop_back();
+
+    /* deliberately flow-"insensitive" */
+    unsigned current_branches = branches_hit[l];
+
+    switch (l->type)
+    {
+      case GOTO:
+      {
+        assert(l->targets.size() == 1);
+
+        goto_programt::const_targett jump;
+        jump=l;
+        jump=l->get_target();
+
+        l++;
+
+        work.push_back(l);
+        branches_hit[l]=current_branches+1;
+        work.push_back(jump);
+        branches_hit[jump]=current_branches+1;
+        break;
       }
+
+      case END_FUNCTION:
+        /* Remove worker */
+        break;
+        /* Deliberately ignore function call */
+
+      default:
+        assert(l->targets.size() == 0); // Should be GOTO.
+        l++;
+        branches_hit[l]=current_branches;
+        work.push_back(l);
     }
   }
 }
