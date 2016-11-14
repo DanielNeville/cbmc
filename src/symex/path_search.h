@@ -181,7 +181,7 @@ protected:
   void calculate_hotsets(const goto_functionst &goto_functions);
 
   std::map<goto_programt::const_targett, double> q_tot;
-  typedef std::pair<goto_programt::const_targett, irep_idt> location_symbol_pairt;
+  typedef std::pair<unsigned, irep_idt> location_symbol_pairt;
   std::map<location_symbol_pairt, double> q_add;
 
   double beta = 0.8;

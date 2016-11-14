@@ -1040,7 +1040,7 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
               }
             }
 
-            location_symbol_pairt location_symbol_pair = make_pair(it, symbol.get_identifier());
+            location_symbol_pairt location_symbol_pair = std::make_pair(it->location_number, symbol.get_identifier());
             q_add[location_symbol_pair] = q_add_calculation;
 
             data_extraction--;
@@ -1055,7 +1055,7 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
   for(auto &all:q_add)
   {
-    std::cout << all.first.first->location_number << ":" << all.first.second << " : " <<
+    std::cout << all.first.first << ":" << all.first.second << " : " <<
         all.second << "\n";
   }
 
