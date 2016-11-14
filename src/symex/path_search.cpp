@@ -839,33 +839,30 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
   unsigned inserted_symbols = 0;
 
-  Forall_goto_functions(it_f, new_goto_functions)
+  Forall_goto_functions(it_f, new_goto_functions){
+  if(!it_f->second.body_available() ||
+      it_f->second.body.instructions.size() < 1)
   {
-    if(!it_f->second.body_available() ||
-        it_f->second.body.instructions.size() < 1)
-    {
-      continue;
-    }
+    continue;
+  }
 
-    Forall_goto_program_instructions(it, it_f->second.body)
+  Forall_goto_program_instructions(it, it_f->second.body)
+  {
+    if(it->is_goto())
     {
-      if(it->is_goto())
+      for(auto &symbols : ns.get_symbol_table().symbols)
       {
-        std::vector<exprt> symbols;
-        collect_symbols(it->guard, symbols);
-
-        for(auto symbol : symbols)
-        {
-          goto_programt::targett new_instruction =
-              it_f->second.body.insert_before(it);
-          new_instruction->make_assignment();
-          code_assignt code(symbol, symbol);
-          new_instruction->code=code;
-          inserted_symbols++;
-        }
+        goto_programt::targett new_instruction =
+        it_f->second.body.insert_before(it);
+        new_instruction->make_assignment();
+        code_assignt code(symbols.second.symbol_expr(), symbols.second.symbol_expr());
+        new_instruction->code=code;
+        inserted_symbols++;
       }
     }
   }
+}
+
 
   std::cout << "Inserted symbols: " << inserted_symbols << "\n";
 
