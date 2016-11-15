@@ -197,6 +197,9 @@ protected:
       const goto_functionst &goto_functions,
       goto_functionst &new_goto_functions);
 
+  void output_q_values(
+      const goto_functionst &goto_functions);
+
   std::map<goto_programt::const_targett,
     dep_graph_domaint::depst> data_deps_in;
 

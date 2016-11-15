@@ -1017,6 +1017,29 @@ void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_fun
   }
 }
 
+void path_searcht::output_q_values(
+    const goto_functionst &goto_functions)
+{
+  std::cout << "Outputting symbol reachability:\n";
+
+  forall_goto_functions(f_it, goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    forall_goto_program_instructions(p_it, f_it->second.body)
+    {
+      std::cout << p_it->location_number << " : " << q_tot[p_it] << "\n";
+
+      for(auto &find : q_add) {
+        if(find.first.first == p_it->location_number)
+        {
+          std::cout << p_it->location_number << " : " <<
+              find.first.second << " : " << find.second << "\n";
+        }
+      }
+    }
+  }}
+
 void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
 {
@@ -1054,6 +1077,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   }
 
   calculate_symbol_reachability(goto_functions, new_goto_functions);
+
+  output_q_values(goto_functions);
 }
 
 void path_searcht::calculate_branches(goto_programt::const_targett &location,
