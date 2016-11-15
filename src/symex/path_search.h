@@ -108,7 +108,12 @@ public:
   
   inline void set_aggressive_merging() { merge_heuristic=merge_heuristict::AGGRESSIVE; }
 
-  inline void set_qce() { qce_set=true; }
+  inline void set_qce()
+  {
+    qce_set=true;
+    search_heuristic=search_heuristict::FAST_FORWARD;
+    merge_heuristic=merge_heuristict::QCE;
+  }
 
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
@@ -154,7 +159,7 @@ protected:
   bool qce_set;
 
   enum class search_heuristict { DFS, BFS, LOCS, FAST_FORWARD } search_heuristic;
-  enum class merge_heuristict { AGGRESSIVE, NONE } merge_heuristic;
+  enum class merge_heuristict { AGGRESSIVE, NONE, QCE } merge_heuristic;
 
   void merge_states();
 
@@ -184,6 +189,7 @@ protected:
   typedef std::pair<unsigned, irep_idt> location_symbol_pairt;
   std::map<location_symbol_pairt, double> q_add;
 
+  double alpha = 0.000000000001; // 10^-12.
   double beta = 0.8;
 
   bool calculate_qce_tot(goto_programt::const_targett &l);

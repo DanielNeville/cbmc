@@ -350,6 +350,7 @@ void path_searcht::merge_states()
     case merge_heuristict::AGGRESSIVE:
       // The last state inserted, is the last state
       // we manipulated.
+    {
 
       queuet::iterator current=queue.begin();
 
@@ -362,9 +363,7 @@ void path_searcht::merge_states()
       for (; it != queue.end(); it++)
       {
         if(it->pc() != current->pc()
-            ||
-           it->get_current_thread() != current->get_current_thread()
-           )
+            || it->get_current_thread() != current->get_current_thread())
         {
           // Only merge when same PC.  (Otherwise fast-forward?)
           continue;
@@ -381,6 +380,42 @@ void path_searcht::merge_states()
           queue.erase(it);
         }
       }
+    }
+
+      case merge_heuristict::QCE:
+      {
+
+        queuet::iterator current=queue.begin();
+
+        queuet::iterator it=queue.begin();
+        assert(queue.size() >= 2 && it != queue.end());
+
+        // Move it to the point the state beyond the last state.
+        it++;
+
+        for (; it != queue.end(); it++)
+        {
+          if(it->pc() != current->pc()
+              || it->get_current_thread() != current->get_current_thread())
+          {
+            // Only merge when same PC.  (Otherwise fast-forward?)
+            continue;
+          }
+
+          debug() << "(QCE) Considering to merge at " << it->pc() << eom;
+
+          // Own class with inheritance eventually.
+          if(do_qce_merge(it, current))
+          {
+            merge(current, it);
+            number_of_merged_states++;
+            // //     Disabled for testing.
+            queue.erase(it);
+          }
+        }
+
+        break;
+    }
 
       return;
   }
@@ -395,8 +430,34 @@ bool path_searcht::do_aggressive_merge(
 bool path_searcht::do_qce_merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
-  /* To do. */
+  std::cout << "Considering to (QCE) merge at " << state->get_pc().loc_number << "\n";
 
+  unsigned location = state->get_pc().loc_number;
+
+  assert(location == cmp_state->get_pc().loc_number);
+
+  /* To do. */
+  for (auto var_ptr : state->var_map.id_map)
+  {
+    var_mapt::var_infot &var=state->var_map.id_map[var_ptr.first];
+    var_mapt::var_infot &cmp_var=cmp_state->var_map.id_map[var_ptr.first];
+
+    location_symbol_pairt loc_pair =
+        std::make_pair(state->get_pc().loc_number, var.full_identifier);
+
+//    std::cout << var.full_identifier << " : " <<  q_add[loc_pair] << "\n";
+
+    if(q_add[loc_pair] > alpha * q_tot[state->get_instruction()])
+    {
+//      std::cout << var.full_identifier << " is in the hot set.\n";
+
+      state->get_var_state(var).value;
+      cmp_state->get_var_state(cmp_var).value;
+
+      state->get_var_state(var).value.is_constant();
+      cmp_state->get_var_state(cmp_var).value.is_constant();
+    }
+  }
 
   return false;
 }
@@ -974,12 +1035,12 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   }
 
   /* Calculate hot-set time! */
-
-  for(auto b : data_deps_out)
-  {
-    std::cout << b.first->location_number << " : " << b.second.size() << "\n";
-  }
-
+//
+//  for(auto b : branches_hit)
+//  {
+//    std::cout << b.first->location_number << " : " << b.second << "\n";
+//  }
+//
 
 
   forall_goto_functions(f_it, goto_functions){
@@ -1024,20 +1085,37 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
             assert(data_extraction->is_assign());
             assert(data_extraction->code.op0() == data_extraction->code.op1());
 
-            symbol_exprt symbol = to_symbol_expr(data_extraction->code.op0());
+          symbol_exprt symbol = to_symbol_expr(data_extraction->code.op0());
 
-            double q_add_calculation = 0;
+          double q_add_calculation = 0;
 
-            for(auto finder : data_deps_out)
+          for(auto finder : data_deps_out)
+          {
+            if(finder.first->location_number==data_extraction->location_number)
             {
-              if(finder.first->location_number==data_extraction->location_number)
-              {
-                for(auto &reached_item: finder.second)
+              double branches_reached_so_far = 0;
+
+              for(auto &find_branches: branches_hit) {
+                if(find_branches.first->location_number == data_extraction->location_number)
                 {
-                  q_add_calculation += pow((double) beta, (double) branches_hit[reached_item]);
+                  branches_reached_so_far = find_branches.second;
+                  break;
                 }
-                break;
               }
+
+              std::cout << "Branches so far at : " <<  finder.first->location_number  << " is "<< branches_reached_so_far
+                  << "\n";
+
+              for(auto &reached_item: finder.second)
+              {
+                std::cout << " Reached item: " << branches_hit[reached_item] << ",";
+
+                q_add_calculation += pow((double) beta,
+                    (double) (branches_hit[reached_item] - branches_reached_so_far));
+              }
+              std::cout << "\n";
+              break;
+            }
             }
 
             location_symbol_pairt location_symbol_pair = std::make_pair(it->location_number, symbol.get_identifier());
@@ -1052,12 +1130,12 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       }
     }
   }
-
-  for(auto &all:q_add)
-  {
-    std::cout << all.first.first << ":" << all.first.second << " : " <<
-        all.second << "\n";
-  }
+//
+//  for(auto &all:q_add)
+//  {
+//    std::cout << all.first.first << ":" << all.first.second << " : " <<
+//        all.second << "\n";
+//  }
 
 
 }
