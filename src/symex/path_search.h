@@ -18,9 +18,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex_state.h>
 #include <path-symex/path_symex_class.h>
 
-
 // Todo: Move
-  typedef std::vector<path_symex_step_reft> state_historyt;
+typedef std::vector<path_symex_step_reft> state_historyt;
+#include <analyses/dependence_graph.h>
+
 
 class path_searcht:public safety_checkert
 {
@@ -184,6 +185,25 @@ protected:
       exprt::operandst &guards);
 
   void calculate_hotsets(const goto_functionst &goto_functions);
+
+  void calculate_q_tot(const goto_functionst &goto_functions);
+
+  void take_transitive_closure();
+
+  unsigned add_symbol_table_to_goto_functions(
+      goto_functionst &goto_functions);
+
+  void calculate_symbol_reachability(
+      const goto_functionst &goto_functions,
+      goto_functionst &new_goto_functions);
+
+  std::map<goto_programt::const_targett,
+    dep_graph_domaint::depst> data_deps_in;
+
+  std::map<goto_programt::const_targett,
+    dep_graph_domaint::depst> data_deps_out;
+
+  std::map<goto_programt::const_targett, unsigned> branches_hit;
 
   std::map<goto_programt::const_targett, double> q_tot;
   typedef std::pair<unsigned, irep_idt> location_symbol_pairt;

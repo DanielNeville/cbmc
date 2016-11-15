@@ -20,7 +20,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/prefix.h>
 #include <util/base_type.h>
 #include <math.h>
-#include <analyses/dependence_graph.h>
 #include <goto-programs/goto_functions.h>
 #include <goto-programs/cfg.h>
 #include <analyses/cfg_dominators.h>
@@ -55,8 +54,6 @@ path_searcht::resultt path_searcht::operator()(
 
   queue.push_back(initial_state(var_map, locs, history));
 
-  calculate_hotsets(goto_functions);
-
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
@@ -76,9 +73,10 @@ path_searcht::resultt path_searcht::operator()(
 
   initialize_property_map(goto_functions);
 
-//  calculate_hotsets(goto_functions);
-//
-//  return SAFE;
+  if(qce_set)
+  {
+    calculate_hotsets(goto_functions);
+  }
 
   while(!queue.empty())
   {
@@ -763,16 +761,13 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
 }
 
 
-void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
-
+void path_searcht::calculate_q_tot(const goto_functionst &goto_functions)
 {
-  status() << "Calculating hotsets (method 1)." << eom;
 
   forall_goto_functions(it_f, goto_functions)
   {
     if(!it_f->second.body_available() ||
-        it_f->second.body.instructions.size() < 1 ||
-        it_f->first != "main") // TODO
+        it_f->second.body.instructions.size() < 1)
     {
       continue;
     }
@@ -811,37 +806,34 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
           }
         }
 
-      }
     }
+  }
 
-    work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
+  work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
 
-    while(!work.empty())
+  while(!work.empty())
+  {
+    goto_programt::const_targett item = work.front();
+    work.erase(work.begin());
+
+    if(!calculate_qce_tot(item))
     {
-      goto_programt::const_targett item = work.front();
-      work.erase(work.begin());
+      work.push_back(item);
 
-      if(!calculate_qce_tot(item))
-      {
-        work.push_back(item);
-
-      }
-      else
-      {
-//        std::cout << item->location_number << " : " << q_tot[item] << "\n";
-
-        }
-      }
     }
+    else
+    {
+    }
+  }
+}
+}
 
+unsigned path_searcht::add_symbol_table_to_goto_functions(
+    goto_functionst &goto_functions)
+{
+  unsigned inserted_symbols=0;
 
-
-  goto_functionst new_goto_functions;
-  new_goto_functions.copy_from(goto_functions);
-
-  unsigned inserted_symbols = 0;
-
-  Forall_goto_functions(it_f, new_goto_functions){
+  Forall_goto_functions(it_f, goto_functions){
   if(!it_f->second.body_available() ||
       it_f->second.body.instructions.size() < 1)
   {
@@ -862,7 +854,8 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
           continue;
         }
 
-        if(symbols.second.type.id() == ID_array) {
+        if(symbols.second.type.id() == ID_array)
+        {
           // Do array specific stuff after John's changes.
           continue;
         }
@@ -880,44 +873,16 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
   }
 }
 
-  new_goto_functions.update();
+  goto_functions.update();
 
-  locst new_locs(ns);
-  new_locs.build(new_goto_functions);
-  new_locs.output(std::cout);
-
-  dependence_grapht dependence_graph(ns);
-  dependence_graph(new_goto_functions, ns);
-
-  std::map<goto_programt::const_targett,
-    dep_graph_domaint::depst> data_deps_in;
-
-  std::map<goto_programt::const_targett,
-    dep_graph_domaint::depst> data_deps_out;
-
-//  dependence_graph.output_dot(std::cout);
+  return inserted_symbols;
+}
 
 
-  Forall_goto_functions(f_it, new_goto_functions){
-    if(!f_it->second.body_available())
-      continue;
-
-    Forall_goto_program_instructions(p_it, f_it->second.body)
-    {
-      data_deps_in[p_it]=dependence_graph[p_it].get_data_deps();
-
-//      std::cout << p_it->location_number << " : ";
-//      for(auto a : data_deps_in[p_it]) {
-//        std::cout << a->location_number << ",";
-//      }
-//      std::cout << "\n";
-    }
-  }
-
-
+void path_searcht::take_transitive_closure()
+{
   /* Take the transitive closure */
   bool fixedpoint = false;
-
 
   while(!fixedpoint)
   {
@@ -957,37 +922,11 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       }
     }
   }
+}
 
-//  std::cout << "Data Deps Out\n";
-//
-//  for(auto a: data_deps_out)
-//  {
-//    std::cout << a.first->location_number << " : ";
-//    for(auto b:a.second)
-//    {
-//      std::cout << b->location_number << ",";
-//    }
-//    std::cout << "\n";
-//  }
-
-  std::map<goto_programt::const_targett, unsigned> branches_hit;
-  Forall_goto_functions(f_it, new_goto_functions){
-    if(!f_it->second.body_available())
-      continue;
-
-    goto_programt::const_targett start_inst = f_it->second.body.instructions.begin();
-    branches_hit[start_inst]=0;
-    calculate_branches(start_inst, branches_hit);
-  }
-
-  /* Calculate hot-set time! */
-//
-//  for(auto b : branches_hit)
-//  {
-//    std::cout << b.first->location_number << " : " << b.second << "\n";
-//  }
-//
-
+void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_functions,
+    goto_functionst &new_goto_functions)
+{
 
   forall_goto_functions(f_it, goto_functions){
     if(!f_it->second.body_available())
@@ -1076,14 +1015,45 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
       }
     }
   }
-//
-//  for(auto &all:q_add)
-//  {
-//    std::cout << all.first.first << ":" << all.first.second << " : " <<
-//        all.second << "\n";
-//  }
+}
 
+void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
+{
+  status() << "Calculating hotsets (method 1)." << eom;
+
+  calculate_q_tot(goto_functions);
+
+  goto_functionst new_goto_functions;
+  new_goto_functions.copy_from(goto_functions);
+
+  add_symbol_table_to_goto_functions(new_goto_functions);
+
+  dependence_grapht dependence_graph(ns);
+  dependence_graph(new_goto_functions, ns);
+
+  Forall_goto_functions(f_it, new_goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    Forall_goto_program_instructions(p_it, f_it->second.body)
+    {
+      data_deps_in[p_it]=dependence_graph[p_it].get_data_deps();
+    }
+  }
+
+  take_transitive_closure();
+
+  Forall_goto_functions(f_it, new_goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    goto_programt::const_targett start_inst = f_it->second.body.instructions.begin();
+    branches_hit[start_inst]=0;
+    calculate_branches(start_inst, branches_hit);
+  }
+
+  calculate_symbol_reachability(goto_functions, new_goto_functions);
 }
 
 void path_searcht::calculate_branches(goto_programt::const_targett &location,
