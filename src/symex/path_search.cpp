@@ -663,7 +663,35 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
   goto_programt::const_targett l_jump;
   goto_programt::const_targett l_next;
 
-//  std::cout << l->location_number << ":" << l->type;
+  /* This function is used to perform a bottom-up calculation
+   * of q_tot given some location within the program.
+   *
+   * It deliberately ignores function calls.
+   *
+   * If the required information to calculate q_tot is not available,
+   * it returns False and queues this for later.
+   *
+   * Because this is bottom-up, END_FUNCTION has already been
+   * assigned in the calling function and does not need to be
+   * handled.
+   *
+   * The underlying code is assumed to be loop-free due to earlier unwinding.
+   */
+
+  /* The calculated equation is thus:
+   *
+   *  q(l') =
+   *    {  b * q(succ(l')) + b *  q(l'') + 1 // for if(e) goto l''
+   *    {  0  // for HALT or END_FUNCTION
+   *    {  q(succ(l'))   // otherwise
+   *
+   *    In other words, for GOTOs, a fixed calculation is used.
+   *    For HALT, 0 is returned (which is transfered up through the
+   *    double-recursion tree, and for anything else, the existing
+   *    value is propagated.
+   *
+   *    See Page 5 of Efficient State Merging paper.
+   */
 
   switch(l->type) {
     case GOTO:
@@ -732,7 +760,6 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
       q_tot[l] = q_tot[l_next];
       return true;
   }
-
 }
 
 
