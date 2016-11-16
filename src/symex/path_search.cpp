@@ -397,13 +397,10 @@ bool path_searcht::do_aggressive_merge(
 bool path_searcht::do_qce_merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
-  std::cout << "Considering to (QCE) merge at " << state->get_pc().loc_number << "\n";
+  debug() << "Considering QCE merge at " << state->get_pc().loc_number << eom;
 
-  unsigned location = state->get_pc().loc_number;
+  assert(state->get_pc().loc_number == cmp_state->get_pc().loc_number);
 
-  assert(location == cmp_state->get_pc().loc_number);
-
-  /* To do. */
   for (auto var_ptr : state->var_map.id_map)
   {
     var_mapt::var_infot &var=state->var_map.id_map[var_ptr.first];
@@ -414,11 +411,7 @@ bool path_searcht::do_qce_merge(
 
     if(q_add[loc_pair] > alpha * q_tot[state->get_instruction()])
     {
-      std::cout << var.full_identifier << " is in the hot set.\n";
-
-      std::cout << "V1 : "<< state->get_var_state(var).value.get(ID_value);
-      std::cout << "  V2 : "<< cmp_state->get_var_state(var).value.get(ID_value) << "\n";
-
+      debug() << var.full_identifier << " in the hot-set." << eom;
 
       if(state->get_var_state(var).value.is_constant()
           &&
@@ -428,11 +421,13 @@ bool path_searcht::do_qce_merge(
             !=
         cmp_state->get_var_state(var).value.get(ID_value)))
       {
+        debug() << "Returning false on QCE calculation." << eom;
         return false;
       }
     }
   }
 
+  debug() << "Returning True on QCE calculation." << eom;
   return true;
 }
 
@@ -445,7 +440,6 @@ void path_searcht::merge(
    * 3) Generate
    *
    */
-
 
   assert(state->pc() == cmp_state->pc());
   assert(state->get_current_thread() == cmp_state->get_current_thread());
@@ -785,72 +779,70 @@ void path_searcht::calculate_q_tot(const goto_functionst &goto_functions)
           }
         }
 
+      }
+    }
+
+    work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
+
+    while(!work.empty())
+    {
+      goto_programt::const_targett item = work.front();
+      work.erase(work.begin());
+
+      if(!calculate_qce_tot(item))
+      {
+        work.push_back(item);
+      }
     }
   }
-
-  work.erase(work.begin()); // Remove the END_FUNCTION.  We've handled it.
-
-  while(!work.empty())
-  {
-    goto_programt::const_targett item = work.front();
-    work.erase(work.begin());
-
-    if(!calculate_qce_tot(item))
-    {
-      work.push_back(item);
-
-    }
-    else
-    {
-    }
-  }
-}
 }
 
 unsigned path_searcht::add_symbol_table_to_goto_functions(
     goto_functionst &goto_functions)
 {
+  debug() << "Inserting symbols to (new) goto functions." << eom;
   unsigned inserted_symbols=0;
 
-  Forall_goto_functions(it_f, goto_functions){
-  if(!it_f->second.body_available() ||
-      it_f->second.body.instructions.size() < 1)
+  Forall_goto_functions(it_f, goto_functions)
   {
-    continue;
-  }
-
-  Forall_goto_program_instructions(it, it_f->second.body)
-  {
-    if(relevant_location(it))
+    if(!it_f->second.body_available() ||
+        it_f->second.body.instructions.size() < 1)
     {
-      for(auto &symbols : ns.get_symbol_table().symbols)
+      continue;
+    }
+
+    Forall_goto_program_instructions(it, it_f->second.body)
+    {
+      if(relevant_location(it))
       {
-
-        if(has_prefix(symbols.second.display_name().c_str(), "__CPROVER")
-            ||
-            symbols.second.type.id() == ID_code)
+        for(auto &symbols : ns.get_symbol_table().symbols)
         {
-          continue;
-        }
 
-        if(symbols.second.type.id() == ID_array)
-        {
-          // Do array specific stuff after John's changes.
-          continue;
-        }
+          if(has_prefix(symbols.second.display_name().c_str(), "__CPROVER")
+              ||
+              symbols.second.type.id() == ID_code)
+          {
+            continue;
+          }
 
-        goto_programt::targett new_instruction =
-        it_f->second.body.insert_before(it);
-        new_instruction->make_assignment();
-        code_assignt code(symbols.second.symbol_expr(), symbols.second.symbol_expr());
-        new_instruction->code=code;
-        new_instruction->code.set(ID_generate_assign, ID_true);
-        new_instruction->function=it->function;
-        inserted_symbols++;
+          if(symbols.second.type.id() == ID_array)
+          {
+            // Do array specific stuff after John's changes.
+            continue;
+          }
+
+          goto_programt::targett new_instruction =
+          it_f->second.body.insert_before(it);
+          new_instruction->make_assignment();
+          code_assignt code(symbols.second.symbol_expr(), symbols.second.symbol_expr());
+          new_instruction->code=code;
+          new_instruction->code.set(ID_generate_assign, ID_true);
+          new_instruction->function=it->function;
+          inserted_symbols++;
+        }
       }
     }
   }
-}
 
   goto_functions.update();
 
