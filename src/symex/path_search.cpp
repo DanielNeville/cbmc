@@ -75,7 +75,12 @@ path_searcht::resultt path_searcht::operator()(
 
   if(qce_set)
   {
-    calculate_hotsets(goto_functions);
+    calculate_qce_hotsets(goto_functions);
+  }
+
+  if(our_qce_set)
+  {
+    calculate_our_qce_hotsets(goto_functions);
   }
 
   while(!queue.empty())
@@ -347,9 +352,45 @@ void path_searcht::merge_states()
           queue.erase(it);
         }
       }
+      break;
     }
 
-      case merge_heuristict::QCE:
+    case merge_heuristict::QCE:
+    {
+
+      queuet::iterator current=queue.begin();
+
+      queuet::iterator it=queue.begin();
+      assert(queue.size() >= 2 && it != queue.end());
+
+      // Move it to the point the state beyond the last state.
+      it++;
+
+      for (; it != queue.end(); it++)
+      {
+        if(it->pc() != current->pc()
+            || it->get_current_thread() != current->get_current_thread())
+        {
+          // Only merge when same PC.  (Otherwise fast-forward?)
+          continue;
+        }
+
+        debug() << "(QCE) Considering to merge at " << it->pc() << eom;
+
+        // Own class with inheritance eventually.
+        if(do_qce_merge(it, current))
+        {
+          merge(current, it);
+          number_of_merged_states++;
+          // //     Disabled for testing.
+          queue.erase(it);
+        }
+      }
+
+      break;
+    }
+
+      case merge_heuristict::OUR_QCE:
       {
 
         queuet::iterator current=queue.begin();
@@ -369,10 +410,10 @@ void path_searcht::merge_states()
             continue;
           }
 
-          debug() << "(QCE) Considering to merge at " << it->pc() << eom;
+          debug() << "(Our QCE) Considering to merge at " << it->pc() << eom;
 
           // Own class with inheritance eventually.
-          if(do_qce_merge(it, current))
+          if(do_our_qce_merge(it, current))
           {
             merge(current, it);
             number_of_merged_states++;
@@ -380,12 +421,13 @@ void path_searcht::merge_states()
             queue.erase(it);
           }
         }
-
         break;
+
+      }
+
     }
 
       return;
-  }
 }
 
 bool path_searcht::do_aggressive_merge(
@@ -428,6 +470,58 @@ bool path_searcht::do_qce_merge(
   }
 
   debug() << "Returning True on QCE calculation." << eom;
+  return true;
+}
+
+
+bool path_searcht::do_our_qce_merge(
+    queuet::iterator &state, queuet::iterator &cmp_state)
+{
+  debug() << "Considering QCE merge at " << state->get_pc().loc_number << eom;
+
+  assert(state->get_pc().loc_number == cmp_state->get_pc().loc_number);
+
+  std::map<irep_idt, double> hotset;
+
+  for (auto var_ptr : state->var_map.id_map)
+  {
+
+    location_symbol_pairt loc_pair =
+        std::make_pair(state->get_pc().loc_number, var_ptr.second.full_identifier);
+
+    if(q_reaches[loc_pair] > 0)
+    {
+      hotset.insert(std::make_pair(var_ptr.second.full_identifier, q_reaches[loc_pair]));
+    }
+  }
+
+  if(hotset.empty()) {
+    return true;
+  }
+
+  if(queue.size())
+
+  for (std::map<irep_idt, double>::iterator it = hotset.begin();
+      it != hotset.end();
+      it++)
+  {
+    var_mapt::var_infot &var=state->var_map.id_map[it->first];
+    var_mapt::var_infot &cmp_var=cmp_state->var_map.id_map[it->first];
+
+    if(state->get_var_state(var).value.is_constant()
+        &&
+        cmp_state->get_var_state(cmp_var).value.is_constant()
+      &&
+      (state->get_var_state(var).value.get(ID_value)
+          !=
+      cmp_state->get_var_state(cmp_var).value.get(ID_value)))
+    {
+      debug() << "Returning false on Our QCE calculation." << eom;
+      return false;
+    }
+  }
+
+  debug() << "Returning True on Our QCE calculation." << eom;
   return true;
 }
 
@@ -895,15 +989,15 @@ void path_searcht::take_transitive_closure()
   }
 }
 
-
-
-void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_functions,
-    goto_functionst &new_goto_functions)
+void path_searcht::calculate_symbol_reachability(
+    const goto_functionst &goto_functions, goto_functionst &new_goto_functions,
+    bool original_qce)
 {
 
-  forall_goto_functions(f_it, goto_functions){
+  forall_goto_functions(f_it, goto_functions)
+  {
     if(!f_it->second.body_available())
-      continue;
+    continue;
 
     auto insts =f_it->second.body.instructions;
     auto new_insts = new_goto_functions.function_map.find(f_it->first)->second.body.instructions;
@@ -915,7 +1009,7 @@ void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_fun
 
     while(!reached_end_of_function)
     {
-      if(new_it == new_insts.end()  ||  it == insts.end())
+      if(new_it == new_insts.end() || it == insts.end())
       {
         reached_end_of_function=true;
       }
@@ -943,41 +1037,58 @@ void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_fun
             assert(data_extraction->is_assign());
             assert(data_extraction->code.op0() == data_extraction->code.op1());
 
-          symbol_exprt symbol = to_symbol_expr(data_extraction->code.op0());
+            symbol_exprt symbol = to_symbol_expr(data_extraction->code.op0());
 
-          double q_add_calculation = 0;
+            double q_add_calculation = 0;
 
-          for(auto finder : data_deps_out)
-          {
-            if(finder.first->location_number==data_extraction->location_number)
+            for(auto finder : data_deps_out)
             {
-              double branches_reached_so_far = 0;
-
-              for(auto &find_branches: branches_hit) {
-                if(find_branches.first->location_number == data_extraction->location_number)
+              if(finder.first->location_number==data_extraction->location_number)
+              {
+                if(original_qce)
                 {
-                  branches_reached_so_far = find_branches.second;
-                  break;
-                }
-              }
+                  double branches_reached_so_far = 0;
 
-              std::cout << "Branches so far at : " <<  finder.first->location_number  << " is "<< branches_reached_so_far
+                  for(auto &find_branches: branches_hit)
+                  {
+                    if(find_branches.first->location_number == data_extraction->location_number)
+                    {
+                      branches_reached_so_far = find_branches.second;
+                      break;
+                    }
+                  }
+
+                  std::cout << "Branches so far at : " << finder.first->location_number << " is "<< branches_reached_so_far
                   << "\n";
 
-              for(auto &reached_item: finder.second)
-              {
-                std::cout << " Reached item: " << branches_hit[reached_item] << ",";
+                  for(auto &reached_item: finder.second)
+                  {
+                    std::cout << " Reached item: " << branches_hit[reached_item] << ",";
 
-                q_add_calculation += pow((double) beta,
-                    (double) (branches_hit[reached_item] - branches_reached_so_far));
+                    q_add_calculation += pow((double) beta,
+                        (double) (branches_hit[reached_item] - branches_reached_so_far));
+                  }
+                  std::cout << "\n";
+                }
+                else
+                {
+                  q_add_calculation=finder.second.size();
+                }
+
+                break;
               }
-              std::cout << "\n";
-              break;
-            }
             }
 
             location_symbol_pairt location_symbol_pair = std::make_pair(it->location_number, symbol.get_identifier());
-            q_add[location_symbol_pair] = q_add_calculation;
+
+            if(original_qce)
+            {
+              q_add[location_symbol_pair] = q_add_calculation;
+            }
+            else
+            {
+              q_reaches[location_symbol_pair] = q_add_calculation;
+            }
 
             data_extraction--;
           }
@@ -1017,10 +1128,10 @@ void path_searcht::output_q_values(
 
 
 
-void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
+void path_searcht::calculate_qce_hotsets(const goto_functionst &goto_functions)
 
 {
-  status() << "Calculating hotsets (method 1)." << eom;
+  status() << "Calculating QCE hotsets (method 1)." << eom;
 
   calculate_q_tot(goto_functions);
 
@@ -1053,12 +1164,41 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
     calculate_branches(start_inst, branches_hit);
   }
 
-  calculate_symbol_reachability(goto_functions, new_goto_functions);
+  calculate_symbol_reachability(goto_functions, new_goto_functions, true);
 
   output_q_values(goto_functions);
 }
 
 
+
+void path_searcht::calculate_our_qce_hotsets(
+    const goto_functionst &goto_functions)
+
+{
+  status() << "Calculating our QCE hotsets (method 1)." << eom;
+
+  goto_functionst new_goto_functions;
+  new_goto_functions.copy_from(goto_functions);
+
+  add_symbol_table_to_goto_functions(new_goto_functions);
+
+  dependence_grapht dependence_graph(ns);
+  dependence_graph(new_goto_functions, ns);
+
+  Forall_goto_functions(f_it, new_goto_functions){
+    if(!f_it->second.body_available())
+      continue;
+
+    Forall_goto_program_instructions(p_it, f_it->second.body)
+    {
+      data_deps_in[p_it]=dependence_graph[p_it].get_data_deps();
+    }
+  }
+
+  take_transitive_closure();
+
+  calculate_symbol_reachability(goto_functions, new_goto_functions, false);
+}
 
 
 

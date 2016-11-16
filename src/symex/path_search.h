@@ -116,6 +116,13 @@ public:
     merge_heuristic=merge_heuristict::QCE;
   }
 
+  inline void set_our_qce()
+  {
+    our_qce_set=true;
+    search_heuristic=search_heuristict::FAST_FORWARD;
+    merge_heuristic=merge_heuristict::OUR_QCE;
+  }
+
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
@@ -158,9 +165,10 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
   bool qce_set;
+  bool our_qce_set;
 
   enum class search_heuristict { DFS, BFS, LOCS, FAST_FORWARD } search_heuristic;
-  enum class merge_heuristict { AGGRESSIVE, NONE, QCE } merge_heuristic;
+  enum class merge_heuristict { AGGRESSIVE, NONE, QCE, OUR_QCE } merge_heuristic;
 
   void merge_states();
 
@@ -169,6 +177,9 @@ protected:
       queuet::iterator &state, queuet::iterator &current_state);
 
   bool do_qce_merge(
+      queuet::iterator &state, queuet::iterator &cmp_state);
+
+  bool do_our_qce_merge(
       queuet::iterator &state, queuet::iterator &cmp_state);
 
   void merge(
@@ -184,7 +195,9 @@ protected:
       int reverse_steps, path_symex_step_reft &reverse_step,
       exprt::operandst &guards);
 
-  void calculate_hotsets(const goto_functionst &goto_functions);
+  void calculate_qce_hotsets(const goto_functionst &goto_functions);
+
+  void calculate_our_qce_hotsets(const goto_functionst &goto_functions);
 
   void calculate_q_tot(const goto_functionst &goto_functions);
 
@@ -195,7 +208,8 @@ protected:
 
   void calculate_symbol_reachability(
       const goto_functionst &goto_functions,
-      goto_functionst &new_goto_functions);
+      goto_functionst &new_goto_functions,
+      bool original_qce);
 
   void output_q_values(
       const goto_functionst &goto_functions);
@@ -212,8 +226,11 @@ protected:
   typedef std::pair<unsigned, irep_idt> location_symbol_pairt;
   std::map<location_symbol_pairt, double> q_add;
 
+  std::map<location_symbol_pairt, double> q_reaches;
+
   double alpha = 0.000000000001; // 10^-12.
   double beta = 0.8;
+  unsigned max = 1024;
 
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);

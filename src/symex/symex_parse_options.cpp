@@ -273,7 +273,6 @@ int symex_parse_optionst::doit()
         goto_unwindt::PARTIAL);
   }
 
-
   {
     status() << "Modifying assertion if statements." << eom;
 
@@ -363,7 +362,16 @@ int symex_parse_optionst::doit()
 
     if(cmdline.isset("qce"))
     {
+      assert(!cmdline.isset("our-qce"));
+
       path_search.set_qce();
+    }
+
+    if(cmdline.isset("our-qce"))
+    {
+      assert(!cmdline.isset("qce"));
+
+      path_search.set_our_qce();
     }
 
     if(cmdline.isset("no-solver-propagation")) {
