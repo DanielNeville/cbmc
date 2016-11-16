@@ -219,6 +219,16 @@ protected:
   bool calculate_qce_add(goto_programt::const_targett &l);
   void calculate_branches(goto_programt::const_targett &location,
       std::map<goto_programt::const_targett, unsigned> &branches_hit);
+
+  bool relevant_location(goto_programt::const_targett &l)
+  {
+    return l->incoming_edges.size() > 1;
+  }
+
+  bool relevant_location(goto_programt::targett &l)
+  {
+    return l->incoming_edges.size() > 1;
+  }
 };
 
 #endif

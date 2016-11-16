@@ -158,37 +158,6 @@ path_searcht::resultt path_searcht::operator()(
         }
       }
 
-
-
-
-//      std::vector<path_symex_step_reft> stepsc2;
-//      state.history.build_history(stepsc2);
-//      unsigned count = 1;
-//
-//      std::cout << state.pc().loc_number << "\n";
-//      for(std::vector<path_symex_step_reft>::const_iterator
-//          s_it=stepsc2.begin();
-//          s_it!=stepsc2.end();
-//          s_it++)
-//      {
-//        if((*s_it)->guard.is_not_nil())
-//        {
-//          std::string string_value=from_expr(ns, "", (*s_it)->guard);
-//          std::cout << "{-" << count << "} " << string_value << '\n';
-//          count++;
-//        }
-//
-//        if((*s_it)->ssa_rhs.is_not_nil())
-//        {
-//          equal_exprt equality((*s_it)->ssa_lhs, (*s_it)->ssa_rhs);
-//          std::string string_value=from_expr(ns, "", equality);
-//          std::cout << "{-" << count << "} " << string_value << '\n';
-//          count++;
-//        }
-//      }
-//
-
-
       // execute
       path_symex(state, tmp_queue);
 
@@ -443,21 +412,28 @@ bool path_searcht::do_qce_merge(
     location_symbol_pairt loc_pair =
         std::make_pair(state->get_pc().loc_number, var.full_identifier);
 
-//    std::cout << var.full_identifier << " : " <<  q_add[loc_pair] << "\n";
-
     if(q_add[loc_pair] > alpha * q_tot[state->get_instruction()])
     {
-//      std::cout << var.full_identifier << " is in the hot set.\n";
+      std::cout << var.full_identifier << " is in the hot set.\n";
 
-      state->get_var_state(var).value;
-      cmp_state->get_var_state(cmp_var).value;
+      std::cout << "V1 : "<< state->get_var_state(var).value.get(ID_value);
+      std::cout << "  V2 : "<< cmp_state->get_var_state(var).value.get(ID_value) << "\n";
 
-      state->get_var_state(var).value.is_constant();
-      cmp_state->get_var_state(cmp_var).value.is_constant();
+
+      if(state->get_var_state(var).value.is_constant()
+          &&
+          cmp_state->get_var_state(cmp_var).value.is_constant()
+        &&
+        (state->get_var_state(var).value.get(ID_value)
+            !=
+        cmp_state->get_var_state(var).value.get(ID_value)))
+      {
+        return false;
+      }
     }
   }
 
-  return false;
+  return true;
 }
 
 void path_searcht::merge(
@@ -755,7 +731,12 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
         return false;
       }
 
-      q_tot[l] = q_tot[l_next];
+      if(l->type == ASSERT)
+      {
+        q_tot[l] = q_tot[l_next] + 1;
+      } else {
+        q_tot[l] = q_tot[l_next];
+      }
       return true;
   }
 }
@@ -786,8 +767,6 @@ void path_searcht::calculate_q_tot(const goto_functionst &goto_functions)
     int size;
 
     size = 0;
-
-    std::cout << it->function;
 
     while(work.size() > size)
     {
@@ -842,7 +821,7 @@ unsigned path_searcht::add_symbol_table_to_goto_functions(
 
   Forall_goto_program_instructions(it, it_f->second.body)
   {
-    if(it->is_goto())
+    if(relevant_location(it))
     {
       for(auto &symbols : ns.get_symbol_table().symbols)
       {
@@ -924,6 +903,8 @@ void path_searcht::take_transitive_closure()
   }
 }
 
+
+
 void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_functions,
     goto_functionst &new_goto_functions)
 {
@@ -953,12 +934,12 @@ void path_searcht::calculate_symbol_reachability(const goto_functionst &goto_fun
           new_it++;
         }
 
-        if(it->is_goto())
+        if(relevant_location(it))
         {
           /* Do some work*/
           std::cout << "Working at " << it->location_number << " - " << new_it->location_number << "\n";
 
-          assert(new_it->is_goto());
+          assert(relevant_location(new_it));
 
           goto_programt::instructionst::const_iterator data_extraction = new_it;
 
@@ -1038,7 +1019,11 @@ void path_searcht::output_q_values(
         }
       }
     }
-  }}
+  }
+}
+
+
+
 
 void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
@@ -1080,6 +1065,10 @@ void path_searcht::calculate_hotsets(const goto_functionst &goto_functions)
 
   output_q_values(goto_functions);
 }
+
+
+
+
 
 void path_searcht::calculate_branches(goto_programt::const_targett &location,
     std::map<goto_programt::const_targett, unsigned> &branches_hit)
