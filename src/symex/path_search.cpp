@@ -499,7 +499,7 @@ bool path_searcht::do_our_qce_merge(
     return true;
   }
 
-  if(queue.size())
+  unsigned remove = (2 * queue.size() * hotset.size()) / max;
 
   for (std::map<irep_idt, double>::iterator it = hotset.begin();
       it != hotset.end();
