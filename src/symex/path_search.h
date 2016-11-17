@@ -220,7 +220,7 @@ protected:
   std::map<goto_programt::const_targett,
     dep_graph_domaint::depst> data_deps_out;
 
-  std::map<goto_programt::const_targett, unsigned> branches_hit;
+  std::map<goto_programt::const_targett, int> branches_hit;
 
   std::map<goto_programt::const_targett, double> q_tot;
   typedef std::pair<unsigned, irep_idt> location_symbol_pairt;
@@ -234,8 +234,7 @@ protected:
 
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);
-  void calculate_branches(goto_programt::const_targett &location,
-      std::map<goto_programt::const_targett, unsigned> &branches_hit);
+  void calculate_branches(goto_programt::const_targett &location);
 
   bool relevant_location(goto_programt::const_targett &l)
   {

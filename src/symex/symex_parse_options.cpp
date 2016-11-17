@@ -255,26 +255,38 @@ int symex_parse_optionst::doit()
       fixed_unwinding=unsafe_string2unsigned(cmdline.get_value("static-unwind"));
     }
 
+    status() << "[Static unwinding] * Statically unwinding with prediction using a default unwinding of "
+        << fixed_unwinding << eom;
+
     for (auto bound : unwind_bounds.max_bounds)
     {
       unwind_set[bound.first->function][bound.first->loop_number]=bound.second;
-      debug() << "Unwinding loop " << bound.first->function << ":"
+      debug() << "[Static Unwinding] * Unwinding loop " << bound.first->function << ":"
           << bound.first->loop_number << " at location "
           << bound.first->location_number << " a total of " << bound.second
           << " times" << eom;
     }
 
-    status() << "Statically unwinding with prediction using a default unwinding of "
-        << fixed_unwinding << eom;
-
     goto_unwindt goto_unwind;
     goto_unwind(goto_model.goto_functions, unwind_set,
         fixed_unwinding,
         goto_unwindt::PARTIAL);
+
+    forall_goto_functions(f_it, goto_model.goto_functions)
+    {
+      if(!f_it->second.body_available())
+        continue;
+
+      forall_goto_program_instructions(it, f_it->second.body)
+      {
+        /* Remove them all. */
+        assert(!it->is_backwards_goto());
+      }
+    }
   }
 
   {
-    status() << "Modifying assertion if statements." << eom;
+    status() << "[GOTO Program Modification] * Modifying assertion if statements." << eom;
 
     bool remove_next=false;
     exprt guard;

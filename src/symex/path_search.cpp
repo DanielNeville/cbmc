@@ -334,14 +334,13 @@ void path_searcht::merge_states()
       continue;
     }
 
-    debug() << "Considering to merge at " << it->pc() << eom;
-
     // Own class with inheritance eventually.
     bool do_merge=false;
 
     switch (merge_heuristic)
     {
       case merge_heuristict::AGGRESSIVE:
+        debug() << "Considering to aggressive merge at " << it->pc() << eom;
         do_merge=do_aggressive_merge(it, current);
         break;
 
@@ -359,6 +358,7 @@ void path_searcht::merge_states()
 
     if(do_merge)
     {
+      debug() << "Merge returned TRUE." << eom;
       merge(current, it);
       number_of_merged_states++;
       queue.erase(it);
@@ -417,17 +417,28 @@ bool path_searcht::do_our_qce_merge(
 
   assert(state->get_pc().loc_number == cmp_state->get_pc().loc_number);
 
-  std::map<irep_idt, double> hotset;
+  typedef std::vector<std::pair<irep_idt, double > > hotsett;
+  hotsett hotset;
 
   for (auto var_ptr : state->var_map.id_map)
   {
 
     location_symbol_pairt loc_pair =
-        std::make_pair(state->get_pc().loc_number, var_ptr.second.full_identifier);
+        std::make_pair(state->get_pc().loc_number,
+        var_ptr.second.full_identifier);
+
+    unsigned value=q_reaches[loc_pair];
 
     if(q_reaches[loc_pair] > 0)
     {
-      hotset.insert(std::make_pair(var_ptr.second.full_identifier, q_reaches[loc_pair]));
+      hotsett::iterator it = hotset.begin();
+
+      while(it != hotset.end()
+          && value > it->second)
+      {
+        it++;
+      }
+      hotset.insert(it, std::make_pair(var_ptr.second.full_identifier, q_reaches[loc_pair]));
     }
   }
 
@@ -437,7 +448,10 @@ bool path_searcht::do_our_qce_merge(
 
   unsigned remove = (2 * queue.size() * hotset.size()) / max;
 
-  for (std::map<irep_idt, double>::iterator it = hotset.begin();
+  while(remove--)
+    hotset.pop_back();
+
+  for (hotsett::iterator it = hotset.begin();
       it != hotset.end();
       it++)
   {
@@ -830,8 +844,9 @@ void path_searcht::calculate_q_tot(const goto_functionst &goto_functions)
 unsigned path_searcht::add_symbol_table_to_goto_functions(
     goto_functionst &goto_functions)
 {
-  debug() << "Inserting symbols to (new) goto functions." << eom;
   unsigned inserted_symbols=0;
+
+  goto_programt::targett new_instruction;
 
   Forall_goto_functions(it_f, goto_functions)
   {
@@ -861,8 +876,7 @@ unsigned path_searcht::add_symbol_table_to_goto_functions(
             continue;
           }
 
-          goto_programt::targett new_instruction =
-          it_f->second.body.insert_before(it);
+          new_instruction = it_f->second.body.insert_before(it);
           new_instruction->make_assignment();
           code_assignt code(symbols.second.symbol_expr(), symbols.second.symbol_expr());
           new_instruction->code=code;
@@ -870,6 +884,13 @@ unsigned path_searcht::add_symbol_table_to_goto_functions(
           new_instruction->function=it->function;
           inserted_symbols++;
         }
+
+//        for(auto incoming_edge : it->incoming_edges) {
+//          if(incoming_edge->targets.size() > 0 &&
+//              incoming_edge->get_target() == it) {
+//            incoming_edge->set_target(new_instruction);
+//          }
+//        }
       }
     }
   }
@@ -1067,17 +1088,23 @@ void path_searcht::output_q_values(
 void path_searcht::calculate_qce_hotsets(const goto_functionst &goto_functions)
 
 {
-  status() << "Calculating QCE hotsets (method 1)." << eom;
-
-  calculate_q_tot(goto_functions);
+  status() << "[QCE Hotsets] * Calculating QCE hotsets." << eom;
 
   goto_functionst new_goto_functions;
   new_goto_functions.copy_from(goto_functions);
 
+  /* To do: Statically calculate merge-points */
+
+  debug() << "[QCE Hotsets] * Inserting symbols at merge-point locations." << eom;
+
   add_symbol_table_to_goto_functions(new_goto_functions);
+
+  debug() << "[QCE Hotsets] * Calculating dependence graph." << eom;
 
   dependence_grapht dependence_graph(ns);
   dependence_graph(new_goto_functions, ns);
+
+  debug() << "[QCE Hotsets] * Generating backwards edge graph." << eom;
 
   Forall_goto_functions(f_it, new_goto_functions){
     if(!f_it->second.body_available())
@@ -1089,18 +1116,40 @@ void path_searcht::calculate_qce_hotsets(const goto_functionst &goto_functions)
     }
   }
 
+  debug() << "[QCE Hotsets] * Taking transitive closure." << eom;
+
   take_transitive_closure();
 
-  Forall_goto_functions(f_it, new_goto_functions){
-    if(!f_it->second.body_available())
-      continue;
+  locst locs_(ns);
+  locs_.build(new_goto_functions);
+  locs_.output(std::cout);
 
-    goto_programt::const_targett start_inst = f_it->second.body.instructions.begin();
-    branches_hit[start_inst]=0;
-    calculate_branches(start_inst, branches_hit);
-  }
+//  debug() << "[QCE Hotsets] * Calculating reached branches." << eom;
+
+//  Forall_goto_functions(f_it, new_goto_functions){
+//    if(!f_it->second.body_available())
+//      continue;
+//
+//    Forall_goto_program_instructions(it, f_it->second.body)
+//    {
+//       branches_hit[it]=-1;
+//    }
+//
+//    goto_programt::const_targett start_inst = f_it->second.body.instructions.begin();
+//    branches_hit[start_inst]=0;
+//    calculate_branches(start_inst);
+//  }
+
+
+  status() << "[QCE Hotsets] * Calculating Q_Tot." << eom;
+
+  calculate_q_tot(goto_functions);
+
+  debug() << "[QCE Hotsets] * Calculating symbol reachability." << eom;
 
   calculate_symbol_reachability(goto_functions, new_goto_functions, true);
+
+  debug() << "[QCE Hotsets] * Hotset calculation complete. *" << eom;
 
   output_q_values(goto_functions);
 }
@@ -1117,6 +1166,8 @@ void path_searcht::calculate_our_qce_hotsets(
   new_goto_functions.copy_from(goto_functions);
 
   add_symbol_table_to_goto_functions(new_goto_functions);
+
+  debug() << "Calculating dependence graph." << eom;
 
   dependence_grapht dependence_graph(ns);
   dependence_graph(new_goto_functions, ns);
@@ -1137,53 +1188,126 @@ void path_searcht::calculate_our_qce_hotsets(
 }
 
 
+//
+//void path_searcht::calculate_branches(goto_programt::const_targett &location)
+//{
+//  std::vector<goto_programt::const_targett> work;
+//
+//  /* This relies on the program being LOOP-FREE. */
+//
+//  work.push_back(location);
+//
+//  std::cout << location->location_number<<"\n";
+//
+//  goto_programt::const_targett l;
+//  goto_programt::const_targett new_l;
+//
+//  while(!work.empty())
+//  {
+//    l=work.back();
+//
+//    assert(!l->is_backwards_goto());
+//
+//    std::cout << l->location_number << "\n";
+//
+//    /* Take the last element */
+//    unsigned branches_at_location=branches_hit[l];
+//
+//    switch(l->type)
+//    {
+//      case GOTO:
+//      {
+//        /* Must have a target!  We *specifically ignore*
+//         * whether we can determine through constant
+//         * prop whether it's true or false.
+//         *
+//         * Every branch is possible either way! */
+//        assert(l->targets.size() == 1);
+//
+//
+//        std::cout << l->location_number << " -- ";
+//
+//
+//        new_l=l->get_target();
+//        (work.back())++;
+//
+//        std::cout << work.back()->location_number << " -- ";
+//
+//        branches_hit[work.back()]=branches_at_location+1;
+//
+//        work.push_back(new_l);
+//        branches_hit[new_l]=branches_at_location+1;
+//
+//        std::cout << work.back()->location_number << "\n";
+//
+//        std::cout << "GOTO: " << work.size() << "\n";
+//
+//        break;
+//      }
+//
+//      case END_FUNCTION:
+//      {
+//        work.pop_back();
+//
+//
+//        std::cout << "END_FUNC: " << work.size() << "\n";
+//        break;
+//      }
+//
+//      default:
+//      {
+//        (work.back())++;
+//        branches_hit[work.back()]=branches_at_location+1;
+//
+//        std::cout << "DEFAULT: " << work.size() << "\n";
+//
+//      }
+//    }
+//  }
 
-void path_searcht::calculate_branches(goto_programt::const_targett &location,
-    std::map<goto_programt::const_targett, unsigned> &branches_hit)
-{
-  std::vector<goto_programt::const_targett> work;
-
-  work.push_back(location);
-
-  while (!work.empty())
-  {
-    goto_programt::const_targett l=work.back();
-    work.pop_back();
-
-    /* deliberately flow-"insensitive" */
-    unsigned current_branches = branches_hit[l];
-
-    switch (l->type)
-    {
-      case GOTO:
-      {
-        assert(l->targets.size() == 1);
-
-        goto_programt::const_targett jump;
-        jump=l;
-        jump=l->get_target();
-
-        l++;
-
-        work.push_back(l);
-        branches_hit[l]=current_branches+1;
-        work.push_back(jump);
-        branches_hit[jump]=current_branches+1;
-        break;
-      }
-
-      case END_FUNCTION:
-        /* Remove worker */
-        break;
-        /* Deliberately ignore function call */
-
-      default:
-        assert(l->targets.size() == 0); // Should be GOTO.
-        l++;
-        branches_hit[l]=current_branches;
-        work.push_back(l);
-    }
-  }
+//  std::vector<goto_programt::const_targett> work;
+//
+//  work.push_back(location);
+//
+//  while (!work.empty())
+//  {
+//    goto_programt::const_targett l=work.back();
+//    work.pop_back();
+//
+//    /* deliberately flow-"insensitive" */
+//    unsigned current_branches = branches_hit[l];
+//
+//    switch (l->type)
+//    {
+//      case GOTO:
+//      {
+//        assert(l->targets.size() == 1);
+//
+//        goto_programt::const_targett jump;
+//        jump=l;
+//        jump=l->get_target();
+//
+//        l++;
+//
+//        work.push_back(l);
+//        branches_hit[l]=current_branches+1;
+//        work.push_back(jump);
+//        branches_hit[jump]=current_branches+1;
+//        break;
+//      }
+//
+//      case END_FUNCTION:
+//        /* Remove worker */
+//        break;
+//        /* Deliberately ignore function call */
+//
+//      default:
+//        assert(l->targets.size() == 0); // Should be GOTO.
+//        l++;
+//        branches_hit[l]=current_branches;
+//        work.push_back(l);
+//    }
+//  }
 }
 
 /*******************************************************************\
