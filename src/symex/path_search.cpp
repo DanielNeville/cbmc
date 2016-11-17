@@ -314,120 +314,56 @@ void path_searcht::merge_states()
   if(queue.size() < 2)
     return;
 
-  switch (merge_heuristic)
+  if(merge_heuristic == merge_heuristict::NONE)
+    return;
+
+  queuet::iterator current=queue.begin();
+
+  queuet::iterator it=queue.begin();
+  assert(queue.size() >= 2 && it != queue.end());
+
+  // Move it to the point the state beyond the last state.
+  it++;
+
+  for (; it != queue.end(); it++)
   {
-    case merge_heuristict::NONE:
-      return;
-
-    case merge_heuristict::AGGRESSIVE:
-      // The last state inserted, is the last state
-      // we manipulated.
+    if(it->pc() != current->pc()
+        || it->get_current_thread() != current->get_current_thread())
     {
-
-      queuet::iterator current=queue.begin();
-
-      queuet::iterator it=queue.begin();
-      assert(queue.size() >= 2 && it != queue.end());
-
-      // Move it to the point the state beyond the last state.
-      it++;
-
-      for (; it != queue.end(); it++)
-      {
-        if(it->pc() != current->pc()
-            || it->get_current_thread() != current->get_current_thread())
-        {
-          // Only merge when same PC.  (Otherwise fast-forward?)
-          continue;
-        }
-
-        debug() << "Considering to merge at " << it->pc() << eom;
-
-        // Own class with inheritance eventually.
-        if(do_aggressive_merge(it, current))
-        {
-          merge(current, it);
-          number_of_merged_states++;
-// //     Disabled for testing.
-          queue.erase(it);
-        }
-      }
-      break;
+      // Only merge when same PC.  (Otherwise fast-forward?)
+      continue;
     }
 
-    case merge_heuristict::QCE:
+    debug() << "Considering to merge at " << it->pc() << eom;
+
+    // Own class with inheritance eventually.
+    bool do_merge=false;
+
+    switch (merge_heuristic)
     {
-
-      queuet::iterator current=queue.begin();
-
-      queuet::iterator it=queue.begin();
-      assert(queue.size() >= 2 && it != queue.end());
-
-      // Move it to the point the state beyond the last state.
-      it++;
-
-      for (; it != queue.end(); it++)
-      {
-        if(it->pc() != current->pc()
-            || it->get_current_thread() != current->get_current_thread())
-        {
-          // Only merge when same PC.  (Otherwise fast-forward?)
-          continue;
-        }
-
-        debug() << "(QCE) Considering to merge at " << it->pc() << eom;
-
-        // Own class with inheritance eventually.
-        if(do_qce_merge(it, current))
-        {
-          merge(current, it);
-          number_of_merged_states++;
-          // //     Disabled for testing.
-          queue.erase(it);
-        }
-      }
-
-      break;
-    }
-
-      case merge_heuristict::OUR_QCE:
-      {
-
-        queuet::iterator current=queue.begin();
-
-        queuet::iterator it=queue.begin();
-        assert(queue.size() >= 2 && it != queue.end());
-
-        // Move it to the point the state beyond the last state.
-        it++;
-
-        for (; it != queue.end(); it++)
-        {
-          if(it->pc() != current->pc()
-              || it->get_current_thread() != current->get_current_thread())
-          {
-            // Only merge when same PC.  (Otherwise fast-forward?)
-            continue;
-          }
-
-          debug() << "(Our QCE) Considering to merge at " << it->pc() << eom;
-
-          // Own class with inheritance eventually.
-          if(do_our_qce_merge(it, current))
-          {
-            merge(current, it);
-            number_of_merged_states++;
-            // //     Disabled for testing.
-            queue.erase(it);
-          }
-        }
+      case merge_heuristict::AGGRESSIVE:
+        do_merge=do_aggressive_merge(it, current);
         break;
 
-      }
+      case merge_heuristict::OUR_QCE:
+        do_merge=do_our_qce_merge(it, current);
+        break;
 
+      case merge_heuristict::QCE:
+        do_merge=do_qce_merge(it, current);
+        break;
+
+      default:
+        do_merge=false;
     }
 
-      return;
+    if(do_merge)
+    {
+      merge(current, it);
+      number_of_merged_states++;
+      queue.erase(it);
+    }
+  }
 }
 
 bool path_searcht::do_aggressive_merge(
