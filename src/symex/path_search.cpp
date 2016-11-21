@@ -352,6 +352,10 @@ void path_searcht::merge_states()
         do_merge=do_qce_merge(it, current);
         break;
 
+      case merge_heuristict::CONSTANTS:
+        do_merge=do_cc_merge(it, current);
+        break;
+
       default:
         do_merge=false;
     }
@@ -370,6 +374,33 @@ bool path_searcht::do_aggressive_merge(
     queuet::iterator &state, queuet::iterator &cmp_state)
 {
   return true; // much aggressive.
+}
+
+
+bool path_searcht::do_cc_merge(queuet::iterator &state,
+    queuet::iterator &cmp_state)
+{
+  debug() << "Considering CC merge at " << state->get_pc().loc_number << eom;
+
+  assert(state->get_pc().loc_number == cmp_state->get_pc().loc_number);
+
+  for (auto var_ptr : state->var_map.id_map)
+  {
+    var_mapt::var_infot &var=state->var_map.id_map[var_ptr.first];
+    var_mapt::var_infot &cmp_var=cmp_state->var_map.id_map[var_ptr.first];
+
+    if(state->get_var_state(var).value.is_constant()
+        && cmp_state->get_var_state(cmp_var).value.is_constant()
+        && (state->get_var_state(var).value.get(ID_value)
+            != cmp_state->get_var_state(var).value.get(ID_value)))
+    {
+      debug() << "Returning false on CC calculation." << eom;
+      return false;
+    }
+  }
+
+  debug() << "Returning True on CC calculation." << eom;
+  return true;
 }
 
 bool path_searcht::do_qce_merge(
@@ -780,6 +811,84 @@ bool path_searcht::calculate_qce_tot(goto_programt::const_targett &l) {
 }
 
 
+bool path_searcht::calculate_qce_add(goto_programt::const_targett &l) {
+  goto_programt::const_targett l_jump;
+  goto_programt::const_targett l_next;
+  switch(l->type) {
+    case GOTO:
+
+      assert(l->targets.size() == 1);
+
+      if(l->guard.is_false())
+      {
+        l_next = l;
+        l_next++;
+
+        if(q_tot[l_next] < 0) {
+          return false;
+        }
+
+        q_tot[l] = q_tot[l_next];
+
+        return true;
+      }
+
+      if(l->guard.is_true())
+      {
+        l_jump = *(l->targets.begin());
+
+        if(q_tot[l_jump] < 0) {
+          return false;
+        }
+
+        q_tot[l]=q_tot[l_jump];
+
+        return true;
+      }
+
+      assert(!l->guard.is_false() && !l->guard.is_true());
+
+      l_next=l;
+      l_next++;
+
+      l_jump = *(l->targets.begin());
+
+      if(q_tot[l_next] < 0 || q_tot[l_jump] < 0)
+      {
+        return false;
+      }
+
+      q_tot[l]= beta * q_tot[l_next] + beta * q_tot[l_jump] + 1;//dependencies();
+      /* Massive to do */
+      return true;
+
+    case END_FUNCTION:
+      assert(0); // Should be handled.
+      break;
+
+    default:
+      if(l->targets.size() > 0) {
+        assert(0); // Should be GOTO.
+      }
+
+      l_next = l;
+      l_next++;
+
+      if(q_tot[l_next] < 0) {
+        return false;
+      }
+
+      if(l->type == ASSERT)
+      {
+        q_tot[l] = q_tot[l_next] + 1;
+      } else {
+        q_tot[l] = q_tot[l_next];
+      }
+      return true;
+  }
+}
+
+
 void path_searcht::calculate_q_tot(const goto_functionst &goto_functions)
 {
 
@@ -946,9 +1055,8 @@ void path_searcht::take_transitive_closure()
   }
 }
 
-void path_searcht::calculate_symbol_reachability(
-    const goto_functionst &goto_functions, goto_functionst &new_goto_functions,
-    bool original_qce)
+void path_searcht::calculate_our_q_reaches(
+    const goto_functionst &goto_functions, goto_functionst &new_goto_functions)
 {
 
   forall_goto_functions(f_it, goto_functions)
@@ -1002,51 +1110,14 @@ void path_searcht::calculate_symbol_reachability(
             {
               if(finder.first->location_number==data_extraction->location_number)
               {
-                if(original_qce)
-                {
-                  double branches_reached_so_far = 0;
-
-                  for(auto &find_branches: branches_hit)
-                  {
-                    if(find_branches.first->location_number == data_extraction->location_number)
-                    {
-                      branches_reached_so_far = find_branches.second;
-                      break;
-                    }
-                  }
-
-                  std::cout << "Branches so far at : " << finder.first->location_number << " is "<< branches_reached_so_far
-                  << "\n";
-
-                  for(auto &reached_item: finder.second)
-                  {
-                    std::cout << " Reached item: " << branches_hit[reached_item] << ",";
-
-                    q_add_calculation += pow((double) beta,
-                        (double) (branches_hit[reached_item] - branches_reached_so_far));
-                  }
-                  std::cout << "\n";
-                }
-                else
-                {
-                  q_add_calculation=finder.second.size();
-                }
-
+                q_add_calculation=finder.second.size();
                 break;
-              }
             }
+          }
 
             location_symbol_pairt location_symbol_pair = std::make_pair(it->location_number, symbol.get_identifier());
 
-            if(original_qce)
-            {
-              q_add[location_symbol_pair] = q_add_calculation;
-            }
-            else
-            {
-              q_reaches[location_symbol_pair] = q_add_calculation;
-            }
-
+            q_reaches[location_symbol_pair] = q_add_calculation;
             data_extraction--;
           }
         }
@@ -1146,12 +1217,12 @@ void path_searcht::calculate_qce_hotsets(const goto_functionst &goto_functions)
   calculate_q_tot(goto_functions);
 
   debug() << "[QCE Hotsets] * Calculating symbol reachability." << eom;
-
-  calculate_symbol_reachability(goto_functions, new_goto_functions, true);
-
-  debug() << "[QCE Hotsets] * Hotset calculation complete. *" << eom;
-
-  output_q_values(goto_functions);
+//
+//  calculate_symbol_reachability(goto_functions, new_goto_functions, true);
+//
+//  debug() << "[QCE Hotsets] * Hotset calculation complete. *" << eom;
+//
+//  output_q_values(goto_functions);
 }
 
 
@@ -1184,7 +1255,7 @@ void path_searcht::calculate_our_qce_hotsets(
 
   take_transitive_closure();
 
-  calculate_symbol_reachability(goto_functions, new_goto_functions, false);
+  calculate_our_q_reaches(goto_functions, new_goto_functions);
 }
 
 
@@ -1308,7 +1379,7 @@ void path_searcht::calculate_our_qce_hotsets(
 //        work.push_back(l);
 //    }
 //  }
-}
+//}
 
 /*******************************************************************\
 

@@ -123,6 +123,13 @@ public:
     merge_heuristic=merge_heuristict::OUR_QCE;
   }
 
+  inline void set_cc()
+  {
+    cc_set=true;
+    search_heuristic=search_heuristict::FAST_FORWARD;
+    merge_heuristic=merge_heuristict::CONSTANTS;
+  }
+
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
@@ -166,9 +173,10 @@ protected:
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
   bool qce_set;
   bool our_qce_set;
+  bool cc_set;
 
   enum class search_heuristict { DFS, BFS, LOCS, FAST_FORWARD } search_heuristic;
-  enum class merge_heuristict { AGGRESSIVE, NONE, QCE, OUR_QCE } merge_heuristic;
+  enum class merge_heuristict { AGGRESSIVE, NONE, QCE, OUR_QCE, CONSTANTS } merge_heuristic;
 
   void merge_states();
 
@@ -179,14 +187,13 @@ protected:
   bool do_qce_merge(
       queuet::iterator &state, queuet::iterator &cmp_state);
 
-  bool do_our_qce_merge(
-      queuet::iterator &state, queuet::iterator &cmp_state);
+  bool do_our_qce_merge(queuet::iterator &state, queuet::iterator &cmp_state);
 
-  void merge(
-      queuet::iterator &state, queuet::iterator &cmp_state);
+  bool do_cc_merge(queuet::iterator &state, queuet::iterator &cmp_state);
 
-  bool inline at_merge_point(
-      statet &state)
+  void merge(queuet::iterator &state, queuet::iterator &cmp_state);
+
+  bool inline at_merge_point(statet &state)
   {
     return locs[state.pc()].target->incoming_edges.size() > 1;
   }
@@ -194,6 +201,10 @@ protected:
   void construct_guarded_expression(exprt::operandst &expr,
       int reverse_steps, path_symex_step_reft &reverse_step,
       exprt::operandst &guards);
+
+  void calculate_symbol_reachability(
+      const goto_functionst &goto_functions, goto_functionst &new_goto_functions,
+      bool original_qce);
 
   void calculate_qce_hotsets(const goto_functionst &goto_functions);
 
@@ -206,10 +217,9 @@ protected:
   unsigned add_symbol_table_to_goto_functions(
       goto_functionst &goto_functions);
 
-  void calculate_symbol_reachability(
+  void calculate_our_q_reaches(
       const goto_functionst &goto_functions,
-      goto_functionst &new_goto_functions,
-      bool original_qce);
+      goto_functionst &new_goto_functions);
 
   void output_q_values(
       const goto_functionst &goto_functions);
@@ -235,6 +245,8 @@ protected:
   bool calculate_qce_tot(goto_programt::const_targett &l);
   bool calculate_qce_add(goto_programt::const_targett &l);
   void calculate_branches(goto_programt::const_targett &location);
+
+  std::vector<unsigned> merge_points;
 
   bool relevant_location(goto_programt::const_targett &l)
   {

@@ -386,6 +386,12 @@ int symex_parse_optionst::doit()
       path_search.set_our_qce();
     }
 
+
+    if(cmdline.isset("cc"))
+    {
+      path_search.set_cc();
+    }
+
     if(cmdline.isset("no-solver-propagation")) {
       debug() << "Propagation switched OFF for solver queries.";
 //      path_search.set_no_solver_propagation();
