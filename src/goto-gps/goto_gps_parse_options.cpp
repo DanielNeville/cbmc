@@ -262,93 +262,44 @@ int goto_gps_parse_optionst::doit()
     
   if(process_goto_program(options))
     return 6;
-//
-//  if(cmdline.isset("taint"))
-//  {
-//    std::string taint_file=cmdline.get_value("taint");
-//
-//    if(cmdline.isset("show-taint"))
-//    {
-//      taint_analysis(goto_model, taint_file, get_message_handler(), true, "");
-//      return 0;
-//    }
-//    else
-//    {
-//      std::string json_file=cmdline.get_value("json");
-//      bool result=
-//        taint_analysis(goto_model, taint_file, get_message_handler(), false, json_file);
-//      return result?10:0;
-//    }
-//  }
-//
-//  if(cmdline.isset("unreachable-instructions"))
-//  {
-//    const std::string json_file=cmdline.get_value("json");
-//
-//    if(json_file.empty())
-//      unreachable_instructions(goto_model, false, std::cout);
-//    else if(json_file=="-")
-//      unreachable_instructions(goto_model, true, std::cout);
-//    else
-//    {
-//      std::ofstream ofs(json_file);
-//      if(!ofs)
-//      {
-//        error() << "Failed to open json output `"
-//                << json_file << "'" << eom;
-//        return 6;
-//      }
-//
-//      unreachable_instructions(goto_model, true, ofs);
-//    }
-//
-//    return 0;
-//  }
-//
-//  if(cmdline.isset("show-local-may-alias"))
-//  {
-//    namespacet ns(goto_model.symbol_table);
-//
-//    forall_goto_functions(it, goto_model.goto_functions)
-//    {
-//      std::cout << ">>>>\n";
-//      std::cout << ">>>> " << it->first << '\n';
-//      std::cout << ">>>>\n";
-//      local_may_aliast local_may_alias(it->second);
-//      local_may_alias.output(std::cout, it->second, ns);
-//      std::cout << '\n';
-//    }
-//
-//    return 0;
-//  }
-//
-//  label_properties(goto_model);
-//
-//  if(cmdline.isset("show-properties"))
-//  {
-//    show_properties(goto_model, get_ui());
-//    return 0;
-//  }
-//
-//  if(set_properties())
-//    return 7;
-//
-//  if(cmdline.isset("show-intervals"))
-//  {
-//    show_intervals(goto_model, std::cout);
-//    return 0;
-//  }
-//
-//  if(cmdline.isset("non-null") ||
-//     cmdline.isset("intervals"))
-//  {
-//    optionst options;
-//    options.set_option("json", cmdline.get_value("json"));
-//    options.set_option("xml", cmdline.get_value("xml"));
-//    bool result=
-//      static_analyzer(goto_model, options, get_message_handler());
-//    return result?10:0;
-//  }
+
+
+  /* Do things here */
+
+  /* Input / Output */
+
+  /* Input: CProver program + User options (e.g. what to prioritise)
+   * Output: Suggested schedule
+   * (Iterative) Input:  Status of explored paths / Generated results   *
+   *    i.e. (Iterative) Input:  Path + Status (reachable/etc)
+   */
+
+  /* Ideas:
+   *
+   * 2LS
+   *  - K-Induction
+   *  - Termination Analysis via Ranking Function
+   *  - Context-Sensitive
+   *  - Preconditions
+   *  - Intervals/Equalities/Zone/Octagon Domains
+   *
+   * Abstract Interpretation
+   *  - Via Goto Analyser interface provides taint, reachability and intervals/non-null.
+   *  - Via internals provides:
+   *      - Constant prop.
+   *      - Flow insensitive analysis framework
+   *      - Custom bitbector analysis framework
+   *      - Dependence graph
+   *
+   * Termination analysis
+   *
+   * Loop acceleration
+   *
+   * Randomised testing
+   *
+   * Code segment characterisation
+   *
+   */
 
   error() << "no analysis option given -- consider reading --help"
           << eom;
