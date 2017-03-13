@@ -36,7 +36,8 @@ class optionst;
   "(json):(xml):" \
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
-  "(non-null)(show-non-null)"
+  "(non-null)(show-non-null)" \
+  "(print-function-names)(block-exits)"
 
 class goto_gps_parse_optionst:
   public parse_options_baset,
