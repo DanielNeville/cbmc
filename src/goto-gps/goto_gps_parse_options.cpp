@@ -337,12 +337,12 @@ int goto_gps_parse_optionst::doit()
     }
   }
 
-  if(cmdline.args.size()==2)
+  if(cmdline.isset("o"))
   {
-    status() << "Writing GOTO program to `" << cmdline.args[1] << "'" << eom;
+    status() << "Writing GOTO program to `" << cmdline.get_value("o") << "'" << eom;
 
     if(write_goto_binary(
-      cmdline.args[1], goto_model.symbol_table, goto_model.goto_functions, get_message_handler()))
+        cmdline.get_value("o"), goto_model.symbol_table, goto_model.goto_functions, get_message_handler()))
       return 1;
     else
       return 0;
