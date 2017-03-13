@@ -624,6 +624,41 @@ int goto_instrument_parse_optionst::doit()
       return 0;
     }
     
+    if(cmdline.isset("block-exits"))
+    {
+      Forall_goto_functions(f_it, goto_functions) {
+        if(!f_it->second.body_available())
+          continue;
+
+        Forall_goto_program_instructions(it, f_it->second.body) {
+          switch(it->type) {
+            case FUNCTION_CALL:
+            case RETURN:
+            case END_FUNCTION:
+            {
+              auto instr = f_it->second.body.insert_before(it);
+              instr->make_assumption(false_exprt());
+              break;
+            }
+
+            default:
+            {
+              break;
+            }
+          }
+        }
+      }
+      goto_functions.update();
+    }
+
+
+    if(cmdline.isset("print-function-names"))
+    {
+      Forall_goto_functions(f_it, goto_functions) {
+        std::cout << f_it->first << "\n";
+      }
+    }
+
     // write new binary?
     if(cmdline.args.size()==2)
     {
