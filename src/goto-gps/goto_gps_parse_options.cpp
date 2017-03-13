@@ -27,6 +27,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/show_properties.h>
 #include <goto-programs/show_symbol_table.h>
 #include <goto-programs/read_goto_binary.h>
+#include <goto-programs/write_goto_binary.h>
 #include <goto-programs/goto_inline.h>
 #include <goto-programs/link_to_library.h>
 
@@ -301,6 +302,52 @@ int goto_gps_parse_optionst::doit()
    *
    */
 
+  if(cmdline.isset("block-exits"))
+  {
+    Forall_goto_functions(f_it, goto_model.goto_functions) {
+      if(!f_it->second.body_available())
+        continue;
+
+      Forall_goto_program_instructions(it, f_it->second.body) {
+        switch(it->type) {
+          case FUNCTION_CALL:
+          case RETURN:
+          case END_FUNCTION:
+          {
+            auto instr = f_it->second.body.insert_before(it);
+            instr->make_assumption(false_exprt());
+            break;
+          }
+
+          default:
+          {
+            break;
+          }
+        }
+      }
+    }
+    goto_model.goto_functions.update();
+  }
+
+
+  if(cmdline.isset("print-function-names"))
+  {
+    Forall_goto_functions(f_it, goto_model.goto_functions) {
+      std::cout << f_it->first << "\n";
+    }
+  }
+
+  if(cmdline.args.size()==2)
+  {
+    status() << "Writing GOTO program to `" << cmdline.args[1] << "'" << eom;
+
+    if(write_goto_binary(
+      cmdline.args[1], goto_model.symbol_table, goto_model.goto_functions, get_message_handler()))
+      return 1;
+    else
+      return 0;
+  }
+
   error() << "no analysis option given -- consider reading --help"
           << eom;
   return 6;
@@ -474,54 +521,5 @@ void goto_gps_parse_optionst::help()
     " goto-gps [-h] [--help]  show help\n"
     " goto-gps file.c ...     source file names\n"
     "\n"
-    "Analyses:\n"
-    "\n"
-    " --taint file_name            perform taint analysis using rules in given file\n"
-    " --unreachable-instructions   list dead code\n"
-    " --intervals                  interval analysis\n"
-    " --non-null                   non-null analysis\n"
-    "\n"
-    "Analysis options:\n"
-    " --json file_name             output results in JSON format to given file\n"
-    " --xml file_name              output results in XML format to given file\n"
-    "\n"
-    "C/C++ frontend options:\n"
-    " -I path                      set include path (C/C++)\n"
-    " -D macro                     define preprocessor macro (C/C++)\n"
-    " --arch X                     set architecture (default: "
-                                   << configt::this_architecture() << ")\n"
-    " --os                         set operating system (default: "
-                                   << configt::this_operating_system() << ")\n"
-    " --c89/99/11                  set C language standard (default: "
-                                   << (configt::ansi_ct::default_c_standard()==
-                                       configt::ansi_ct::c_standardt::C89?"c89":
-                                       configt::ansi_ct::default_c_standard()==
-                                       configt::ansi_ct::c_standardt::C99?"c99":
-                                       configt::ansi_ct::default_c_standard()==
-                                       configt::ansi_ct::c_standardt::C11?"c11":"") << ")\n"
-    " --cpp98/03/11                set C++ language standard (default: "
-                                   << (configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP98?"cpp98":
-                                       configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP03?"cpp03":
-                                       configt::cppt::default_cpp_standard()==
-                                       configt::cppt::cpp_standardt::CPP11?"cpp11":"") << ")\n"
-    #ifdef _WIN32
-    " --gcc                        use GCC as preprocessor\n"
-    #endif
-    " --no-library                 disable built-in abstract C library\n"
-    "\n"
-    "Java Bytecode frontend options:\n"
-    " --classpath dir/jar          set the classpath\n"
-    " --main-class class-name      set the name of the main class\n"
-    "\n"
-    "Program representations:\n"
-    " --show-parse-tree            show parse tree\n"
-    " --show-symbol-table          show symbol table\n"
-    " --show-goto-functions        show goto program\n"
-    " --show-properties            show the properties, but don't run analysis\n"
-    "\n"
-    "Other options:\n"
-    " --version                    show version and exit\n"
     "\n";
 }

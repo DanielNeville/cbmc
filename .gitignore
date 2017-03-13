@@ -75,6 +75,8 @@ src/symex/symex
 src/symex/symex.exe
 src/goto-diff/goto-diff
 src/goto-diff/goto-diff.exe
+src/goto-gps/goto-gps
+src/goto-gps/goto-gps.exe
 
 # build tools
 src/ansi-c/file_converter
