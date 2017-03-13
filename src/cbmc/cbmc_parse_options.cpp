@@ -961,6 +961,8 @@ bool cbmc_parse_optionst::process_goto_program(
           c=coverage_criteriont::ASSERTION;
         else if(criterion_string=="path" || criterion_string=="paths")
           c=coverage_criteriont::PATH;
+        else if(criterion_string=="exit" || criterion_string=="exits")
+          c=coverage_criteriont::EXIT;
         else if(criterion_string=="branch" || criterion_string=="branches")
           c=coverage_criteriont::BRANCH;
         else if(criterion_string=="location" || criterion_string=="locations")

@@ -1087,6 +1087,19 @@ void instrument_cover_goals(
       }
       break;
       
+    case coverage_criteriont::EXIT:
+      switch(i_it->type) {
+        case FUNCTION_CALL:
+        case RETURN:
+        case END_FUNCTION:
+        {
+          auto instr = goto_program.insert_before(i_it);
+          instr->make_assertion(false_exprt());
+          break;
+        }
+      }
+     break;
+
     case coverage_criteriont::COVER:
       // turn __CPROVER_cover(x) into 'assert(!x)'
       if(i_it->is_function_call())
@@ -1352,6 +1365,8 @@ void instrument_cover_goals(
     default:;
     }
   }
+
+
 
 }
 
