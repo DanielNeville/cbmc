@@ -1095,6 +1095,11 @@ void instrument_cover_goals(
         {
           auto instr = goto_program.insert_before(i_it);
           instr->make_assertion(false_exprt());
+
+          if(i_it->type != END_FUNCTION) {
+            i_it->make_skip(); // Strong approximation!
+          }
+
           break;
         }
       }
