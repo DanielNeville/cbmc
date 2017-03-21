@@ -58,12 +58,12 @@ public:
   // build a forward-traversible version of the history  
   void build_history(std::vector<path_symex_step_reft> &dest) const;
   
+  inline path_symex_stept &get() const;
+
 protected:
   // we use a vector to store all steps
   std::size_t index;
   class path_symex_historyt *history;
-  
-  inline path_symex_stept &get() const;
 };
 
 class decision_proceduret;

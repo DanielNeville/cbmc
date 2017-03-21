@@ -9,6 +9,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_PATH_SYMEX_STATE_H
 #define CPROVER_PATH_SYMEX_STATE_H
 
+#include <deque>
+
 #include "locs.h"
 #include "var_map.h"
 #include "path_symex_history.h"
@@ -24,6 +26,8 @@ public:
     locs(_locs),
     inside_atomic_section(false),
     history(_path_symex_history),
+    replay_set(false),
+    replay_complete(false),
     current_thread(0),
     no_thread_interleavings(0),
     no_branches(0),
@@ -162,6 +166,9 @@ public:
   // instantiate expressions with propagation
   inline exprt read(const exprt &src)
   {
+    if(replay_set) {
+      return read(src, false); // To generate constraints.
+    }
     return read(src, true);
   }
   
@@ -206,6 +213,10 @@ public:
   // similar for recursive function calls
   typedef std::map<irep_idt, unsigned> recursion_mapt;
   recursion_mapt recursion_map;
+
+  bool replay_set;
+  std::deque<bool> replay_path;
+  bool replay_complete;
 
 protected:
   unsigned current_thread;

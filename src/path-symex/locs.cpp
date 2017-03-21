@@ -20,11 +20,7 @@ Function: locst::locst
 
 \*******************************************************************/
 
-locst::locst(
-  const namespacet &_ns):
-  ns(_ns)
-{
-}
+
 
 /*******************************************************************\
 
@@ -114,7 +110,7 @@ Function: locst::output
 
 \*******************************************************************/
 
-void locst::output(std::ostream &out) const
+void locst::output(std::ostream &out, const namespacet ns) const
 {
   irep_idt function;
 

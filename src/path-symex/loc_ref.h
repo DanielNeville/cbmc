@@ -42,6 +42,10 @@ public:
   {
   }  
   
+  loc_reft(unsigned loc):loc_number(loc) // ugly conversion
+  {
+  }
+
   static inline loc_reft nil()
   {
     return loc_reft();

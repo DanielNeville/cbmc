@@ -240,9 +240,9 @@ int symex_parse_optionst::doit()
   if(cmdline.isset("show-locs"))
   {
     const namespacet ns(goto_model.symbol_table);
-    locst locs(ns);
+    locst locs;
     locs.build(goto_model.goto_functions);
-    locs.output(std::cout);    
+    locs.output(std::cout, ns);
     return 0;
   }
 
@@ -281,6 +281,29 @@ int symex_parse_optionst::doit()
       path_search.show_vcc=true;
       path_search(goto_model.goto_functions);
       return 0;
+    }
+
+    if(cmdline.isset("replay")) {
+      status() << "Replay Mode enabled.  Assertion checking OFF.\n";
+
+      path_search.replay_set = true;
+
+      std::string replay_path = cmdline.get_value("replay").c_str();
+
+      for (int i=0; i<replay_path.length(); i++)
+      {
+        if(replay_path[i] == '1') {
+          path_search.replay_path.push_back(true);
+        }
+        if(replay_path[i] == '0')
+        {
+          path_search.replay_path.push_back(false);
+        }
+      }
+
+      if(cmdline.isset("replay-start")) {
+        path_search.replay_start = safe_string2unsigned(cmdline.get_value("replay-start"));
+      }
     }
 
     path_search.eager_infeasibility=

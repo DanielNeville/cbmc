@@ -7,6 +7,7 @@ Author: Daniel Kroening, kroening@kroening.com
 \*******************************************************************/
 
 #include <iostream>
+#include <deque>
 
 #include <util/time_stopping.h>
 #include <util/xml.h>
@@ -21,8 +22,100 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/xml_goto_trace.h>
 #include <goto-programs/json_goto_trace.h>
 
+#include <path-symex/locs.cpp>
+
 #include "bmc.h"
 #include "bv_cbmc.h"
+
+
+
+bool locs2bits(std::deque<unsigned int> path,
+    std::deque<bool> &bits,
+    const goto_functionst &goto_functions) {
+  locst locs;
+  locs.build(goto_functions);
+
+  if(path.empty())
+    return true;
+
+  std::vector<unsigned int> function_call_returns;
+
+  unsigned int ptr = path.front();
+
+  path.pop_front();
+
+//  std::cout << "Start:" << ptr << " - " << locs[ptr].target->type << "\n";
+
+  while(!path.empty()) {
+
+    if(locs[ptr].target->type == GOTO) {
+      std::vector<unsigned> options_branch_not_taken;
+      std::vector<unsigned> options_branch_taken;
+
+      unsigned next = path.front();
+
+      options_branch_not_taken.push_back(ptr + 1); // Sequential.
+      options_branch_taken.push_back(locs[ptr].branch_target.loc_number);
+
+      goto_program_instruction_typet not_taken_type = locs[options_branch_not_taken.back()].target->type;
+      goto_program_instruction_typet taken_type = locs[options_branch_taken.back()].target->type;
+
+      while(not_taken_type == DEAD
+          || not_taken_type == SKIP) { /* What other types aren't in the trace? */
+        options_branch_not_taken.push_back(options_branch_not_taken.back() + 1);
+        not_taken_type = locs[options_branch_not_taken.back()].target->type;
+      }
+
+      while( taken_type == DEAD
+          || taken_type == SKIP) { /* What other types aren't in the trace? */
+        options_branch_taken.push_back(options_branch_taken.back() + 1);
+        taken_type = locs[options_branch_taken.back()].target->type;
+      }
+
+      bool found = false;
+      bool taken = false;
+
+      for(std::vector<unsigned>::const_iterator it = options_branch_not_taken.begin();
+          it != options_branch_not_taken.end();
+          it++) {
+        if(*it == next) {
+          found = true;
+          taken = false;
+        }
+      }
+
+      options_branch_not_taken.clear();
+
+      for(std::vector<unsigned>::const_iterator it = options_branch_taken.begin();
+          it != options_branch_taken.end();
+          it++) {
+        if(*it == next) {
+          found = true;
+          taken = true;
+        }
+      }
+
+      options_branch_taken.clear();
+
+      if(!found) {
+        std::cout << "Couldn't find matching location.  Check errors.\n";
+        return false;
+      }
+
+      bits.push_back(taken);
+
+      //      std::cout << "Pushing bit\n";
+      //      std::cout << "Goto at: " << ptr << ".  Next is: " << path.front() << ". ";
+      //      std::cout << "Found" << (taken ? " TAKEN" : " NOT TAKEN");
+    }
+
+    ptr = path.front();
+    path.pop_front();
+  }
+
+  return true;
+}
+
 
 /*******************************************************************\
 
@@ -229,6 +322,7 @@ Function: bmc_covert::operator()
 
 bool bmc_covert::operator()()
 {
+
   status() << "Passing problem to " << solver.decision_procedure_text() << eom;
 
   solver.set_message_handler(get_message_handler());
@@ -309,6 +403,31 @@ bool bmc_covert::operator()()
   for(const auto & it : goal_map)
     if(it.second.satisfied) goals_covered++;
   
+  std::deque<unsigned int> locs;
+
+  for(const auto & test : tests)
+  {
+    for(const auto & it : test.goto_trace.steps)
+    {
+      locs.push_back(it.pc->location_number);
+      std::cout << it.pc->location_number << ",";
+    }
+    std::cout << "\n";
+
+    std::deque<bool> bits;
+    bool result = locs2bits(locs, bits, goto_functions);
+
+    std::cout << locs.front() << ";";
+
+    for(std::deque<bool>::iterator it = bits.begin();
+        it != bits.end();
+        it++) {
+      std::cout << (*it ? "1" : "0") << ",";
+    }
+
+    std::cout << "\n";
+  }
+
   switch(bmc.ui)
   {
     case ui_message_handlert::PLAIN:
@@ -484,3 +603,5 @@ bool bmct::cover(
   bmc_cover.set_message_handler(get_message_handler());
   return bmc_cover();
 }
+
+

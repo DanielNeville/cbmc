@@ -6,6 +6,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <iostream>
 #include <util/time_stopping.h>
 
 #include <solvers/flattening/bv_pointers.h>
@@ -31,7 +32,7 @@ Function: path_searcht::operator()
 path_searcht::resultt path_searcht::operator()(
   const goto_functionst &goto_functions)
 {
-  locst locs(ns);
+  locst locs;
   var_mapt var_map(ns);
   
   locs.build(goto_functions);
@@ -41,6 +42,16 @@ path_searcht::resultt path_searcht::operator()(
   
   queue.push_back(initial_state(var_map, locs, history));
   
+  if(replay_set) {
+    if(replay_start >= 0) {
+      loc_reft new_start(replay_start);
+      locs[replay_start]; // Check its valid.
+      queue.back().threads[0].pc=new_start;
+    }
+    queue.back().replay_set=true;
+    queue.back().replay_path=replay_path;
+  }
+
   // set up the statistics
   number_of_dropped_states=0;
   number_of_paths=0;
@@ -121,6 +132,9 @@ path_searcht::resultt path_searcht::operator()(
       {
         if(show_vcc)
           do_show_vcc(state);
+        else if(replay_set) {
+          // Do nothing
+        }
         else
         {
           check_assertion(state);
@@ -134,6 +148,26 @@ path_searcht::resultt path_searcht::operator()(
       // execute
       path_symex(state, tmp_queue);
       
+      if(state.replay_set && state.replay_complete) {
+        std::vector<path_symex_step_reft> history;
+        state.history.build_history(history);
+
+        /* Output code */
+
+        for(std::vector<path_symex_step_reft>::iterator it = history.begin();
+            it != history.end();
+            it++) {
+          std::cout << it->get().pc << ":";
+          it->get().output(std::cout);
+              std::cout << "\n";
+        }
+        std::cout << "\n";
+        /*/ Output code */
+
+        status() << "Path complete.\n";
+        break;
+      }
+
       // put at head of main queue
       queue.splice(queue.begin(), tmp_queue);
     }

@@ -796,6 +796,7 @@ void path_symext::do_goto(
   path_symex_statet &state,
   std::list<path_symex_statet> &further_states)
 {
+
   const goto_programt::instructiont &instruction=
     *state.get_instruction();
 
@@ -810,6 +811,32 @@ void path_symext::do_goto(
 
   exprt guard=state.read(instruction.guard);
   
+  if(state.replay_set) {
+    if(state.replay_path.empty()) {
+      state.replay_complete=true;
+      return;
+    }
+
+    bool decision = state.replay_path.front();
+    state.replay_path.pop_front();
+
+    if(decision == true) { /* Taken */
+      state.record_step();
+      state.history->branch=stept::BRANCH_TAKEN;
+      state.set_pc(loc.branch_target);
+      state.history->guard=guard;
+    } else {
+      exprt negated_guard=not_exprt(guard);
+      state.record_step();
+      state.history->branch=stept::BRANCH_NOT_TAKEN;
+      state.next_pc();
+      state.history->guard=negated_guard;
+    }
+
+    return;
+  }
+
+
   if(guard.is_true()) // branch taken always
   {
     state.record_step();
@@ -853,6 +880,8 @@ void path_symext::do_goto(
   path_symex_statet &state,
   bool taken)
 {
+  assert(0);
+
   state.record_step();
 
   const goto_programt::instructiont &instruction=

@@ -41,7 +41,8 @@ class optionst;
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(show-locs)(show-vcc)(show-properties)(show-goto-functions)" \
   "(property):(trace)(show-trace)(stop-on-fail)(eager-infeasibility)" \
-  "(no-simplify)(no-unwinding-assertions)(no-propagation)"
+  "(no-simplify)(no-unwinding-assertions)(no-propagation)" \
+  "(replay):(replay-start):"
   // the last line is for CBMC-regression testing only
 
 class symex_parse_optionst:

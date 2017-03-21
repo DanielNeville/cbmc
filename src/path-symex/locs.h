@@ -49,9 +49,9 @@ public:
   typedef std::map<irep_idt, function_entryt> function_mapt;
   function_mapt function_map;
   
-  locst(const namespacet &_ns);
+  inline locst() {}
   void build(const goto_functionst &goto_functions);
-  void output(std::ostream &out) const;
+  void output(std::ostream &out, const namespacet ns) const;
   
   inline loct &operator[] (loc_reft l)
   {
@@ -65,6 +65,18 @@ public:
     return loc_vector[l.loc_number];
   }
   
+  inline loct &operator[] (unsigned int l)
+  {
+    assert(l>=0 && l < loc_vector.size());
+    return loc_vector[l];
+  }
+
+  inline const loct &operator[] (unsigned int l) const
+  {
+    assert(l>=0 && l < loc_vector.size());
+    return loc_vector[l];
+  }
+
   static inline loc_reft begin()
   {
     loc_reft tmp;
@@ -85,7 +97,6 @@ public:
   }
 
 protected:
-  const namespacet &ns;
 };
 
 class target_to_loc_mapt

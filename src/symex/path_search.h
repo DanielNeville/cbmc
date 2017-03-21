@@ -11,6 +11,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/time_stopping.h>
 #include <util/expanding_vector.h>
+#include <deque>
 
 #include <goto-programs/safety_checker.h>
 
@@ -23,6 +24,8 @@ public:
     safety_checkert(_ns),
     show_vcc(false),
     eager_infeasibility(false),
+    replay_set(false),
+    replay_start(-1),
     depth_limit_set(false), // no limit
     context_bound_set(false),
     unwind_limit_set(false),
@@ -95,6 +98,11 @@ public:
   typedef std::map<irep_idt, property_entryt> property_mapt;
   property_mapt property_map;
 
+
+  bool replay_set;
+  int replay_start;
+  std::deque<bool> replay_path;
+
 protected:
   typedef path_symex_statet statet;
 
@@ -133,7 +141,9 @@ protected:
   unsigned unwind_limit;
   bool depth_limit_set, context_bound_set, unwind_limit_set, branch_bound_set;
 
+
   enum class search_heuristict { DFS, BFS, LOCS } search_heuristic;
+
 };
 
 #endif
