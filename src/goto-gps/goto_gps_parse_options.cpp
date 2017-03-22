@@ -218,6 +218,47 @@ void goto_gps_parse_optionst::get_command_line_options(optionst &options)
   #endif
 }
 
+bool block_exits(goto_functionst &goto_functions, bool remove_function_calls = true) {
+
+  Forall_goto_functions(f_it, goto_functions) {
+    if(!f_it->second.body_available())
+      continue;
+
+    Forall_goto_program_instructions(it, f_it->second.body) {
+      switch(it->type) {
+        case END_FUNCTION:
+        {
+          auto instr = f_it->second.body.insert_before(it);
+          instr->make_assertion(false_exprt());
+          break;
+        }
+
+        case FUNCTION_CALL:
+        case RETURN:
+        {
+          if(remove_function_calls)
+          {
+            it->make_assertion(false_exprt());
+          }
+          else
+          {
+            auto instr = f_it->second.body.insert_before(it);
+            instr->make_assertion(false_exprt());
+          }
+          break;
+        }
+
+        default:
+        {
+          // Do nothing right now.
+          break;
+        }
+      }
+    }
+  }
+  goto_functions.update();
+}
+
 /*******************************************************************\
 
 Function: goto_gps_parse_optionst::doit
@@ -302,38 +343,48 @@ int goto_gps_parse_optionst::doit()
    *
    */
 
-  if(cmdline.isset("block-exits"))
+  bool block_exits = cmdline.isset("block-exits");
+  bool guard_exits = cmdline.isset("guard-exits");
+  bool find_traces = cmdline.isset("find-traces");
+  bool trace_to_constraint = cmdline.isset("trace-to-constraint");
+  bool find_constraints = cmdline.isset("find-constraints");
+
+  if(find_constraints) {
+    find_traces = true;
+    trace_to_constraint = true;
+  }
+
+  if(find_traces) {
+    block_exits = true;
+  }
+
+  if(block_exits)
   {
-    Forall_goto_functions(f_it, goto_model.goto_functions) {
-      if(!f_it->second.body_available())
-        continue;
+    block_exits(goto_model.goto_functions, true);
+  }
 
-      Forall_goto_program_instructions(it, f_it->second.body) {
-        switch(it->type) {
-          case FUNCTION_CALL:
-          case RETURN:
-          case END_FUNCTION:
-          {
-            auto instr = f_it->second.body.insert_before(it);
-            instr->make_assumption(false_exprt());
-            break;
-          }
+  if(guard_exits)
+  {
+    block_exits(goto_model.goto_functions, false);
+  }
 
-          default:
-          {
-            break;
-          }
-        }
-      }
-    }
-    goto_model.goto_functions.update();
+  if(find_traces) {
+
+
+  }
+
+  if(trace_to_constraint)
+  {
+
   }
 
 
   if(cmdline.isset("print-function-names"))
   {
+    std::vector<irep_idt> function_names;
     Forall_goto_functions(f_it, goto_model.goto_functions) {
-      std::cout << f_it->first << "\n";
+      function_names.push_back(f_it->first);
+      status() << f_it->first << eom;
     }
   }
 
@@ -347,6 +398,8 @@ int goto_gps_parse_optionst::doit()
     else
       return 0;
   }
+
+
 
   error() << "no analysis option given -- consider reading --help"
           << eom;

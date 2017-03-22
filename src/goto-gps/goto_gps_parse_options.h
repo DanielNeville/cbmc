@@ -37,7 +37,7 @@ class optionst;
   "(unreachable-instructions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)" \
-  "(print-function-names)(block-exits)(o)"
+  "(print-function-names)(block-exits)(o):"
 
 class goto_gps_parse_optionst:
   public parse_options_baset,
