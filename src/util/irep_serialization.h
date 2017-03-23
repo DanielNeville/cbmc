@@ -57,7 +57,7 @@ public:
     read_buffer.resize(1, 0);
     clear(); 
   };
-  
+
   std::size_t insert_on_write(std::size_t h);
   std::size_t insert_on_read(std::size_t id, const irept &);
   
@@ -72,7 +72,6 @@ public:
   static std::size_t read_gb_word(std::istream &);
   irep_idt read_gb_string(std::istream &);
 
-private:
   ireps_containert &ireps_container;
   std::vector<char> read_buffer;
 

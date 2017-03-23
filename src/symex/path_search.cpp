@@ -15,6 +15,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <path-symex/path_symex.h>
 #include <path-symex/build_goto_trace.h>
 
+#include <util/irep_serialization.h>
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -153,16 +155,34 @@ path_searcht::resultt path_searcht::operator()(
         state.history.build_history(history);
 
         /* Output code */
+        and_exprt conjunction;
 
         for(std::vector<path_symex_step_reft>::iterator it = history.begin();
             it != history.end();
             it++) {
+
+          if(it->get().ssa_rhs.is_not_nil()) {
+            conjunction.operands().push_back(equal_exprt(it->get().ssa_lhs, it->get().ssa_rhs));
+          }
+
+          if(it->get().guard.is_not_nil()) {
+            conjunction.operands().push_back(it->get().guard);
+          }
+
           std::cout << it->get().pc << ":";
           it->get().output(std::cout);
               std::cout << "\n";
         }
+//        irep_serializationt::ireps_containert c;
+//        irep_serializationt s(c);
+//
+//
+//        s.write_irep(std::cout, conjunction);
+
         std::cout << "\n";
         /*/ Output code */
+
+
 
         status() << "Path complete.\n";
         break;
