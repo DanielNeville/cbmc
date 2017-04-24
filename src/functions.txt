@@ -1,5 +1,0 @@
-main
-_start
-__CPROVER_initialize
-__builtin___memcpy_chk
-klee_make_symbolic
