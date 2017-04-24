@@ -17,6 +17,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/irep_serialization.h>
 
+// Dan
+#include <fstream>
+
 #include "path_search.h"
 
 /*******************************************************************\
@@ -52,6 +55,7 @@ path_searcht::resultt path_searcht::operator()(
     }
     queue.back().replay_set=true;
     queue.back().replay_path=replay_path;
+
   }
 
   // set up the statistics
@@ -173,11 +177,15 @@ path_searcht::resultt path_searcht::operator()(
           it->get().output(std::cout);
               std::cout << "\n";
         }
-//        irep_serializationt::ireps_containert c;
-//        irep_serializationt s(c);
+        irep_serializationt::ireps_containert c;
+        irep_serializationt s(c);
 //
 //
-//        s.write_irep(std::cout, conjunction);
+        std::ofstream outfile (output_file, std::ofstream::binary);
+
+        s.write_irep(outfile, conjunction);
+
+        outfile.close();
 
         std::cout << "\n";
         /*/ Output code */

@@ -217,6 +217,7 @@ public:
   bool replay_set;
   std::deque<bool> replay_path;
   bool replay_complete;
+  dstring replay_name;
 
 protected:
   unsigned current_thread;

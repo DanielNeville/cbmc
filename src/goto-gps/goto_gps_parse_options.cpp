@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+/* Notes:
+ *
+ *   212  cbmc bug.c --cover exit --show-goto-functions
+  284  symex bug.c --replay 101 --replay-start 13 --show-goto-functions
+ */
+
 #include <cstdlib> // exit()
 #include <iostream>
 #include <fstream>
@@ -324,64 +330,64 @@ public:
     return arg_ref.data();
   }
 };
-//
-//
-//class cbmc_runnert: public args_providert, public cbmc_parse_optionst
-//{
-//
-//  const symbol_tablet &st;
-//  const goto_functionst &gf;
-//  cbmc_resultt &result;
-//  safety_checkert::resultt bmc_result;
-//  const bool keep_goto_programs;
-//
-//public:
-//  cbmc_runnert(const symbol_tablet &st, const goto_functionst &gf,
-//      cbmc_resultt &result, const bool keep_goto_programs) :
-//      cbmc_parse_optionst(argc(), argv()), st(st), gf(gf), result(result), bmc_result(
-//          safety_checkert::UNSAFE), keep_goto_programs(keep_goto_programs)
-//  {
-//  }
-//
-//  virtual ~cbmc_runnert()=default;
-//
-//  virtual int get_goto_program(const optionst &options, bmct &bmc,
-//      goto_functionst &goto_functions)
-//  {
-//    symbol_table.clear();
-//    symbol_table=st;
-//    goto_functions.clear();
-//    goto_functions.copy_from(gf);
-//    if (process_goto_program(options, goto_functions)) return 6;
-//    if (keep_goto_programs)
-//    {
-//      const std::string path("bug.c");
-//      message_handlert &msg=get_message_handler();
-//      write_goto_binary(path, symbol_table, goto_functions, msg);
-//    }
-//
-//    return -1;
-//  }
-//
-//  int do_bmc(bmct &bmc, const goto_functionst &goto_functions)
-//  {
-//    bmc.set_ui(get_ui());
-//    result.symbol_table.clear();
-//    result.symbol_table=symbol_table;
-//    result.goto_functions.clear();
-//    result.goto_functions.copy_from(goto_functions);
-//    bmc_result=bmc.run(result.goto_functions);
-//    result.trace=bmc.safety_checkert::error_trace;
-//    return 0;
-//  }
-//
-//  safety_checkert::resultt get_bmc_result() const
-//  {
-//    return bmc_result;
-//  }
-//};
-//
-//
+
+
+class cbmc_runnert: public args_providert, public cbmc_parse_optionst
+{
+
+  const symbol_tablet &st;
+  const goto_functionst &gf;
+  cbmc_resultt &result;
+  safety_checkert::resultt bmc_result;
+  const bool keep_goto_programs;
+
+public:
+  cbmc_runnert(const symbol_tablet &st, const goto_functionst &gf,
+      cbmc_resultt &result, const bool keep_goto_programs) :
+      cbmc_parse_optionst(argc(), argv()), st(st), gf(gf), result(result), bmc_result(
+          safety_checkert::UNSAFE), keep_goto_programs(keep_goto_programs)
+  {
+  }
+
+  virtual ~cbmc_runnert()=default;
+
+  virtual int get_goto_program(const optionst &options, bmct &bmc,
+      goto_functionst &goto_functions)
+  {
+    symbol_table.clear();
+    symbol_table=st;
+    goto_functions.clear();
+    goto_functions.copy_from(gf);
+    if (process_goto_program(options, goto_functions)) return 6;
+    if (keep_goto_programs)
+    {
+      const std::string path("bug.c");
+      message_handlert &msg=get_message_handler();
+      write_goto_binary(path, symbol_table, goto_functions, msg);
+    }
+
+    return -1;
+  }
+
+  int do_bmc(bmct &bmc, const goto_functionst &goto_functions)
+  {
+    bmc.set_ui(get_ui());
+    result.symbol_table.clear();
+    result.symbol_table=symbol_table;
+    result.goto_functions.clear();
+    result.goto_functions.copy_from(goto_functions);
+    bmc_result=bmc.run(result.goto_functions);
+    result.trace=bmc.safety_checkert::error_trace;
+    return 0;
+  }
+
+  safety_checkert::resultt get_bmc_result() const
+  {
+    return bmc_result;
+  }
+};
+
+
 //safety_checkert::resultt run_cbmc(const symbol_tablet &st,
 //    const goto_functionst &gf, cbmc_resultt &cbmc_result,
 //    const bool keep_goto_programs)

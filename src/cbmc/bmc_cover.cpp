@@ -410,18 +410,21 @@ bool bmc_covert::operator()()
     for(const auto & it : test.goto_trace.steps)
     {
       locs.push_back(it.pc->location_number);
-      std::cout << it.pc->location_number << ",";
+//      std::cout << it.pc->location_number << ",";
     }
-    std::cout << "\n";
+//    std::cout << "\n";
 
     std::deque<bool> bits;
     bool result = locs2bits(locs, bits, goto_functions);
 
-    std::cout << locs.front() << ";";
+    std::cout << "PATH:" <<  locs.front() << ";";
+
+    bool first=true;
 
     for(std::deque<bool>::iterator it = bits.begin();
         it != bits.end();
         it++) {
+      if(!first)
       std::cout << (*it ? "1" : "0") << ",";
     }
 

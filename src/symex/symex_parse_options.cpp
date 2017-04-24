@@ -246,6 +246,25 @@ int symex_parse_optionst::doit()
     return 0;
   }
 
+
+  if(cmdline.isset("start-gps"))
+  {
+    std::string output_dir = "./";
+
+    if(cmdline.isset("output-dir")) {
+      output_dir = cmdline.get_value("output-dir") + "/";
+    }
+
+    std::string output_file = output_dir  + "jobs.txt";
+    std::ofstream outfile (output_file, std::ofstream::out);
+    std::string command = "cbmc " + *cmdline.args.begin() + " --cover exit --function ";
+
+    for(auto i: goto_model.goto_functions.function_map) {
+      outfile << command + i.first.c_str() + "\n";
+    }
+    return 0;
+  }
+
   // do actual Symex
 
   try
@@ -283,6 +302,7 @@ int symex_parse_optionst::doit()
       return 0;
     }
 
+
     if(cmdline.isset("replay")) {
       status() << "Replay Mode enabled.  Assertion checking OFF.\n";
 
@@ -295,15 +315,27 @@ int symex_parse_optionst::doit()
         if(replay_path[i] == '1') {
           path_search.replay_path.push_back(true);
         }
-        if(replay_path[i] == '0')
+        else if(replay_path[i] == '0')
         {
           path_search.replay_path.push_back(false);
+        }
+        else {
+          // Ignore (e.g. comma)
         }
       }
 
       if(cmdline.isset("replay-start")) {
         path_search.replay_start = safe_string2unsigned(cmdline.get_value("replay-start"));
+      } else {
+        path_search.replay_start = 0;
+        // Leave it blank.  I think this should be an error eventually.
       }
+
+      std::string output_dir = "./";
+
+      std::string new_output = output_dir + *cmdline.args.begin() + "+" + cmdline.get_value("replay-start") + "+" + cmdline.get_value("replay") + ".json";
+      path_search.output_file=new_output;
+      std::cout << "Outputting to: " << new_output << "\n";
     }
 
     path_search.eager_infeasibility=

@@ -87,3 +87,4 @@ src/util/irep_ids_convert
 src/util/irep_ids_convert.exe
 
 src/bin/*
+src/py-runs/

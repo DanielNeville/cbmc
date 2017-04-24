@@ -102,6 +102,7 @@ public:
   bool replay_set;
   int replay_start;
   std::deque<bool> replay_path;
+  std::string output_file;
 
 protected:
   typedef path_symex_statet statet;
