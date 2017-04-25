@@ -36,6 +36,7 @@ public:
     message_handlert &_message_handler,
     prop_convt& _prop_conv):
     safety_checkert(ns, _message_handler),
+    gps(false),
     options(_options),
     ns(_symbol_table, new_symbol_table),
     equation(ns),
@@ -64,6 +65,11 @@ public:
   {
     return run(goto_functions);
   }
+
+  // GPS
+  std::string format_string;
+  std::string work_file;
+  bool gps;
 
 protected:
   const optionst &options;  

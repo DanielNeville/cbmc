@@ -146,6 +146,8 @@ public:
   // gets called by prop_covert
   virtual void satisfying_assignment();
 
+  std::string symex_command;
+
   struct goalt
   {
     // a criterion is satisfied if _any_ instance is true
@@ -403,32 +405,40 @@ bool bmc_covert::operator()()
   for(const auto & it : goal_map)
     if(it.second.satisfied) goals_covered++;
   
-  std::deque<unsigned int> locs;
 
-  for(const auto & test : tests)
+  if(bmc.gps)
   {
-    for(const auto & it : test.goto_trace.steps)
+    std::ofstream outfile(bmc.work_file, std::fstream::app);
+
+    for (const auto & test : tests)
     {
-      locs.push_back(it.pc->location_number);
-//      std::cout << it.pc->location_number << ",";
+      std::deque<unsigned int> locs;
+      std::deque<bool> bits;
+
+      for (const auto & it : test.goto_trace.steps)
+      {
+        locs.push_back(it.pc->location_number);
+      }
+
+
+      bool result=locs2bits(locs, bits, goto_functions);
+
+      std::stringstream output;
+
+      output << bmc.format_string;
+      output << " --replay-start ";
+      output << locs.front();
+      output << " --replay ";
+
+      for (std::deque<bool>::iterator it=bits.begin(); it != bits.end(); it++)
+      {
+        output << (*it ? "1" : "0") << "";
+      }
+
+      output << "\n";
+
+      outfile << output.rdbuf();
     }
-//    std::cout << "\n";
-
-    std::deque<bool> bits;
-    bool result = locs2bits(locs, bits, goto_functions);
-
-    std::cout << "PATH:" <<  locs.front() << ";";
-
-    bool first=true;
-
-    for(std::deque<bool>::iterator it = bits.begin();
-        it != bits.end();
-        it++) {
-      if(!first)
-      std::cout << (*it ? "1" : "0") << ",";
-    }
-
-    std::cout << "\n";
   }
 
   switch(bmc.ui)

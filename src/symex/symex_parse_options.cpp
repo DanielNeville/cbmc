@@ -252,12 +252,18 @@ int symex_parse_optionst::doit()
     std::string output_dir = "./";
 
     if(cmdline.isset("output-dir")) {
-      output_dir = cmdline.get_value("output-dir") + "/";
+      output_dir = cmdline.get_value("output-dir");
     }
 
+    /* remove trailing slashes */
+    while(output_dir.rbegin() != output_dir.rend() &&
+        *output_dir.rbegin() == '/')
+      output_dir.pop_back();
+
+
     std::string output_file = output_dir  + "jobs.txt";
-    std::ofstream outfile (output_file, std::ofstream::out);
-    std::string command = "cbmc " + *cmdline.args.begin() + " --cover exit --function ";
+    std::ofstream outfile (output_file, std::fstream::app);
+    std::string command = "cbmc " + *cmdline.args.begin() + " --gps --cover exit --output-dir " + output_dir + " --function ";
 
     for(auto i: goto_model.goto_functions.function_map) {
       outfile << command + i.first.c_str() + "\n";
@@ -333,9 +339,18 @@ int symex_parse_optionst::doit()
 
       std::string output_dir = "./";
 
-      std::string new_output = output_dir + *cmdline.args.begin() + "+" + cmdline.get_value("replay-start") + "+" + cmdline.get_value("replay") + ".json";
+      if(cmdline.isset("output-dir")) {
+        output_dir = cmdline.get_value("output-dir");
+      }
+
+      /* remove trailing slashes */
+      while(output_dir.rbegin() != output_dir.rend() &&
+          *output_dir.rbegin() == '/')
+        output_dir.pop_back();
+
+      std::string new_output = output_dir + "/" + *cmdline.args.begin() + "+" + cmdline.get_value("replay-start") + "+" + cmdline.get_value("replay") + ".json";
       path_search.output_file=new_output;
-      std::cout << "Outputting to: " << new_output << "\n";
+      status() << "Outputting to: " << new_output << "\n";
     }
 
     path_search.eager_infeasibility=

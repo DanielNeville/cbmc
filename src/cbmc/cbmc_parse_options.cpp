@@ -572,6 +572,33 @@ int cbmc_parse_optionst::doit()
   if(set_properties(goto_functions))
     return 7;
 
+  /* GPS */
+
+  bmc.gps=cmdline.isset("gps");
+
+  if(cmdline.isset("gps"))
+  {
+    std::string output_dir = "./";
+
+    if(cmdline.isset("output-dir")) {
+      output_dir = cmdline.get_value("output-dir") + "/";
+    }
+
+    /* remove trailing slashes */
+    while(output_dir.rbegin() != output_dir.rend() &&
+        *output_dir.rbegin() == '/')
+      output_dir.pop_back();
+
+
+    std::string output_file = output_dir  + "/jobs.txt";
+    std::ofstream outfile (output_file, std::fstream::app);
+    std::string command = "symex " + *cmdline.args.begin() + " --output-dir " + output_dir + " ";
+
+    bmc.work_file=output_file;
+    bmc.format_string=command;
+  }
+
+
   // do actual BMC
   return do_bmc(bmc, goto_functions);
 }

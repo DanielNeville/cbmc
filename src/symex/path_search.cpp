@@ -173,26 +173,16 @@ path_searcht::resultt path_searcht::operator()(
             conjunction.operands().push_back(it->get().guard);
           }
 
-          std::cout << it->get().pc << ":";
-          it->get().output(std::cout);
-              std::cout << "\n";
         }
+
         irep_serializationt::ireps_containert c;
         irep_serializationt s(c);
-//
-//
+
         std::ofstream outfile (output_file, std::ofstream::binary);
-
         s.write_irep(outfile, conjunction);
-
         outfile.close();
 
-        std::cout << "\n";
-        /*/ Output code */
-
-
-
-        status() << "Path complete.\n";
+        status() << "Path complete." << eom;
         break;
       }
 

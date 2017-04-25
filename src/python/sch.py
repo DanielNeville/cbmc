@@ -65,7 +65,9 @@ def run():
 
 	# Start worker processes
 	for i in range(NUMBER_OF_PROCESSES):
-		Process(target=worker, args=(task_queue, done_queue)).start()
+		proc = Process(target=worker, args=(task_queue, done_queue))
+		proc.daemon=True
+		proc.start()
 
 	# # Get and print results
 	# print 'Unordered results:'
@@ -90,6 +92,9 @@ def run():
 		print job
 		task_queue.put((execute_command, (job,)))
 		active_tasks = active_tasks + 1
+
+	while True:
+		print len(done_queue)
 
 
 	# for job in jobs:
