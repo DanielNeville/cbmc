@@ -5,12 +5,21 @@ import time, os, random, pprint
 from multiprocessing import Process, Queue, current_process, freeze_support
 
 jobs_file = "/Users/dan/tmp/jobs.txt"
-NUMBER_OF_PROCESSES = 4
+completed_jobs_file = "/Users/dan/tmp/completed_jobs.txt"
 
+NUMBER_OF_PROCESSES = 1
+
+if not os.path.exists(completed_jobs_file):
+    open(completed_jobs_file, 'w+').close() 
+
+locally_completed_jobs = []
 
 
 if not os.path.isfile(jobs_file):
 	print("Invalid jobs file.")
+
+if not os.path.exists(completed_jobs_file):
+	print("Invalid completed jobs file.")
 #
 # Function run by worker processes
 #
@@ -26,26 +35,76 @@ def worker(input, output):
 
 def execute_function(func, args):
 	result = func(*args)
-	return '%s says that %s%s = %s' % \
+
+	print '%s says that %s%s = %s' % \
 		(current_process().name, func.__name__, args, result)
+	return result
+	
 
 
-def get_jobs(lines_to_read):
+def get_jobs(jobs_to_read):
+	print "GETTING JOBS!"
+
+
 	jobs = []
-	with open(jobs_file, 'r') as f:
-		while lines_to_read > 0:
-			chunk = f.readline().strip()
-			if chunk == "":
-				break
-			jobs.append(chunk)
-			lines_to_read = lines_to_read - 1
-	return jobs
+	completed_jobs = []
 
-def execute_command(command):
+	with open(jobs_file, 'r') as f:
+		all_jobs = [x.rstrip('\n').rstrip('\r').strip() for x in f.readlines()]
+
+	jobs = []
+	[jobs.append(item) for item in all_jobs if item not in jobs]
+
+	with open(completed_jobs_file, 'r') as f:
+		completed_jobs = [x.rstrip('\n').rstrip('\r').strip() for x in f.readlines()]		
+
+	i = 0
+
+	for job in jobs:
+		print str(i) + job
+		i = i + 1
+		if job in completed_jobs or job in locally_completed_jobs:
+			print "REMOVED"
+			jobs.remove(job)
+
+		if(job == "cbmc bug.o --cover exit --function _start"):
+			print "HELLO"
+
+		print (job in completed_jobs)
+
+
+	print "completed"
+
+	i = 0
+
+	for job in completed_jobs:
+		print str(i) + job
+		i = i + 1		
+
+		if(job== "cbmc bug.c --cover exit --function _start"):
+			print "HELLO2"
+
+	return jobs[0:jobs_to_read]
+
+
+	# with open(jobs_file, 'r') as f:
+	# 	while lines_to_read > 0:
+	# 		chunk = f.readline().strip()
+	# 		if chunk == "":
+	# 			break
+	# 		jobs.append(chunk)
+	# 		lines_to_read = lines_to_read - 1
+	# return jobs
+
+def write_completed_job(job):
+	with open(completed_jobs_file, 'a+') as f:
+		f.write(job + "\n")
+
+def execute_command(command, id):
 	print "Running: " + command
 	os.system(command)
 
-	return 0
+	return id
 #
 #
 #
@@ -86,16 +145,43 @@ def run():
 	# for task in TASKS2:
 		# task_queue.put(task)
 
-	jobs = get_jobs(NUMBER_OF_PROCESSES - active_tasks)
+	active_tasks = {}
 
-	for job in jobs:
-		print job
-		task_queue.put((execute_command, (job,)))
-		active_tasks = active_tasks + 1
+	task_id = 0
 
-	while True:
-		print len(done_queue)
+	loops = 2
 
+	while loops > 0:
+		loops = loops - 1
+
+		while not done_queue.empty():
+			result = done_queue.get()
+
+			if result in active_tasks.keys(): 
+				print "COMPLETED:" + active_tasks[result]
+				write_completed_job(active_tasks[result])
+				locally_completed_jobs.append(active_tasks[result])
+				del active_tasks[result]
+			else:
+				print("ERROR!")
+
+
+
+
+		if len(active_tasks) < NUMBER_OF_PROCESSES:
+			jobs = get_jobs(NUMBER_OF_PROCESSES - len(active_tasks))
+
+			for job in jobs:
+				# print job, task_id
+				task_queue.put((execute_command, (job, task_id)))
+				active_tasks[task_id] = job
+
+				task_id = task_id + 1
+
+		print active_tasks
+		
+
+		time.sleep(2)
 
 	# for job in jobs:
 	# 	print job
