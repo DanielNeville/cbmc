@@ -1,25 +1,29 @@
 
 
-import time, os, random, pprint
+import time, os, random, pprint, sys, signal
+
+def signal_handler(signal, frame):
+    print "Ctrl+C caught.  Quitting... Jobs not registered as complete will be reran next time."
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 from multiprocessing import Process, Queue, current_process, freeze_support
+
+
 
 jobs_file = "/Users/dan/tmp/jobs.txt"
 completed_jobs_file = "/Users/dan/tmp/completed_jobs.txt"
 
-NUMBER_OF_PROCESSES = 1
+symex = "symex"
 
-if not os.path.exists(completed_jobs_file):
-    open(completed_jobs_file, 'w+').close() 
+NUMBER_OF_PROCESSES = 1
 
 locally_completed_jobs = []
 
 
-if not os.path.isfile(jobs_file):
-	print("Invalid jobs file.")
 
-if not os.path.exists(completed_jobs_file):
-	print("Invalid completed jobs file.")
+
 #
 # Function run by worker processes
 #
@@ -29,98 +33,68 @@ def worker(input, output):
 		result = execute_function(func, args)
 		output.put(result)
 
-#
-# Function used to calculate result
-#
-
+# Hand-off function, allows diagnostics.
 def execute_function(func, args):
 	result = func(*args)
 
-	print '%s says that %s%s = %s' % \
-		(current_process().name, func.__name__, args, result)
+	# Verbose
+	# print '%s says that %s%s = %s' % (current_process().name, func.__name__, args, result)
 	return result
 	
 
 
 def get_jobs(jobs_to_read):
-	print "GETTING JOBS!"
-
-
 	jobs = []
+	all_jobs = []
 	completed_jobs = []
+	all_completed_jobs = []
 
+	# Read all the jobs with stripping
 	with open(jobs_file, 'r') as f:
 		all_jobs = [x.rstrip('\n').rstrip('\r').strip() for x in f.readlines()]
 
-	jobs = []
+	# remove dupes but maintain order
 	[jobs.append(item) for item in all_jobs if item not in jobs]
 
+	# reopen completed jobs
 	with open(completed_jobs_file, 'r') as f:
-		completed_jobs = [x.rstrip('\n').rstrip('\r').strip() for x in f.readlines()]		
+		all_completed_jobs = [x.rstrip('\n').rstrip('\r').strip() for x in f.readlines()]	
 
-	i = 0
+	# remove dupes
+	[completed_jobs.append(item) for item in all_completed_jobs if item not in completed_jobs]
 
-	for job in jobs:
-		print str(i) + job
-		i = i + 1
-		if job in completed_jobs or job in locally_completed_jobs:
-			print "REMOVED"
-			jobs.remove(job)
+	# remove completed jobs from jobs list
+	jobs = [x for x in jobs if not (x in completed_jobs or x in locally_completed_jobs)]
 
-		if(job == "cbmc bug.o --cover exit --function _start"):
-			print "HELLO"
-
-		print (job in completed_jobs)
-
-
-	print "completed"
-
-	i = 0
-
-	for job in completed_jobs:
-		print str(i) + job
-		i = i + 1		
-
-		if(job== "cbmc bug.c --cover exit --function _start"):
-			print "HELLO2"
-
+	# return requested amount of jobs
 	return jobs[0:jobs_to_read]
-
-
-	# with open(jobs_file, 'r') as f:
-	# 	while lines_to_read > 0:
-	# 		chunk = f.readline().strip()
-	# 		if chunk == "":
-	# 			break
-	# 		jobs.append(chunk)
-	# 		lines_to_read = lines_to_read - 1
-	# return jobs
 
 def write_completed_job(job):
 	with open(completed_jobs_file, 'a+') as f:
 		f.write(job + "\n")
 
 def execute_command(command, id):
-	print "Running: " + command
-	os.system(command)
-
+	print str(id) + " | Running: " + command
+	os.system(command + " ")
+	print str(id) + " | Complete."
 	return id
 #
 #
 #
 
 def run():
-	# TASKS1 = [(mul, (i, 7)) for i in range(20)]
-	# TASKS2 = [(plus, (i, 8)) for i in range(10)]
-	active_tasks = 0
+
+	if not os.path.isfile(jobs_file):
+		print("Invalid jobs file.")
+
+	if not os.path.exists(completed_jobs_file):
+		print("Invalid completed jobs file.")
 
 	# Create queues
 	task_queue = Queue()
 	done_queue = Queue()
 
-	# # Submit tasks
-	# for task in TASKS1:
-	#     task_queue.put(task)
+
 
 	# Start worker processes
 	for i in range(NUMBER_OF_PROCESSES):
@@ -128,42 +102,35 @@ def run():
 		proc.daemon=True
 		proc.start()
 
-	# # Get and print results
-	# print 'Unordered results:'
-	# for i in range(len(TASKS1)):
-	#     print '\t', done_queue.get()
-
-	# print "Adding more in 1..."
-
-
-
-	# time.sleep(1)
-
-	# print "Now!"
-
-	# Add more tasks using `put()`
-	# for task in TASKS2:
-		# task_queue.put(task)
-
 	active_tasks = {}
-
+	# IDs aren't important now, but give options for later
 	task_id = 0
+	# Maximum iterations
+	loops = 1
+	# Or just run forever.
+	forever = True
 
-	loops = 2
 
-	while loops > 0:
+	while loops > 0 or forever:
 		loops = loops - 1
+
+		if(len(active_tasks) == 0 and len(get_jobs(NUMBER_OF_PROCESSES - len(active_tasks))) == 0):
+			print "No work active and no work scheduled.  Sleeping for 1 minute."
+			time.sleep(59)
 
 		while not done_queue.empty():
 			result = done_queue.get()
 
 			if result in active_tasks.keys(): 
-				print "COMPLETED:" + active_tasks[result]
+				# print "COMPLETED:" + active_tasks[result]
 				write_completed_job(active_tasks[result])
 				locally_completed_jobs.append(active_tasks[result])
 				del active_tasks[result]
 			else:
 				print("ERROR!")
+				print("Task completed, but never scheduled!")
+				print("ID:" + str(result))
+				sys.exit()
 
 
 
@@ -178,21 +145,11 @@ def run():
 
 				task_id = task_id + 1
 
-		print active_tasks
-		
-
-		time.sleep(2)
-
-	# for job in jobs:
-	# 	print job
-	# 	task_queue.put((execute_command, (job,)))
-	# 	active_tasks = active_tasks + 1
-	
 
 
-	# Get and print some more results
-	# for i in range(len(TASKS2)):
-	#     print '\t', done_queue.get()
+		time.sleep(1)
+
+
 
 	# Tell child processes to stop
 	for i in range(NUMBER_OF_PROCESSES):
@@ -200,5 +157,48 @@ def run():
 
 
 if __name__ == '__main__':
-	freeze_support()
-	run()
+	if(len(sys.argv) >= 2):
+		print sys.argv
+		output_dir = os.path.abspath(sys.argv[1].strip().rstrip("/"))
+
+		jobs_file = output_dir + "/jobs.txt"
+		completed_jobs_file = output_dir + "/completed_jobs.txt"
+
+		if not os.path.exists(output_dir):
+			print "Creating directory: " + output_dir
+			os.makedirs(output_dir)
+		else:
+			print "Directory found: " + output_dir
+
+		existing_jobs = os.path.exists(jobs_file)
+
+		if not existing_jobs:
+			open(jobs_file, 'w+').close() 
+			print "Creating jobs.txt"
+		else:
+			print "Existing jobs.txt found"
+
+		if not os.path.exists(completed_jobs_file):
+			open(completed_jobs_file, 'w+').close() 
+
+		if(sys.argv[2].strip() == "start"):
+			binary = os.path.abspath(sys.argv[3].strip())
+
+			if not os.path.isfile(binary):
+				print "Cannot find binary file: " + binary
+				sys.exit()
+
+			command = "symex " + binary + " --start-gps --output-dir " + output_dir
+
+			print "Writing initial command: " + command
+			with open(jobs_file, 'a+') as f:
+				f.write(command + "\n") 
+			# Job written!
+		
+		freeze_support()
+		run()
+
+	else:
+		print "python " + sys.argv[0] +  " [output-dir] [start] [goto-binary]"
+
+	sys.exit()

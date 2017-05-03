@@ -6,6 +6,10 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <glob.h>
+#include <util/irep_serialization.h>
+
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -249,6 +253,8 @@ int symex_parse_optionst::doit()
 
   if(cmdline.isset("start-gps"))
   {
+    std::cout << "GPS initialising.  Generating first commands.\n";
+
     std::string output_dir = "./";
 
     if(cmdline.isset("output-dir")) {
@@ -261,13 +267,60 @@ int symex_parse_optionst::doit()
       output_dir.pop_back();
 
 
-    std::string output_file = output_dir  + "jobs.txt";
+
+    std::string output_file = output_dir  + "/jobs.txt";
     std::ofstream outfile (output_file, std::fstream::app);
     std::string command = "cbmc " + *cmdline.args.begin() + " --gps --cover exit --output-dir " + output_dir + " --function ";
 
     for(auto i: goto_model.goto_functions.function_map) {
       outfile << command + i.first.c_str() + "\n";
     }
+    return 0;
+  }
+
+  if(cmdline.isset("graph-search"))
+  {
+    std::string output_dir = "./";
+
+    if(cmdline.isset("output-dir")) {
+      output_dir = cmdline.get_value("output-dir");
+    }
+
+    /* remove trailing slashes */
+    while(output_dir.rbegin() != output_dir.rend() &&
+        *output_dir.rbegin() == '/')
+      output_dir.pop_back();
+
+    std::string json_search = output_dir + "/*.json";
+
+    std::vector<std::string> files;
+
+    glob_t glob_result;
+    glob(json_search.c_str(), GLOB_TILDE, NULL, &glob_result);
+    for(unsigned int i=0; i<glob_result.gl_pathc; ++i){
+      files.push_back(glob_result.gl_pathv[i]);
+    }
+
+    status() << "Found " << files.size() << " files." << eom;
+
+    std::vector<exprt> constraints;
+
+    irep_serializationt::ireps_containert c;
+    irep_serializationt s(c);
+
+    for(auto file: files) {
+      irept irep;
+
+      std::filebuf fb;
+      fb.open (file, std::ios::in);
+
+      std::istream is(&fb);
+      s.read_irep(is, irep);
+      fb.close();
+    }
+
+
+
     return 0;
   }
 
@@ -348,7 +401,15 @@ int symex_parse_optionst::doit()
           *output_dir.rbegin() == '/')
         output_dir.pop_back();
 
-      std::string new_output = output_dir + "/" + *cmdline.args.begin() + "+" + cmdline.get_value("replay-start") + "+" + cmdline.get_value("replay") + ".json";
+      std::string full_path = *cmdline.args.begin();
+      int begin_idx = full_path.rfind('/');
+
+      std::string filename =
+          (std::string::npos == begin_idx) ?
+          full_path :
+          full_path.substr(begin_idx + 1);
+
+      std::string new_output = output_dir + "/" + filename + "_" + cmdline.get_value("replay-start") + "_" + cmdline.get_value("replay") + ".json";
       path_search.output_file=new_output;
       status() << "Outputting to: " << new_output << "\n";
     }

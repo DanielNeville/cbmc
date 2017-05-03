@@ -112,6 +112,17 @@ void goto_instrument_parse_optionst::eval_verbosity()
   ui_message_handler.set_verbosity(v);
 }
 
+
+
+bool contains_function_call(exprt &expr, std::set<exprt> &modifies, bool &found)
+{
+  std::cout << expr.type().pretty() << "\n";
+
+
+  return true;
+}
+
+
 /*******************************************************************\
 
 Function: goto_instrument_parse_optionst::doit
@@ -511,6 +522,64 @@ int goto_instrument_parse_optionst::doit()
       show_locations(get_ui(), goto_functions);
       return 0;
     }
+
+    if(cmdline.isset("havoc-function-calls"))
+    {
+      Forall_goto_functions(f_it, goto_functions)
+      {
+        if(f_it->second.body_available())
+        {
+          Forall_goto_program_instructions(it, f_it->second.body)
+          {
+            std::set<exprt> modifies;
+            modifies.clear();
+
+            if(it->is_function_call()) {
+                code_function_callt code = to_code_function_call(it->code);
+
+                for(auto iterator :  code.arguments()) {
+                  modifies.insert(iterator);
+                }
+                if(code.lhs().is_not_nil()) {
+                  modifies.insert(code.lhs());
+                }
+            }
+
+//            if(it->is_assign()) {
+//              code_assignt code = to_code_assign(it->code);
+//              bool found = false;
+//              contains_function_call(code.rhs(), modifies, found);
+//
+//              if(found) {
+//                modifies.insert(code.lhs());
+//              }
+//            }
+
+            if(modifies.size() > 0) {
+
+              for(std::set<exprt>::const_iterator
+                  m_it=modifies.begin();
+                  m_it!=modifies.end();
+                  m_it++)
+              {
+                exprt lhs=*m_it;
+                exprt rhs=side_effect_expr_nondett(lhs.type());
+
+                goto_programt::targett t=f_it->second.body.insert_after(it);
+                t->function=it->function;
+                t->source_location=it->source_location;
+                t->code=code_assignt(lhs, rhs);
+                t->code.add_source_location()=it->source_location;
+              }
+
+              f_it->second.body.update();
+            }
+
+          }
+
+      }
+    }
+  }
 
     if(cmdline.isset("dump-c") || cmdline.isset("dump-cpp"))
     {
