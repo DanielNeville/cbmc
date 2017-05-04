@@ -17,7 +17,7 @@ completed_jobs_file = "/Users/dan/tmp/completed_jobs.txt"
 
 symex = "symex"
 
-NUMBER_OF_PROCESSES = 1
+NUMBER_OF_PROCESSES = 4
 
 locally_completed_jobs = []
 

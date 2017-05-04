@@ -62,7 +62,7 @@ Author: Daniel Kroening, kroening@kroening.com
   "(list-symbols)(list-undefined-functions)" \
   "(z3)(add-library)(show-dependence-graph)" \
   "(horn)(skip-loops):(apply-code-contracts)" \
-  "(block-exits)(print-function-names)(havoc-function-calls)"
+  "(block-exits)(print-function-names)(havoc-function-calls)(termination-analysis)"
 
 class goto_instrument_parse_optionst:
   public parse_options_baset,

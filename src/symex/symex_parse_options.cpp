@@ -8,6 +8,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <glob.h>
 #include <util/irep_serialization.h>
+#include <analyses/call_graph.h>
 
 
 #include <iostream>
@@ -270,7 +271,7 @@ int symex_parse_optionst::doit()
 
     std::string output_file = output_dir  + "/jobs.txt";
     std::ofstream outfile (output_file, std::fstream::app);
-    std::string command = "cbmc " + *cmdline.args.begin() + " --gps --cover exit --output-dir " + output_dir + " --function ";
+    std::string command = "cbmc " + *cmdline.args.begin() + " --gps --unwind 1 --cover exit --output-dir " + output_dir + " --function ";
 
     for(auto i: goto_model.goto_functions.function_map) {
       outfile << command + i.first.c_str() + "\n";
@@ -302,6 +303,12 @@ int symex_parse_optionst::doit()
     }
 
     status() << "Found " << files.size() << " files." << eom;
+
+    call_grapht call_graph(goto_model.goto_functions);
+
+    for(auto main_search: call_graph.graph) {
+      std::cout << main_search.second << "\n";
+    }
 
     std::vector<exprt> constraints;
 

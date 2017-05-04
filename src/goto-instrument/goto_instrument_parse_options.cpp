@@ -6,6 +6,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <path-symex/locs.cpp>
+
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -122,6 +125,29 @@ bool contains_function_call(exprt &expr, std::set<exprt> &modifies, bool &found)
   return true;
 }
 
+
+enum terminationt { TERMINATE, NON_TERMINATE, UNKNOWN, CONTRADICTION };
+
+terminationt meet(terminationt one, terminationt two) {
+  if(one == two) {
+    return one;
+  }
+
+  if(one > two) {
+    terminationt tmp = one;
+    one = two;
+    two = tmp;
+  }
+
+  if(one == TERMINATE && two == NON_TERMINATE) {
+    return CONTRADICTION;
+    /* Error state */
+  }
+
+  if(two == UNKNOWN) {
+    return one;
+  }
+}
 
 /*******************************************************************\
 
@@ -520,6 +546,49 @@ int goto_instrument_parse_optionst::doit()
     if(cmdline.isset("show-locations"))
     {
       show_locations(get_ui(), goto_functions);
+      return 0;
+    }
+
+    if(cmdline.isset("termination-analysis"))
+    {
+      std::cout << "Termination Analysis.\n";
+
+      /* Declare */
+      std::map<unsigned, terminationt> termination_analysis;
+
+      /* Instantiate */
+      forall_goto_functions(it, goto_functions)
+      {
+        natural_loopst natural_loops;
+        natural_loops(it->second.body);
+
+        for(typename natural_loopst::loop_mapt::const_iterator h_it=natural_loops.loop_map.begin();
+            h_it!=natural_loops.loop_map.end(); ++h_it)
+        {
+          unsigned n=h_it->first->location_number;
+          termination_analysis[n]=UNKNOWN;
+        }
+      }
+
+      /* Naive */
+      locst locs;
+      locs.build(goto_functions);
+
+      for(auto &it: termination_analysis) {
+        if(!locs[it.first].target->is_goto()) {
+          std::cout << "Error.  Loop not GOTO.\n";
+        }
+
+        if(locs[it.first].target->guard.is_false()) {
+          it.second=TERMINATE;
+        }
+      }
+
+      /*  Output */
+      for(auto it: termination_analysis) {
+        std::cout << it.first << " : " << it.second << "\n";
+      }
+
       return 0;
     }
 
