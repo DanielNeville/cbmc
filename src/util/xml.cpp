@@ -9,7 +9,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <ostream>
 
 #include "string2int.h"
-#include "i2string.h"
 #include "xml.h"
 
 /*******************************************************************\
@@ -68,20 +67,22 @@ void xmlt::output(std::ostream &out, unsigned indent) const
 {
   // 'name' needs to be set, or we produce mal-formed
   // XML.
-  
-  if(name=="") return;
+
+  if(name=="")
+    return;
 
   do_indent(out, indent);
 
   out << '<' << name;
 
-  for(const auto & it : attributes)
+  for(const auto &attribute : attributes)
   {
     // it.first needs to be non-empty
-    if(it.first=="") continue;
-    out << ' ' << it.first
+    if(attribute.first.empty())
+      continue;
+    out << ' ' << attribute.first
         << '=' << '"';
-    escape_attribute(it.second, out);
+    escape_attribute(attribute.second, out);
     out << '"';
   }
 
@@ -99,8 +100,8 @@ void xmlt::output(std::ostream &out, unsigned indent) const
   {
     out << "\n";
 
-    for(const auto & it : elements)
-      it.output(out, indent+2);
+    for(const auto &element : elements)
+      element.output(out, indent+2);
 
     do_indent(out, indent);
   }
@@ -137,10 +138,10 @@ void xmlt::escape(const std::string &s, std::ostream &out)
     case '>':
       out << "&gt;";
       break;
-    
+
     case '\r':
       break; // drop!
-    
+
     case '\n':
       out << '\n';
       break;
@@ -148,7 +149,7 @@ void xmlt::escape(const std::string &s, std::ostream &out)
     default:
       // &#0; isn't allowed, but what shall we do?
       if((ch>=0 && ch<' ') || ch==127)
-        out << "&#"+i2string((unsigned char)ch)+";";
+        out << "&#"+std::to_string((unsigned char)ch)+";";
       else
         out << ch;
     }
@@ -171,7 +172,7 @@ Function: xmlt::escape_attribute
 
 void xmlt::escape_attribute(const std::string &s, std::ostream &out)
 {
-  for(const auto & ch : s)
+  for(const auto ch : s)
   {
     switch(ch)
     {
@@ -194,7 +195,7 @@ void xmlt::escape_attribute(const std::string &s, std::ostream &out)
     default:
       // &#0; isn't allowed, but what shall we do?
       if((ch>=0 && ch<' ') || ch==127)
-        out << "&#"+i2string((unsigned char)ch)+";";
+        out << "&#"+std::to_string((unsigned char)ch)+";";
       else
         out << ch;
     }
@@ -215,8 +216,7 @@ Function: xmlt::do_indent
 
 void xmlt::do_indent(std::ostream &out, unsigned indent)
 {
-  for(unsigned i=0; i<indent; i++)
-    out << ' ';
+  out << std::string(indent, ' ');
 }
 
 /*******************************************************************\
@@ -281,7 +281,45 @@ void xmlt::set_attribute(
   const std::string &attribute,
   unsigned value)
 {
-  set_attribute(attribute, i2string(value));
+  set_attribute(attribute, std::to_string(value));
+}
+
+/*******************************************************************\
+
+Function: xmlt::set_attribute
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void xmlt::set_attribute(
+  const std::string &attribute,
+  unsigned long value)
+{
+  set_attribute(attribute, std::to_string(value));
+}
+
+/*******************************************************************\
+
+Function: xmlt::set_attribute
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void xmlt::set_attribute(
+  const std::string &attribute,
+  unsigned long long value)
+{
+  set_attribute(attribute, std::to_string(value));
 }
 
 /*******************************************************************\
@@ -300,10 +338,10 @@ void xmlt::set_attribute(
   const std::string &attribute,
   const std::string &value)
 {
-  if ((value[0]=='\"' && value[value.size()-1]=='\"') ||
+  if((value[0]=='\"' && value[value.size()-1]=='\"') ||
       (value[0]=='\'' && value[value.size()-1]=='\''))
   {
-    attributes[attribute]=value.substr(1,value.size()-2);
+    attributes[attribute]=value.substr(1, value.size()-2);
   }
   else
   {
@@ -341,16 +379,19 @@ std::string xmlt::unescape(const std::string &str)
       while(it!=str.end() && *it!=';')
         tmp+=*it++;
 
-      if(tmp=="gt") result+='>';
-      else if(tmp=="lt") result+='<';
-      else if(tmp=="amp") result+='&';
+      if(tmp=="gt")
+        result+='>';
+      else if(tmp=="lt")
+        result+='<';
+      else if(tmp=="amp")
+        result+='&';
       else if(tmp[0]=='#' && tmp[1]!='x')
       {
         char c=unsafe_string2int(tmp.substr(1, tmp.size()-1));
         result+=c;
       }
       else
-        throw "XML escape code not implemented";
+        throw "XML escape code not implemented"; // NOLINT(readability/throw)
     }
     else
       result+=*it;

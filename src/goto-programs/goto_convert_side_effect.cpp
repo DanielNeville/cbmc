@@ -6,11 +6,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <util/arith_tools.h>
 #include <util/expr_util.h>
 #include <util/std_expr.h>
 #include <util/rename.h>
 #include <util/cprover_prefix.h>
-#include <util/i2string.h>
 #include <util/symbol.h>
 
 #include <ansi-c/c_types.h>
@@ -60,7 +60,7 @@ void goto_convertt::remove_assignment(
   bool result_is_used)
 {
   const irep_idt statement=expr.get_statement();
-  
+
   if(statement==ID_assign)
   {
     exprt tmp=expr;
@@ -120,7 +120,7 @@ void goto_convertt::remove_assignment(
     }
 
     exprt rhs;
-    
+
     const typet &op0_type=ns.follow(expr.op0().type());
 
     // C/C++ Booleans get very special treatment.
@@ -130,17 +130,17 @@ void goto_convertt::remove_assignment(
       tmp.op0().make_typecast(expr.op1().type());
       rhs=typecast_exprt(is_not_zero(tmp, ns), expr.op0().type());
     }
-    else 
+    else
     {
       rhs.id(new_id);
       rhs.copy_to_operands(expr.op0(), expr.op1());
       rhs.type()=expr.op0().type();
       rhs.add_source_location()=expr.source_location();
     }
-    
+
     code_assignt assignment(expr.op0(), rhs);
     assignment.add_source_location()=expr.source_location();
-    
+
     convert(assignment, dest);
   }
   else
@@ -193,19 +193,19 @@ void goto_convertt::remove_pre(
     rhs.id(ID_plus);
   else
     rhs.id(ID_minus);
-      
+
   const typet &op_type=ns.follow(expr.op0().type());
-      
+
   if(op_type.id()==ID_bool)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs=is_not_zero(rhs, ns);
   }
   else if(op_type.id()==ID_c_bool)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs=is_not_zero(rhs, ns);
@@ -214,7 +214,7 @@ void goto_convertt::remove_pre(
   else if(op_type.id()==ID_c_enum ||
           op_type.id()==ID_c_enum_tag)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs.make_typecast(op_type);
@@ -234,7 +234,7 @@ void goto_convertt::remove_pre(
       throw 0;
     }
 
-    exprt constant=gen_one(constant_type);
+    exprt constant=from_integer(1, constant_type);
 
     rhs.copy_to_operands(expr.op0());
     rhs.move_to_operands(constant);
@@ -243,7 +243,7 @@ void goto_convertt::remove_pre(
 
   code_assignt assignment(expr.op0(), rhs);
   assignment.add_source_location()=expr.find_source_location();
-  
+
   convert(assignment, dest);
 
   if(result_is_used)
@@ -297,19 +297,19 @@ void goto_convertt::remove_post(
     rhs.id(ID_plus);
   else
     rhs.id(ID_minus);
-    
+
   const typet &op_type=ns.follow(expr.op0().type());
-    
+
   if(op_type.id()==ID_bool)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs=is_not_zero(rhs, ns);
   }
   else if(op_type.id()==ID_c_bool)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs=is_not_zero(rhs, ns);
@@ -318,7 +318,7 @@ void goto_convertt::remove_post(
   else if(op_type.id()==ID_c_enum ||
           op_type.id()==ID_c_enum_tag)
   {
-    rhs.copy_to_operands(expr.op0(), gen_one(signed_int_type()));
+    rhs.copy_to_operands(expr.op0(), from_integer(1, signed_int_type()));
     rhs.op0().make_typecast(signed_int_type());
     rhs.type()=signed_int_type();
     rhs.make_typecast(op_type);
@@ -338,7 +338,16 @@ void goto_convertt::remove_post(
       throw 0;
     }
 
-    exprt constant=gen_one(constant_type);
+    exprt constant;
+
+    if(constant_type.id()==ID_complex)
+    {
+      exprt real=from_integer(1, constant_type.subtype());
+      exprt imag=from_integer(0, constant_type.subtype());
+      constant=complex_exprt(real, imag, to_complex_type(constant_type));
+    }
+    else
+      constant=from_integer(1, constant_type);
 
     rhs.copy_to_operands(expr.op0());
     rhs.move_to_operands(constant);
@@ -347,7 +356,7 @@ void goto_convertt::remove_post(
 
   code_assignt assignment(expr.op0(), rhs);
   assignment.add_source_location()=expr.find_source_location();
-  
+
   convert(assignment, tmp2);
 
   // fix up the expression, if needed
@@ -422,13 +431,13 @@ void goto_convertt::remove_function_call(
   {
     const irep_idt &identifier=expr.op0().get(ID_identifier);
     const symbolt &symbol=lookup(identifier);
-    
+
     std::string new_base_name=id2string(new_symbol.base_name);
-    
+
     new_base_name+='_';
     new_base_name+=id2string(symbol.base_name);
-    new_base_name+="$"+i2string(++temporary_counter);
-    
+    new_base_name+="$"+std::to_string(++temporary_counter);
+
     new_symbol.base_name=new_base_name;
     new_symbol.mode=symbol.mode;
   }
@@ -436,7 +445,7 @@ void goto_convertt::remove_function_call(
   new_symbol.name=tmp_symbol_prefix+id2string(new_symbol.base_name);
 
   new_name(new_symbol);
-  
+
   {
     code_declt decl;
     decl.symbol()=new_symbol.symbol_expr();
@@ -501,7 +510,7 @@ void goto_convertt::remove_cpp_new(
 
   auxiliary_symbolt new_symbol;
 
-  new_symbol.base_name="new_ptr$"+i2string(++temporary_counter);
+  new_symbol.base_name="new_ptr$"+std::to_string(++temporary_counter);
   new_symbol.type=expr.type();
   new_symbol.name=tmp_symbol_prefix+id2string(new_symbol.base_name);
 
@@ -542,15 +551,15 @@ void goto_convertt::remove_cpp_delete(
   assert(expr.operands().size()==1);
 
   codet tmp;
-  
+
   tmp.set_statement(expr.get_statement());
   tmp.add_source_location()=expr.source_location();
   tmp.copy_to_operands(expr.op0());
   tmp.set(ID_destructor, expr.find(ID_destructor));
 
   convert_cpp_delete(tmp, dest);
-  
-  expr.make_nil();  
+
+  expr.make_nil();
 }
 
 /*******************************************************************\
@@ -576,7 +585,7 @@ void goto_convertt::remove_malloc(
   {
     auxiliary_symbolt new_symbol;
 
-    new_symbol.base_name="malloc_value$"+i2string(++temporary_counter);
+    new_symbol.base_name="malloc_value$"+std::to_string(++temporary_counter);
     new_symbol.type=expr.type();
     new_symbol.name=tmp_symbol_prefix+id2string(new_symbol.base_name);
     new_symbol.location=expr.source_location();
@@ -590,7 +599,7 @@ void goto_convertt::remove_malloc(
 
     call=code_assignt(new_symbol.symbol_expr(), expr);
     call.add_source_location()=expr.source_location();
-    
+
     static_cast<exprt &>(expr)=new_symbol.symbol_expr();
   }
   else
@@ -631,7 +640,7 @@ void goto_convertt::remove_temporary_object(
     new_tmp_symbol(expr.type(), "obj", dest, expr.find_source_location());
 
   new_symbol.mode=expr.get(ID_mode);
-  
+
   if(expr.operands().size()==1)
   {
     codet assignment(ID_assign);
@@ -691,21 +700,21 @@ void goto_convertt::remove_statement_expression(
   }
 
   codet &code=to_code(expr.op0());
-  
+
   if(!result_is_used)
   {
     convert(code, dest);
     expr.make_nil();
     return;
   }
-  
+
   if(code.get_statement()!=ID_block)
   {
     error().source_location=code.find_source_location();
     error() << "statement_expression takes block as operand" << eom;
     throw 0;
   }
-  
+
   if(code.operands().empty())
   {
     error().source_location=expr.find_source_location();
@@ -713,7 +722,7 @@ void goto_convertt::remove_statement_expression(
             << eom;
     throw 0;
   }
-  
+
   // get last statement from block, following labels
   codet &last=to_code_block(code).find_last_statement();
 
@@ -721,7 +730,7 @@ void goto_convertt::remove_statement_expression(
 
   symbolt &new_symbol=
     new_tmp_symbol(expr.type(), "statement_expression", dest, source_location);
-    
+
   symbol_exprt tmp_symbol_expr(new_symbol.name, new_symbol.type);
   tmp_symbol_expr.add_source_location()=source_location;
 
@@ -748,12 +757,35 @@ void goto_convertt::remove_statement_expression(
   }
 
   {
-    goto_programt tmp;  
+    goto_programt tmp;
     convert(code, tmp);
     dest.destructive_append(tmp);
   }
 
   static_cast<exprt &>(expr)=tmp_symbol_expr;
+}
+
+/*******************************************************************\
+
+Function: goto_convertt::remove_push_catch
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void goto_convertt::remove_push_catch(
+  side_effect_exprt &expr,
+  goto_programt &dest)
+{
+  // we only get here for ID_push_catch, which is only used for Java
+  convert_java_try_catch(code_expressiont(expr), dest);
+
+  // the result can't be used, these are void
+  expr.make_nil();
 }
 
 /*******************************************************************\
@@ -774,7 +806,7 @@ void goto_convertt::remove_side_effect(
   bool result_is_used)
 {
   const irep_idt &statement=expr.get_statement();
-  
+
   if(statement==ID_function_call)
     remove_function_call(expr, dest, result_is_used);
   else if(statement==ID_assign ||
@@ -819,14 +851,17 @@ void goto_convertt::remove_side_effect(
   else if(statement==ID_throw)
   {
     goto_programt::targett t=dest.add_instruction(THROW);
-    t->code=code_expressiont(side_effect_expr_throwt(expr.find(ID_exception_list)));
+    t->code=
+      code_expressiont(side_effect_expr_throwt(expr.find(ID_exception_list)));
     t->code.op0().operands().swap(expr.operands());
     t->code.add_source_location()=expr.source_location();
     t->source_location=expr.source_location();
- 
+
     // the result can't be used, these are void
     expr.make_nil();
   }
+  else if(statement==ID_push_catch)
+    remove_push_catch(expr, dest);
   else
   {
     error().source_location=expr.find_source_location();
@@ -834,4 +869,3 @@ void goto_convertt::remove_side_effect(
     throw 0;
   }
 }
-

@@ -1,21 +1,21 @@
 class A
 {
-	public:
-	int i;
+  public:
+  int i;
 };
 
 class B: A
 {
-	
+
 };
 
 void set_one(A& a)
 {
-	a.i = 1;
+  a.i = 1;
 }
 
 int main()
 {
-	B b;
-	set_one(b);
+  B b;
+  set_one(b);
 }

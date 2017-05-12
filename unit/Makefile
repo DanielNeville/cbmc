@@ -1,6 +1,18 @@
-SRC = cpp_parser.cpp cpp_scanner.cpp elf_reader.cpp float_utils.cpp \
-      ieee_float.cpp json.cpp miniBDD.cpp osx_fat_reader.cpp \
-      smt2_parser.cpp wp.cpp
+SRC = cpp_parser.cpp \
+      cpp_scanner.cpp \
+      elf_reader.cpp \
+      float_utils.cpp \
+      ieee_float.cpp \
+      json.cpp \
+      miniBDD.cpp \
+      osx_fat_reader.cpp \
+      sharing_map.cpp \
+      sharing_node.cpp \
+      smt2_parser.cpp \
+      string_utils.cpp \
+      unicode.cpp \
+      wp.cpp \
+      # Empty last line
 
 INCLUDES= -I ../src/
 
@@ -55,3 +67,16 @@ smt2_parser$(EXEEXT): smt2_parser$(OBJEXT)
 
 wp$(EXEEXT): wp$(OBJEXT)
 	$(LINKBIN)
+
+string_utils$(EXEEXT): string_utils$(OBJEXT)
+	$(LINKBIN)
+
+sharing_map$(EXEEXT): sharing_map$(OBJEXT)
+	$(LINKBIN)
+
+sharing_node$(EXEEXT): sharing_node$(OBJEXT)
+	$(LINKBIN)
+
+unicode$(EXEEXT): unicode$(OBJEXT)
+	$(LINKBIN)
+

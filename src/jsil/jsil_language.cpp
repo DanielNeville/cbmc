@@ -32,9 +32,7 @@ Function: jsil_languaget::extensions
 
 std::set<std::string> jsil_languaget::extensions() const
 {
-  std::set<std::string> s;
-  s.insert("jsil");
-  return s;
+  return { "jsil" };
 }
 
 /*******************************************************************\
@@ -169,7 +167,6 @@ Function: jsil_languaget::final
 
 bool jsil_languaget::final(symbol_tablet &symbol_table)
 {
-
   if(jsil_entry_point(
       symbol_table,
       get_message_handler()))

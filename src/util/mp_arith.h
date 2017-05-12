@@ -6,17 +6,18 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_MP_ARITH_H
-#define CPROVER_MP_ARITH_H
+#ifndef CPROVER_UTIL_MP_ARITH_H
+#define CPROVER_UTIL_MP_ARITH_H
 
 #include <string>
 #include <iosfwd>
 
 #include "big-int/bigint.hh"
 
+// NOLINTNEXTLINE(readability/identifiers)
 typedef BigInt mp_integer;
 
-std::ostream& operator<<(std::ostream &, const mp_integer &);
+std::ostream &operator<<(std::ostream &, const mp_integer &);
 mp_integer operator>>(const mp_integer &, const mp_integer &);
 mp_integer operator<<(const mp_integer &, const mp_integer &);
 
@@ -28,4 +29,4 @@ mp_integer::ullong_t integer2ulong(const mp_integer &);
 std::size_t integer2size_t(const mp_integer &);
 unsigned integer2unsigned(const mp_integer &);
 
-#endif
+#endif // CPROVER_UTIL_MP_ARITH_H

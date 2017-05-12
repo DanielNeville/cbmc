@@ -1,11 +1,18 @@
-#ifndef ACCELERATION_UTILS_H
-#define ACCELERATION_UTILS_H
+/*******************************************************************\
+
+Module: Loop Acceleration
+
+Author: Matt Lewis
+
+\*******************************************************************/
+
+#ifndef CPROVER_GOTO_INSTRUMENT_ACCELERATE_ACCELERATION_UTILS_H
+#define CPROVER_GOTO_INSTRUMENT_ACCELERATE_ACCELERATION_UTILS_H
 
 #include <map>
 #include <set>
 
 #include <util/symbol_table.h>
-#include <util/hash_cont.h>
 
 #include <goto-programs/goto_program.h>
 #include <goto-programs/goto_functions.h>
@@ -18,9 +25,10 @@
 #include "accelerator.h"
 #include "cone_of_influence.h"
 
-typedef hash_map_cont<exprt, exprt, irep_hash> expr_mapt;
+typedef std::unordered_map<exprt, exprt, irep_hash> expr_mapt;
 
-class acceleration_utilst {
+class acceleration_utilst
+{
  public:
   acceleration_utilst(symbol_tablet &_symbol_table,
                       const goto_functionst &_goto_functions,
@@ -66,39 +74,46 @@ class acceleration_utilst {
   typedef std::pair<exprt, exprt> expr_pairt;
   typedef std::vector<expr_pairt> expr_pairst;
 
-  typedef struct polynomial_array_assignment {
+  struct polynomial_array_assignmentt
+  {
     exprt array;
     polynomialt index;
     polynomialt value;
-  } polynomial_array_assignmentt;
+  };
 
-  typedef std::vector<polynomial_array_assignmentt> polynomial_array_assignmentst;
+  typedef std::vector<polynomial_array_assignmentt>
+    polynomial_array_assignmentst;
 
   bool do_arrays(goto_programt::instructionst &loop_body,
                  std::map<exprt, polynomialt> &polynomials,
                  exprt &loop_counter,
                  substitutiont &substitution,
                  scratch_programt &program);
-  expr_pairst gather_array_assignments(goto_programt::instructionst &loop_body,
-                                       expr_sett &arrays_written);
-  bool array_assignments2polys(expr_pairst &array_assignments,
-                               std::map<exprt, polynomialt> &polynomials,
-                               polynomial_array_assignmentst &array_polynomials,
-                               polynomialst &nondet_indices);
-  bool expr2poly(exprt &expr,
-                 std::map<exprt, polynomialt> &polynomials,
-                 polynomialt &poly);
+  expr_pairst gather_array_assignments(
+    goto_programt::instructionst &loop_body,
+    expr_sett &arrays_written);
+  bool array_assignments2polys(
+    expr_pairst &array_assignments,
+    std::map<exprt, polynomialt> &polynomials,
+    polynomial_array_assignmentst &array_polynomials,
+    polynomialst &nondet_indices);
+  bool expr2poly(
+    exprt &expr,
+    std::map<exprt, polynomialt> &polynomials,
+    polynomialt &poly);
 
-  bool do_nonrecursive(goto_programt::instructionst &loop_body,
-                       std::map<exprt, polynomialt> &polynomials,
-                       exprt &loop_counter,
-                       substitutiont &substitution,
-                       expr_sett &nonrecursive,
-                       scratch_programt &program);
-  bool assign_array(const exprt &lhs,
-                    const exprt &rhs,
-                    const exprt &loop_counter,
-                    scratch_programt &program);
+  bool do_nonrecursive(
+    goto_programt::instructionst &loop_body,
+    std::map<exprt, polynomialt> &polynomials,
+    exprt &loop_counter,
+    substitutiont &substitution,
+    expr_sett &nonrecursive,
+    scratch_programt &program);
+  bool assign_array(
+    const exprt &lhs,
+    const exprt &rhs,
+    const exprt &loop_counter,
+    scratch_programt &program);
 
   void gather_array_accesses(const exprt &expr, expr_sett &arrays);
 
@@ -106,13 +121,19 @@ class acceleration_utilst {
 
   void ensure_no_overflows(scratch_programt &program);
 
-  void find_modified(patht &path, expr_sett &modified);
-  void find_modified(goto_programt &program, expr_sett &modified);
-  void find_modified(goto_programt::instructionst &instructions,
-      expr_sett &modified);
-  void find_modified(natural_loops_mutablet::natural_loopt &loop,
-      expr_sett &modified);
-  void find_modified(goto_programt::targett t, expr_sett &modified);
+  void find_modified(const patht &path, expr_sett &modified);
+  void find_modified(
+    const goto_programt &program,
+    expr_sett &modified);
+  void find_modified(
+    const goto_programt::instructionst &instructions,
+    expr_sett &modified);
+  void find_modified(
+    const natural_loops_mutablet::natural_loopt &loop,
+    expr_sett &modified);
+  void find_modified(
+    goto_programt::const_targett t,
+    expr_sett &modified);
 
   symbolt fresh_symbol(std::string base, typet type);
 
@@ -125,4 +146,4 @@ class acceleration_utilst {
   static int num_symbols;
 };
 
-#endif // ACCELERATION_UTILS_H
+#endif // CPROVER_GOTO_INSTRUMENT_ACCELERATE_ACCELERATION_UTILS_H

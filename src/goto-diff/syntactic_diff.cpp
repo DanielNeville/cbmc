@@ -61,7 +61,6 @@ bool syntactic_difft::operator()()
         break;
       }
     }
-
   }
   forall_goto_functions(it, goto_model2.goto_functions)
   {
@@ -81,4 +80,3 @@ bool syntactic_difft::operator()()
            modified_functions.empty() &&
            deleted_functions.empty());
 }
-

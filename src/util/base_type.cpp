@@ -55,8 +55,8 @@ void base_type_rec(
     struct_union_typet::componentst &components=
       to_struct_union_type(type).components();
 
-    for(auto & it : components)
-      base_type_rec(it.type(), ns, symb);
+    for(auto &component : components)
+      base_type_rec(component.type(), ns, symb);
   }
   else if(type.id()==ID_pointer)
   {
@@ -72,11 +72,11 @@ void base_type_rec(
 
       if(symb.find(id)!=symb.end())
         return;
-      
+
       symb.insert(id);
 
       base_type_rec(subtype, ns, symb);
-      
+
       symb.erase(id);
     }
     else
@@ -140,12 +140,12 @@ bool base_type_eqt::base_type_eq_rec(
 {
   if(type1==type2)
     return true;
-    
+
   #if 0
   std::cout << "T1: " << type1.pretty() << std::endl;
   std::cout << "T2: " << type2.pretty() << std::endl;
   #endif
-  
+
   // loop avoidance
   if((type1.id()==ID_symbol ||
       type1.id()==ID_c_enum_tag ||
@@ -170,7 +170,7 @@ bool base_type_eqt::base_type_eq_rec(
 
     if(!symbol.is_type)
       return false;
-    
+
     return base_type_eq_rec(symbol.type, type2);
   }
 
@@ -187,7 +187,7 @@ bool base_type_eqt::base_type_eq_rec(
 
     return base_type_eq_rec(type1, symbol.type);
   }
-  
+
   if(type1.id()!=type2.id())
     return false;
 
@@ -199,7 +199,7 @@ bool base_type_eqt::base_type_eq_rec(
 
     const struct_union_typet::componentst &components2=
       to_struct_union_type(type2).components();
-      
+
     if(components1.size()!=components2.size())
       return false;
 
@@ -207,10 +207,12 @@ bool base_type_eqt::base_type_eq_rec(
     {
       const typet &subtype1=components1[i].type();
       const typet &subtype2=components2[i].type();
-      if(!base_type_eq_rec(subtype1, subtype2)) return false;
-      if(components1[i].get_name()!=components2[i].get_name()) return false;
+      if(!base_type_eq_rec(subtype1, subtype2))
+        return false;
+      if(components1[i].get_name()!=components2[i].get_name())
+        return false;
     }
-    
+
     return true;
   }
   else if(type1.id()==ID_incomplete_struct)
@@ -228,23 +230,24 @@ bool base_type_eqt::base_type_eq_rec(
 
     const code_typet::parameterst &parameters2=
       to_code_type(type2).parameters();
-    
+
     if(parameters1.size()!=parameters2.size())
       return false;
-      
+
     for(unsigned i=0; i<parameters1.size(); i++)
     {
       const typet &subtype1=parameters1[i].type();
       const typet &subtype2=parameters2[i].type();
-      if(!base_type_eq_rec(subtype1, subtype2)) return false;
+      if(!base_type_eq_rec(subtype1, subtype2))
+        return false;
     }
-    
+
     const typet &return_type1=to_code_type(type1).return_type();
     const typet &return_type2=to_code_type(type2).return_type();
-    
+
     if(!base_type_eq_rec(return_type1, return_type2))
       return false;
-    
+
     return true;
   }
   else if(type1.id()==ID_pointer)
@@ -260,7 +263,7 @@ bool base_type_eqt::base_type_eq_rec(
 
     if(to_array_type(type1).size()!=to_array_type(type2).size())
       return false;
-      
+
     return true;
   }
   else if(type1.id()==ID_incomplete_array)
@@ -276,7 +279,7 @@ bool base_type_eqt::base_type_eq_rec(
   base_type(tmp1, ns);
   base_type(tmp2, ns);
 
-  return tmp1==tmp2;  
+  return tmp1==tmp2;
 }
 
 /*******************************************************************\
@@ -297,21 +300,26 @@ bool base_type_eqt::base_type_eq_rec(
 {
   if(expr1.id()!=expr2.id())
     return false;
-    
+
   if(!base_type_eq(expr1.type(), expr2.type()))
     return false;
 
-  if(expr1.operands().size()!=expr2.operands().size())
+  const exprt::operandst &expr1_op=expr1.operands();
+  const exprt::operandst &expr2_op=expr2.operands();
+  if(expr1_op.size()!=expr2_op.size())
     return false;
-    
-  for(unsigned i=0; i<expr1.operands().size(); i++)
-    if(!base_type_eq(expr1.operands()[i], expr2.operands()[i]))
+
+  for(exprt::operandst::const_iterator
+      it1=expr1_op.begin(), it2=expr2_op.begin();
+      it1!=expr1_op.end() && it2!=expr2_op.end();
+      ++it1, ++it2)
+    if(!base_type_eq(*it1, *it2))
       return false;
 
   if(expr1.id()==ID_constant)
     if(expr1.get(ID_value)!=expr2.get(ID_value))
       return false;
-  
+
   return true;
 }
 

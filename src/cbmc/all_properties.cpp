@@ -40,19 +40,20 @@ void bmc_all_propertiest::goal_covered(const cover_goalst::goalt &)
   for(auto &g : goal_map)
   {
     // failed already?
-    if(g.second.status==goalt::statust::FAILURE) continue;
-  
+    if(g.second.status==goalt::statust::FAILURE)
+      continue;
+
     // check whether failed
     for(auto &c : g.second.instances)
     {
       literalt cond=c->cond_literal;
-      
+
       if(solver.l_get(cond).is_false())
       {
         g.second.status=goalt::statust::FAILURE;
         symex_target_equationt::SSA_stepst::iterator next=c;
         next++; // include the assertion
-        build_goto_trace(bmc.equation, next, solver, bmc.ns, 
+        build_goto_trace(bmc.equation, next, solver, bmc.ns,
                          g.second.goto_trace);
         break;
       }
@@ -80,9 +81,9 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
 
   // stop the time
   absolute_timet sat_start=current_time();
-  
-  bmc.do_conversion();  
-  
+
+  bmc.do_conversion();
+
   // Collect _all_ goals in `goal_map'.
   // This maps property IDs to 'goalt'
   forall_goto_functions(f_it, goto_functions)
@@ -108,24 +109,24 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
         // this is likely an unwinding assertion
         property_id=id2string(
           it->source.pc->source_location.get_function())+".unwind."+
-          i2string(it->source.pc->loop_number);
+          std::to_string(it->source.pc->loop_number);
         goal_map[property_id].description=it->comment;
       }
       else
         continue;
-      
+
       goal_map[property_id].instances.push_back(it);
     }
   }
-  
+
   do_before_solving();
 
   cover_goalst cover_goals(solver);
 
-  cover_goals.set_message_handler(get_message_handler());  
+  cover_goals.set_message_handler(get_message_handler());
   cover_goals.register_observer(*this);
-  
-  for(const auto & g : goal_map)
+
+  for(const auto &g : goal_map)
   {
     // Our goal is to falsify a property, i.e., we will
     // add the negation of the property as goal.
@@ -136,19 +137,19 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
   status() << "Running " << solver.decision_procedure_text() << eom;
 
   bool error=false;
-  
+
   decision_proceduret::resultt result=cover_goals();
 
   if(result==decision_proceduret::D_ERROR)
   {
     error=true;
-    for(auto & g : goal_map)
+    for(auto &g : goal_map)
       if(g.second.status==goalt::statust::UNKNOWN)
         g.second.status=goalt::statust::ERROR;
   }
   else
   {
-    for(auto & g : goal_map)
+    for(auto &g : goal_map)
       if(g.second.status==goalt::statust::UNKNOWN)
         g.second.status=goalt::statust::SUCCESS;
   }
@@ -160,7 +161,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
     status() << "Runtime decision procedure: "
              << (sat_stop-sat_start) << "s" << eom;
   }
-  
+
   // report
   report(cover_goals);
 
@@ -173,7 +174,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
     bmc.report_success(); // legacy, might go away
   else
     bmc.report_failure(); // legacy, might go away
-  
+
   return safe?safety_checkert::SAFE:safety_checkert::UNSAFE;
 }
 
@@ -197,18 +198,21 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
     {
       status() << "\n** Results:" << eom;
 
-      for(const auto & it : goal_map)
-        status() << "[" << it.first << "] "
-                 << it.second.description << ": " << it.second.status_string()
+      for(const auto &goal_pair : goal_map)
+        status() << "[" << goal_pair.first << "] "
+                 << goal_pair.second.description << ": "
+                 << goal_pair.second.status_string()
                  << eom;
 
       if(bmc.options.get_bool_option("trace"))
-        for(const auto & it : goal_map)
-          if(it.second.status==goalt::statust::FAILURE)
+      {
+        for(const auto &g : goal_map)
+          if(g.second.status==goalt::statust::FAILURE)
           {
-            std::cout << "\n" << "Trace for " << it.first << ":" << "\n";
-            show_goto_trace(std::cout, bmc.ns, it.second.goto_trace);
+            std::cout << "\n" << "Trace for " << g.first << ":" << "\n";
+            show_goto_trace(std::cout, bmc.ns, g.second.goto_trace);
           }
+      }
 
       status() << "\n** " << cover_goals.number_covered()
                << " of " << cover_goals.size() << " failed ("
@@ -220,14 +224,14 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
 
   case ui_message_handlert::XML_UI:
     {
-      for(const auto & it : goal_map)
+      for(const auto &g : goal_map)
       {
         xmlt xml_result("result");
-        xml_result.set_attribute("property", id2string(it.first));
-        xml_result.set_attribute("status", it.second.status_string());
+        xml_result.set_attribute("property", id2string(g.first));
+        xml_result.set_attribute("status", g.second.status_string());
 
-        if(it.second.status==goalt::statust::FAILURE)
-          convert(bmc.ns, it.second.goto_trace, xml_result.new_element());
+        if(g.second.status==goalt::statust::FAILURE)
+          convert(bmc.ns, g.second.goto_trace, xml_result.new_element());
 
         std::cout << xml_result << "\n";
       }
@@ -239,24 +243,23 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
       json_objectt json_result;
       json_arrayt &result_array=json_result["result"].make_array();
 
-      for(const auto & it : goal_map)
+      for(const auto &g : goal_map)
       {
         json_objectt &result=result_array.push_back().make_object();
-        result["property"]=json_stringt(id2string(it.first));
-        result["description"]=json_stringt(id2string(it.second.description));
-        result["status"]=json_stringt(it.second.status_string());
+        result["property"]=json_stringt(id2string(g.first));
+        result["description"]=json_stringt(id2string(g.second.description));
+        result["status"]=json_stringt(g.second.status_string());
 
-        if(it.second.status==goalt::statust::FAILURE)
+        if(g.second.status==goalt::statust::FAILURE)
         {
           jsont &json_trace=result["trace"];
-          convert(bmc.ns, it.second.goto_trace, json_trace);
+          convert(bmc.ns, g.second.goto_trace, json_trace);
         }
       }
 
       std::cout << ",\n" << json_result;
     }
     break;
-
   }
 }
 

@@ -6,8 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_GOTO_ANALYZER_PARSEOPTIONS_H
-#define CPROVER_GOTO_ANALYZER_PARSEOPTIONS_H
+#ifndef CPROVER_GOTO_ANALYZER_GOTO_ANALYZER_PARSE_OPTIONS_H
+#define CPROVER_GOTO_ANALYZER_GOTO_ANALYZER_PARSE_OPTIONS_H
 
 #include <util/ui_message.h>
 #include <util/parse_options.h>
@@ -15,6 +15,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <langapi/language_ui.h>
 
 #include <goto-programs/get_goto_model.h>
+#include <goto-programs/show_goto_functions.h>
+
+#include <analyses/goto_check.h>
 
 class bmct;
 class goto_functionst;
@@ -26,7 +29,9 @@ class optionst;
   "(classpath):(cp):(main-class):" \
   "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \
   "(little-endian)(big-endian)" \
-  "(show-goto-functions)(show-loops)" \
+  OPT_SHOW_GOTO_FUNCTIONS \
+  OPT_GOTO_CHECK \
+  "(show-loops)" \
   "(show-symbol-table)(show-parse-tree)" \
   "(show-properties)(show-reachable-properties)(property):" \
   "(verbosity):(version)" \
@@ -34,7 +39,8 @@ class optionst;
   "(taint):(show-taint)" \
   "(show-local-may-alias)" \
   "(json):(xml):" \
-  "(unreachable-instructions)" \
+  "(unreachable-instructions)(unreachable-functions)" \
+  "(reachable-functions)" \
   "(intervals)(show-intervals)" \
   "(non-null)(show-non-null)"
 
@@ -43,8 +49,8 @@ class goto_analyzer_parse_optionst:
   public language_uit
 {
 public:
-  virtual int doit();
-  virtual void help();
+  virtual int doit() override;
+  virtual void help() override;
 
   goto_analyzer_parse_optionst(int argc, const char **argv);
 
@@ -58,10 +64,10 @@ protected:
 
   virtual bool process_goto_program(const optionst &options);
   bool set_properties();
-  
+
   void eval_verbosity();
-  
+
   bool has_entry_point;
 };
 
-#endif
+#endif // CPROVER_GOTO_ANALYZER_GOTO_ANALYZER_PARSE_OPTIONS_H

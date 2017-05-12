@@ -7,6 +7,7 @@ Author: Daniel Kroening, kroening@kroening.com
 \*******************************************************************/
 
 #include <cassert>
+#include <cctype>
 
 #include <util/std_types.h>
 #include <util/std_expr.h>
@@ -182,7 +183,7 @@ Function: java_reference_type
 
 \*******************************************************************/
 
-typet java_reference_type(const typet &subtype)
+reference_typet java_reference_type(const typet &subtype)
 {
   return reference_typet(subtype);
 }
@@ -224,7 +225,7 @@ pointer_typet java_array_type(const char subtype)
   symbol_typet symbol_type("java::"+id2string(class_name));
   symbol_type.set(ID_C_base_name, class_name);
   symbol_type.set(ID_C_element_type, java_type_from_char(subtype));
-  
+
   return pointer_typet(symbol_type);
 }
 
@@ -344,19 +345,20 @@ typet java_type_from_string(const std::string &src)
   case '(': // function type
     {
       std::size_t e_pos=src.rfind(')');
-      if(e_pos==std::string::npos) return nil_typet();
+      if(e_pos==std::string::npos)
+        return nil_typet();
 
       code_typet result;
-      
+
       result.return_type()=
         java_type_from_string(std::string(src, e_pos+1, std::string::npos));
 
       for(std::size_t i=1; i<src.size() && src[i]!=')'; i++)
       {
         code_typet::parametert param;
-        
+
         size_t start=i;
-        
+
         while(i<src.size())
         {
           if(src[i]=='L')
@@ -369,46 +371,56 @@ typet java_type_from_string(const std::string &src)
           else
             break;
         }
-        
+
         std::string sub_str=src.substr(start, i-start+1);
         param.type()=java_type_from_string(sub_str);
-        
+
         if(param.type().id()==ID_symbol)
           param.type()=java_reference_type(param.type());
-        
+
         result.parameters().push_back(param);
       }
-        
+
       return result;
     }
 
   case '[': // array type
     {
-      if(src.size()<=1) return nil_typet();
-      const typet subtype=java_type_from_string(src.substr(1, std::string::npos));
-      typet tmp=java_array_type('a');
+      // If this is a reference array, we generate a plain array[reference]
+      // with void* members, but note the real type in ID_C_element_type.
+      if(src.size()<=1)
+        return nil_typet();
+      char subtype_letter=src[1];
+      const typet subtype=
+        java_type_from_string(src.substr(1, std::string::npos));
+      if(subtype_letter=='L' || // [L denotes a reference array of some sort.
+         subtype_letter=='[')   // Array-of-arrays
+        subtype_letter='A';
+      typet tmp=java_array_type(std::tolower(subtype_letter));
       tmp.subtype().set(ID_C_element_type, subtype);
       return tmp;
     }
-    
+
   case 'B': return java_byte_type();
-  case 'F': return java_float_type();    
+  case 'F': return java_float_type();
   case 'D': return java_double_type();
   case 'I': return java_int_type();
   case 'C': return java_char_type();
   case 'S': return java_short_type();
   case 'Z': return java_boolean_type();
-  case 'V': return java_void_type();  
-  case 'J': return java_long_type();  
+  case 'V': return java_void_type();
+  case 'J': return java_long_type();
 
   case 'L':
     {
       // ends on ;
-      if(src[src.size()-1]!=';') return nil_typet();
+      if(src[src.size()-1]!=';')
+        return nil_typet();
       std::string class_name=src.substr(1, src.size()-2);
 
       for(unsigned i=0; i<class_name.size(); i++)
-        if(class_name[i]=='/') class_name[i]='.';
+        if(class_name[i]=='/')
+          class_name[i]='.';
 
       std::string identifier="java::"+class_name;
 
@@ -417,7 +429,7 @@ typet java_type_from_string(const std::string &src)
       result.subtype().set(ID_C_base_name, class_name);
       return result;
     }
-  
+
   default:
     return nil_typet();
   }
@@ -441,24 +453,24 @@ char java_char_from_type(const typet &type)
 
   if(id==ID_signedbv)
   {
-    const unsigned int width(type.get_unsigned_int(ID_width));
-    if(java_int_type().get_unsigned_int(ID_width) == width)
+    const size_t width=to_signedbv_type(type).get_width();
+    if(to_signedbv_type(java_int_type()).get_width()==width)
       return 'i';
-    else if(java_long_type().get_unsigned_int(ID_width) == width)
+    else if(to_signedbv_type(java_long_type()).get_width()==width)
       return 'l';
-    else if(java_short_type().get_unsigned_int(ID_width) == width)
+    else if(to_signedbv_type(java_short_type()).get_width()==width)
       return 's';
-    else if(java_byte_type().get_unsigned_int(ID_width) == width)
+    else if(to_signedbv_type(java_byte_type()).get_width()==width)
       return 'b';
   }
   else if(id==ID_unsignedbv)
     return 'c';
   else if(id==ID_floatbv)
   {
-    const unsigned int width(type.get_unsigned_int(ID_width));
-    if(java_float_type().get_unsigned_int(ID_width) == width)
+    const size_t width(to_floatbv_type(type).get_width());
+    if(to_floatbv_type(java_float_type()).get_width()==width)
       return 'f';
-    else if(java_double_type().get_unsigned_int(ID_width) == width)
+    else if(to_floatbv_type(java_double_type()).get_width()==width)
       return 'd';
   }
   else if(id==ID_c_bool)
@@ -484,7 +496,8 @@ static std::string slash_to_dot(const std::string &src)
 {
   std::string result=src;
   for(std::string::iterator it=result.begin(); it!=result.end(); it++)
-    if(*it=='/') *it='.';
+    if(*it=='/')
+      *it='.';
   return result;
 }
 
@@ -504,7 +517,7 @@ symbol_typet java_classname(const std::string &id)
 {
   if(!id.empty() && id[0]=='[')
     return to_symbol_type(java_type_from_string(id).subtype());
-  
+
   std::string class_name=id;
 
   class_name=slash_to_dot(class_name);

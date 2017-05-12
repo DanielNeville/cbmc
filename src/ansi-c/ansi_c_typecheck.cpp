@@ -22,6 +22,7 @@ Function: ansi_c_typecheckt::typecheck
 
 void ansi_c_typecheckt::typecheck()
 {
+  start_typecheck_code();
   for(ansi_c_parse_treet::itemst::iterator
       it=parse_tree.items.begin();
       it!=parse_tree.items.end();
@@ -97,6 +98,6 @@ bool ansi_c_typecheck(
   {
     ansi_c_typecheck.error() << e << messaget::eom;
   }
-  
+
   return ansi_c_typecheck.get_error_found();
 }

@@ -8,9 +8,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <cassert>
 
-#include <util/i2string.h>
+#include <util/rational.h>
 #include <util/replace_expr.h>
-#include <util/expr_util.h>
 #include <util/rational_tools.h>
 #include <util/source_location.h>
 #include <util/cprover_prefix.h>
@@ -22,7 +21,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/symbol.h>
 #include <util/pointer_predicates.h>
 #include <util/pointer_offset_size.h>
-#include <util/namespace_utils.h>
 
 #include <linking/zero_initializer.h>
 
@@ -143,14 +141,14 @@ void goto_convertt::do_prob_coin(
   const irep_idt &identifier=function.get(ID_identifier);
 
   // make it a side effect if there is an LHS
-  if(arguments.size()!=2) 
+  if(arguments.size()!=2)
   {
     error().source_location=function.find_source_location();
     error() << "`" << identifier << "' expected to have two arguments"
             << eom;
     throw 0;
   }
-  
+
   if(lhs.is_nil())
   {
     error().source_location=function.find_source_location();
@@ -234,7 +232,8 @@ void goto_convertt::do_printf(
   if(f_id==CPROVER_PREFIX "printf" ||
      f_id=="printf")
   {
-    typet return_type=static_cast<const typet &>(function.type().find(ID_return_type));
+    typet return_type=
+      static_cast<const typet &>(function.type().find(ID_return_type));
     side_effect_exprt printf_code(ID_printf, return_type);
 
     printf_code.operands()=arguments;
@@ -285,20 +284,21 @@ void goto_convertt::do_scanf(
       error() << "scanf takes at least one argument" << eom;
       throw 0;
     }
-    
+
     irep_idt format_string;
-    
+
     if(!get_string_constant(arguments[0], format_string))
     {
       // use our model
-      format_token_listt token_list=parse_format_string(id2string(format_string));
-        
+      format_token_listt token_list=
+        parse_format_string(id2string(format_string));
+
       std::size_t argument_number=1;
-      
-      for(const auto & t : token_list)
+
+      for(const auto &t : token_list)
       {
         typet type=get_type(t);
-      
+
         if(type.is_not_nil())
         {
           if(argument_number<arguments.size())
@@ -315,18 +315,23 @@ void goto_convertt::do_scanf(
               to_array_type(type).size()=size;
 
               const symbolt &tmp_symbol=
-                new_tmp_symbol(type, "scanf_string", dest, function.source_location());
-                
-              exprt rhs=address_of_exprt(
-                index_exprt(tmp_symbol.symbol_expr(), gen_zero(index_type())));
-    
+                new_tmp_symbol(
+                  type, "scanf_string", dest, function.source_location());
+
+              exprt rhs=
+                address_of_exprt(
+                  index_exprt(
+                    tmp_symbol.symbol_expr(),
+                    from_integer(0, index_type())));
+
               // now use array copy
               codet array_copy_statement;
               array_copy_statement.set_statement(ID_array_copy);
               array_copy_statement.operands().resize(2);
               array_copy_statement.op0()=ptr;
 \              array_copy_statement.op1()=rhs;
-              array_copy_statement.add_source_location()=function.source_location();
+              array_copy_statement.add_source_location()=
+                function.source_location();
 
               copy(array_copy_statement, OTHER, dest);
               #else
@@ -388,14 +393,14 @@ void goto_convertt::do_input(
   input_code.set_statement(ID_input);
   input_code.operands()=arguments;
   input_code.add_source_location()=function.source_location();
-  
+
   if(arguments.size()<2)
   {
     error().source_location=function.find_source_location();
     error() << "input takes at least two arguments" << eom;
     throw 0;
   }
-    
+
   copy(input_code, OTHER, dest);
 }
 
@@ -421,14 +426,14 @@ void goto_convertt::do_output(
   output_code.set_statement(ID_output);
   output_code.operands()=arguments;
   output_code.add_source_location()=function.source_location();
-  
+
   if(arguments.size()<2)
   {
     error().source_location=function.find_source_location();
     error() << "output takes at least two arguments" << eom;
     throw 0;
   }
-    
+
   copy(output_code, OTHER, dest);
 }
 
@@ -527,13 +532,13 @@ void goto_convertt::do_cpp_new(
     error() << "do_cpp_new without lhs is yet to be implemented" << eom;
     throw 0;
   }
-  
+
   // build size expression
   exprt object_size=
     static_cast<const exprt &>(rhs.find(ID_sizeof));
 
   bool new_array=rhs.get(ID_statement)==ID_cpp_new_array;
-  
+
   exprt count;
 
   if(new_array)
@@ -555,7 +560,7 @@ void goto_convertt::do_cpp_new(
     // call __new or __new_array
     exprt new_symbol=
       ns.lookup(new_array?"__new_array":"__new").symbol_expr();
-    
+
     const code_typet &code_type=
       to_code_type(new_symbol.type());
 
@@ -567,30 +572,32 @@ void goto_convertt::do_cpp_new(
 
     const symbolt &tmp_symbol=
       new_tmp_symbol(return_type, "new", dest, rhs.source_location());
-    
+
     tmp_symbol_expr=tmp_symbol.symbol_expr();
-    
+
     code_function_callt new_call;
     new_call.function()=new_symbol;
-    if(new_array) new_call.arguments().push_back(count);
+    if(new_array)
+      new_call.arguments().push_back(count);
     new_call.arguments().push_back(object_size);
-    new_call.set("#type", lhs.type().subtype());
+    new_call.set(ID_C_cxx_alloc_type, lhs.type().subtype());
     new_call.lhs()=tmp_symbol_expr;
     new_call.add_source_location()=rhs.source_location();
-    
+
     convert(new_call, dest);
   }
   else if(rhs.operands().size()==1)
   {
     // call __placement_new
     exprt new_symbol=
-      ns.lookup(new_array?"__placement_new_array":"__placement_new").symbol_expr();
-    
+      ns.lookup(
+        new_array?"__placement_new_array":"__placement_new").symbol_expr();
+
     const code_typet &code_type=
       to_code_type(new_symbol.type());
 
     const typet &return_type=code_type.return_type();
-    
+
     assert(code_type.parameters().size()==2 ||
            code_type.parameters().size()==3);
 
@@ -601,17 +608,18 @@ void goto_convertt::do_cpp_new(
 
     code_function_callt new_call;
     new_call.function()=new_symbol;
-    if(new_array) new_call.arguments().push_back(count);
+    if(new_array)
+      new_call.arguments().push_back(count);
     new_call.arguments().push_back(object_size);
     new_call.arguments().push_back(rhs.op0()); // memory location
-    new_call.set("#type", lhs.type().subtype());
+    new_call.set(ID_C_cxx_alloc_type, lhs.type().subtype());
     new_call.lhs()=tmp_symbol_expr;
     new_call.add_source_location()=rhs.source_location();
 
     for(unsigned i=0; i<code_type.parameters().size(); i++)
       if(new_call.arguments()[i].type()!=code_type.parameters()[i].type())
         new_call.arguments()[i].make_typecast(code_type.parameters()[i].type());
-    
+
     convert(new_call, dest);
   }
   else
@@ -625,7 +633,7 @@ void goto_convertt::do_cpp_new(
   t_n->code=code_assignt(
     lhs, typecast_exprt(tmp_symbol_expr, lhs.type()));
   t_n->source_location=rhs.find_source_location();
-    
+
   // grab initializer
   goto_programt tmp_initializer;
   cpp_new_initializer(lhs, rhs, tmp_initializer);
@@ -654,9 +662,10 @@ void set_class_identifier(
     to_struct_type(ns.follow(expr.type()));
   const struct_typet::componentst &components=struct_type.components();
 
-  if(components.empty()) return;
+  if(components.empty())
+    return;
   assert(!expr.operands().empty());
-  
+
   if(components.front().get_name()=="@class_identifier")
   {
     assert(expr.op0().id()==ID_constant);
@@ -692,7 +701,7 @@ void goto_convertt::do_java_new(
     error() << "do_java_new without lhs is yet to be implemented" << eom;
     throw 0;
   }
-    
+
   source_locationt location=rhs.source_location();
 
   assert(rhs.operands().empty());
@@ -705,10 +714,10 @@ void goto_convertt::do_java_new(
   }
 
   typet object_type=rhs.type().subtype();
-  
+
   // build size expression
   exprt object_size=size_of_expr(object_type, ns);
-  
+
   if(object_size.is_nil())
   {
     error().source_location=rhs.find_source_location();
@@ -724,11 +733,13 @@ void goto_convertt::do_java_new(
   goto_programt::targett t_n=dest.add_instruction(ASSIGN);
   t_n->code=code_assignt(lhs, malloc_expr);
   t_n->source_location=location;
-  
+
   // zero-initialize the object
   dereference_exprt deref(lhs, object_type);
-  exprt zero_object=zero_initializer(object_type, location, ns, get_message_handler());
-  set_class_identifier(to_struct_expr(zero_object), ns, to_symbol_type(object_type));
+  exprt zero_object=
+    zero_initializer(object_type, location, ns, get_message_handler());
+  set_class_identifier(
+    to_struct_expr(zero_object), ns, to_symbol_type(object_type));
   goto_programt::targett t_i=dest.add_instruction(ASSIGN);
   t_i->code=code_assignt(deref, zero_object);
   t_i->source_location=location;
@@ -758,11 +769,11 @@ void goto_convertt::do_java_new_array(
             << eom;
     throw 0;
   }
-    
+
   source_locationt location=rhs.source_location();
 
   assert(rhs.operands().size()>=1); // one per dimension
-  
+
   if(rhs.type().id()!=ID_pointer)
   {
     error().source_location=rhs.find_source_location();
@@ -771,10 +782,10 @@ void goto_convertt::do_java_new_array(
   }
 
   typet object_type=rhs.type().subtype();
-  
+
   // build size expression
   exprt object_size=size_of_expr(object_type, ns);
-  
+
   if(object_size.is_nil())
   {
     error().source_location=rhs.find_source_location();
@@ -790,30 +801,41 @@ void goto_convertt::do_java_new_array(
   goto_programt::targett t_n=dest.add_instruction(ASSIGN);
   t_n->code=code_assignt(lhs, malloc_expr);
   t_n->source_location=location;
-  
+
   // multi-dimensional?
-  
+
   assert(ns.follow(object_type).id()==ID_struct);
   const struct_typet &struct_type=to_struct_type(ns.follow(object_type));
   assert(struct_type.components().size()==3);
 
   // if it's an array, we need to set the length field
   dereference_exprt deref(lhs, object_type);
-  member_exprt length(deref, struct_type.components()[1].get_name(), struct_type.components()[1].type());
+  member_exprt length(
+    deref,
+    struct_type.components()[1].get_name(),
+    struct_type.components()[1].type());
   goto_programt::targett t_s=dest.add_instruction(ASSIGN);
   t_s->code=code_assignt(length, rhs.op0());
   t_s->source_location=location;
-  
+
   // we also need to allocate space for the data
-  member_exprt data(deref, struct_type.components()[2].get_name(), struct_type.components()[2].type());
+  member_exprt data(
+    deref,
+    struct_type.components()[2].get_name(),
+    struct_type.components()[2].type());
   side_effect_exprt data_cpp_new_expr(ID_cpp_new_array, data.type());
   data_cpp_new_expr.set(ID_size, rhs.op0());
   goto_programt::targett t_p=dest.add_instruction(ASSIGN);
   t_p->code=code_assignt(data, data_cpp_new_expr);
   t_p->source_location=location;
-  
+
   // zero-initialize the data
-  exprt zero_element=gen_zero(data.type().subtype());
+  exprt zero_element=
+    zero_initializer(
+      data.type().subtype(),
+      location,
+      ns,
+      get_message_handler());
   codet array_set(ID_array_set);
   array_set.copy_to_operands(data, zero_element);
   goto_programt::targett t_d=dest.add_instruction(OTHER);
@@ -825,29 +847,46 @@ void goto_convertt::do_java_new_array(
     // produce
     // for(int i=0; i<size; i++) tmp[i]=java_new(dim-1);
     // This will be converted recursively.
-    
+
     goto_programt tmp;
 
     symbol_exprt tmp_i=
-      new_tmp_symbol(index_type(), "index", tmp, location).symbol_expr();
+      new_tmp_symbol(length.type(), "index", tmp, location).symbol_expr();
 
     code_fort for_loop;
-    
+
     side_effect_exprt sub_java_new=rhs;
     sub_java_new.operands().erase(sub_java_new.operands().begin());
-    
+
+    assert(rhs.type().id()==ID_pointer);
+    typet sub_type=
+      static_cast<const typet &>(rhs.type().subtype().find("#element_type"));
+    assert(sub_type.id()==ID_pointer);
+    sub_java_new.type()=sub_type;
+
     side_effect_exprt inc(ID_assign);
     inc.operands().resize(2);
     inc.op0()=tmp_i;
-    inc.op1()=plus_exprt(tmp_i, gen_one(tmp_i.type()));
-    
-    dereference_exprt deref_expr(plus_exprt(data, tmp_i), data.type().subtype());
-    
-    for_loop.init()=code_assignt(tmp_i, gen_zero(tmp_i.type()));
+    inc.op1()=plus_exprt(tmp_i, from_integer(1, tmp_i.type()));
+
+    dereference_exprt deref_expr(
+      plus_exprt(data, tmp_i), data.type().subtype());
+
+    code_blockt for_body;
+    symbol_exprt init_sym=
+      new_tmp_symbol(sub_type, "subarray_init", tmp, location).symbol_expr();
+
+    code_assignt init_subarray(init_sym, sub_java_new);
+    code_assignt assign_subarray(
+      deref_expr,
+      typecast_exprt(init_sym, deref_expr.type()));
+    for_body.move_to_operands(init_subarray);
+    for_body.move_to_operands(assign_subarray);
+
+    for_loop.init()=code_assignt(tmp_i, from_integer(0, tmp_i.type()));
     for_loop.cond()=binary_relation_exprt(tmp_i, ID_lt, rhs.op0());
     for_loop.iter()=inc;
-    for_loop.body()=code_skipt();
-    for_loop.body()=code_assignt(deref_expr, sub_java_new);
+    for_loop.body()=for_body;
 
     convert(for_loop, tmp);
     dest.destructive_append(tmp);
@@ -886,7 +925,7 @@ void goto_convertt::cpp_new_initializer(
       // just one object
       exprt deref_lhs(ID_dereference, rhs.type().subtype());
       deref_lhs.copy_to_operands(lhs);
-      
+
       replace_new_object(deref_lhs, initializer);
       convert(to_code(initializer), dest);
     }
@@ -921,7 +960,7 @@ exprt goto_convertt::get_array_argument(const exprt &src)
     error() << "expected array-pointer as argument" << eom;
     throw 0;
   }
-  
+
   assert(src.operands().size()==1);
 
   if(src.op0().id()!=ID_index)
@@ -930,7 +969,7 @@ exprt goto_convertt::get_array_argument(const exprt &src)
     error() << "expected array-element as argument" << eom;
     throw 0;
   }
-  
+
   assert(src.op0().operands().size()==2);
 
   if(ns.follow(src.op0().op0().type()).id()!=ID_array)
@@ -1031,10 +1070,10 @@ void goto_convertt::do_array_equal(
     error() << "array_equal expects two arguments" << eom;
     throw 0;
   }
-  
+
   const typet &arg0_type=ns.follow(arguments[0].type());
   const typet &arg1_type=ns.follow(arguments[1].type());
-  
+
   if(arg0_type.id()!=ID_pointer ||
      arg1_type.id()!=ID_pointer)
   {
@@ -1042,22 +1081,22 @@ void goto_convertt::do_array_equal(
     error() << "array_equal expects pointer arguments" << eom;
     throw 0;
   }
-  
+
   if(lhs.is_not_nil())
   {
     code_assignt assignment;
-    
+
     // add dereferencing here
     dereference_exprt lhs_array, rhs_array;
     lhs_array.op0()=arguments[0];
     rhs_array.op0()=arguments[1];
     lhs_array.type()=arg0_type.subtype();
     rhs_array.type()=arg1_type.subtype();
-    
+
     assignment.lhs()=lhs;
     assignment.rhs()=binary_exprt(
       lhs_array, ID_array_equal, rhs_array, lhs.type());
-    
+
     convert(assignment, dest);
   }
 }
@@ -1156,7 +1195,7 @@ void goto_convertt::do_function_call_symbol(
             << "' type mismatch: expected code" << eom;
     throw 0;
   }
-  
+
   if(identifier==CPROVER_PREFIX "assume" ||
      identifier=="__VERIFIER_assume")
   {
@@ -1172,7 +1211,7 @@ void goto_convertt::do_function_call_symbol(
     t->guard=arguments.front();
     t->source_location=function.source_location();
     t->source_location.set("user-provided", true);
-    
+
     // let's double-check the type of the argument
     if(t->guard.type().id()!=ID_bool)
       t->guard.make_typecast(bool_typet());
@@ -1206,8 +1245,16 @@ void goto_convertt::do_function_call_symbol(
       error() << identifier << " expected not to have LHS" << eom;
       throw 0;
     }
+
+    // __VERIFIER_error has abort() semantics, even if no assertions
+    // are being checked
+    goto_programt::targett a=dest.add_instruction(ASSUME);
+    a->guard=false_exprt();
+    a->source_location=function.source_location();
+    a->source_location.set("user-provided", true);
   }
-  else if(has_prefix(id2string(identifier), "java::java.lang.AssertionError.<init>:"))
+  else if(has_prefix(
+      id2string(identifier), "java::java.lang.AssertionError.<init>:"))
   {
     // insert function call anyway
     code_function_callt function_call;
@@ -1230,8 +1277,9 @@ void goto_convertt::do_function_call_symbol(
     t->guard=false_exprt();
     t->source_location=function.source_location();
     t->source_location.set("user-provided", true);
-    t->source_location.set_property_class(ID_assertion);    
-    t->source_location.set_comment("assertion at "+function.source_location().as_string());
+    t->source_location.set_property_class(ID_assertion);
+    t->source_location.set_comment(
+      "assertion at "+function.source_location().as_string());
   }
   else if(identifier=="assert" &&
           !ns.lookup(identifier).location.get_function().empty())
@@ -1249,8 +1297,9 @@ void goto_convertt::do_function_call_symbol(
     t->source_location=function.source_location();
     t->source_location.set("user-provided", true);
     t->source_location.set_property_class(ID_assertion);
-    t->source_location.set_comment("assertion "+id2string(from_expr(ns, "", t->guard)));
-    
+    t->source_location.set_comment(
+      "assertion "+id2string(from_expr(ns, "", t->guard)));
+
     // let's double-check the type of the argument
     if(t->guard.type().id()!=ID_bool)
       t->guard.make_typecast(bool_typet());
@@ -1271,17 +1320,19 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     const irep_idt description=
       get_string_constant(arguments[1]);
 
     goto_programt::targett t=dest.add_instruction(ASSERT);
     t->guard=arguments[0];
     t->source_location=function.source_location();
-    t->source_location.set("user-provided", true);
+    t->source_location.set(
+      "user-provided",
+      !function.source_location().is_built_in());
     t->source_location.set_property_class(ID_assertion);
     t->source_location.set_comment(description);
-    
+
     // let's double-check the type of the argument
     if(t->guard.type().id()!=ID_bool)
       t->guard.make_typecast(bool_typet());
@@ -1335,10 +1386,11 @@ void goto_convertt::do_function_call_symbol(
           has_prefix(id2string(identifier), "__VERIFIER_nondet_"))
   {
     // make it a side effect if there is an LHS
-    if(lhs.is_nil()) return;
-    
+    if(lhs.is_nil())
+      return;
+
     exprt rhs;
-    
+
     // We need to special-case for _Bool, which
     // can only be 0 or 1.
     if(lhs.type().id()==ID_c_bool)
@@ -1347,7 +1399,7 @@ void goto_convertt::do_function_call_symbol(
       rhs.add_source_location()=function.source_location();
       rhs.set(ID_C_identifier, identifier);
       rhs=typecast_exprt(rhs, lhs.type());
-    } 
+    }
     else
     {
       rhs=side_effect_expr_nondett(lhs.type());
@@ -1362,7 +1414,8 @@ void goto_convertt::do_function_call_symbol(
   else if(has_prefix(id2string(identifier), CPROVER_PREFIX "uninterpreted_"))
   {
     // make it a side effect if there is an LHS
-    if(lhs.is_nil()) return;
+    if(lhs.is_nil())
+      return;
 
     function_application_exprt rhs;
     rhs.type()=lhs.type();
@@ -1415,7 +1468,8 @@ void goto_convertt::do_function_call_symbol(
 
     // This has been seen in Solaris 11.
     // Signature:
-    // void __assert_c99(const char *desc, const char *file, int line, const char *func);
+    // void __assert_c99(
+    //   const char *desc, const char *file, int line, const char *func);
 
     // _wassert is Windows. The arguments are
     // L"expression", L"file.c", line
@@ -1428,7 +1482,7 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     const irep_idt description=
       "assertion "+id2string(get_string_constant(arguments[0]));
 
@@ -1449,9 +1503,9 @@ void goto_convertt::do_function_call_symbol(
     // __func__, "file.c", line, "expression"
     // On Solaris 11, it's three arguments:
     // "expression", "file", line
-    
+
     irep_idt description;
-    
+
     if(arguments.size()==4)
     {
       description=
@@ -1545,9 +1599,9 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     exprt list_arg=make_va_list(arguments[0]);
-    
+
     {
       side_effect_exprt rhs(ID_gcc_builtin_va_arg_next, list_arg.type());
       rhs.copy_to_operands(list_arg);
@@ -1578,7 +1632,7 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     exprt dest_expr=make_va_list(arguments[0]);
     exprt src_expr=typecast_exprt(arguments[1], dest_expr.type());
 
@@ -1587,8 +1641,8 @@ void goto_convertt::do_function_call_symbol(
       error().source_location=dest_expr.find_source_location();
       error() << "va_copy argument expected to be lvalue" << eom;
       throw 0;
-    }    
-    
+    }
+
     goto_programt::targett t=dest.add_instruction(ASSIGN);
     t->source_location=function.source_location();
     t->code=code_assignt(dest_expr, src_expr);
@@ -1604,7 +1658,7 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     exprt dest_expr=make_va_list(arguments[0]);
     exprt src_expr=typecast_exprt(
       address_of_exprt(arguments[1]), dest_expr.type());
@@ -1614,8 +1668,8 @@ void goto_convertt::do_function_call_symbol(
       error().source_location=dest_expr.find_source_location();
       error() << "va_start argument expected to be lvalue" << eom;
       throw 0;
-    }    
-    
+    }
+
     goto_programt::targett t=dest.add_instruction(ASSIGN);
     t->source_location=function.source_location();
     t->code=code_assignt(dest_expr, src_expr);
@@ -1630,22 +1684,28 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     exprt dest_expr=make_va_list(arguments[0]);
-    
+
     if(!is_lvalue(dest_expr))
     {
       error().source_location=dest_expr.find_source_location();
       error() << "va_end argument expected to be lvalue" << eom;
       throw 0;
-    }    
+    }
 
     // our __builtin_va_list is a pointer
     if(ns.follow(dest_expr.type()).id()==ID_pointer)
     {
       goto_programt::targett t=dest.add_instruction(ASSIGN);
       t->source_location=function.source_location();
-      t->code=code_assignt(dest_expr, gen_zero(dest_expr.type()));
+      exprt zero=
+        zero_initializer(
+          dest_expr.type(),
+          function.source_location(),
+          ns,
+          get_message_handler());
+      t->code=code_assignt(dest_expr, zero);
     }
   }
   else if(identifier=="__sync_fetch_and_add" ||
@@ -1673,7 +1733,7 @@ void goto_convertt::do_function_call_symbol(
               << eom;
       throw 0;
     }
-    
+
     // build *ptr
     dereference_exprt deref_ptr(arguments[0], arguments[0].type().subtype());
 
@@ -1689,7 +1749,7 @@ void goto_convertt::do_function_call_symbol(
       if(t2->code.op0().type()!=t2->code.op1().type())
         t2->code.op1().make_typecast(t2->code.op0().type());
     }
-    
+
     irep_idt op_id=
       identifier=="__sync_fetch_and_add"?ID_plus:
       identifier=="__sync_fetch_and_sub"?ID_minus:
@@ -1698,7 +1758,7 @@ void goto_convertt::do_function_call_symbol(
       identifier=="__sync_fetch_and_xor"?ID_bitxor:
       identifier=="__sync_fetch_and_nand"?ID_bitnand:
       ID_nil;
-    
+
     // build *ptr=*ptr OP arguments[1];
     binary_exprt op_expr(deref_ptr, op_id, arguments[1], deref_ptr.type());
     if(op_expr.op1().type()!=op_expr.type())
@@ -1707,7 +1767,7 @@ void goto_convertt::do_function_call_symbol(
     goto_programt::targett t3=dest.add_instruction(ASSIGN);
     t3->source_location=function.source_location();
     t3->code=code_assignt(deref_ptr, op_expr);
-    
+
     // this instruction implies an mfence, i.e., WRfence
     goto_programt::targett t4=dest.add_instruction(OTHER);
     t4->source_location=function.source_location();
@@ -1742,7 +1802,7 @@ void goto_convertt::do_function_call_symbol(
               << "' expected to have pointer argument" << eom;
       throw 0;
     }
-    
+
     // build *ptr
     dereference_exprt deref_ptr(arguments[0], arguments[0].type().subtype());
 
@@ -1757,7 +1817,7 @@ void goto_convertt::do_function_call_symbol(
       identifier=="__sync_xor_and_fetch"?ID_bitxor:
       identifier=="__sync_nand_and_fetch"?ID_bitnand:
       ID_nil;
-    
+
     // build *ptr=*ptr OP arguments[1];
     binary_exprt op_expr(deref_ptr, op_id, arguments[1], deref_ptr.type());
     if(op_expr.op1().type()!=op_expr.type())
@@ -1766,7 +1826,7 @@ void goto_convertt::do_function_call_symbol(
     goto_programt::targett t3=dest.add_instruction(ASSIGN);
     t3->source_location=function.source_location();
     t3->code=code_assignt(deref_ptr, op_expr);
-    
+
     if(lhs.is_not_nil())
     {
       // return *ptr
@@ -1782,7 +1842,7 @@ void goto_convertt::do_function_call_symbol(
     t4->source_location=function.source_location();
     t4->code=codet(ID_fence);
     t4->code.set(ID_WRfence, true);
-    
+
     goto_programt::targett t5=dest.add_instruction(ATOMIC_END);
     t5->source_location=function.source_location();
   }
@@ -1797,8 +1857,9 @@ void goto_convertt::do_function_call_symbol(
     // These are type-polymorphic, which makes it hard to put
     // them into ansi-c/library.
 
-    // bool __sync_bool_compare_and_swap (type *ptr, type oldval, type newval, ...)
-    
+    // bool __sync_bool_compare_and_swap(
+    //   type *ptr, type oldval, type newval, ...)
+
     if(arguments.size()<3)
     {
       error().source_location=function.find_source_location();
@@ -1821,11 +1882,11 @@ void goto_convertt::do_function_call_symbol(
     goto_programt::targett t1=dest.add_instruction(ATOMIC_BEGIN);
     t1->source_location=function.source_location();
 
-    // build *ptr==oldval    
+    // build *ptr==oldval
     equal_exprt equal(deref_ptr, arguments[1]);
     if(equal.op1().type()!=equal.op0().type())
       equal.op1().make_typecast(equal.op0().type());
-      
+
     if(lhs.is_not_nil())
     {
       // return *ptr==oldval
@@ -1835,8 +1896,8 @@ void goto_convertt::do_function_call_symbol(
       if(t2->code.op0().type()!=t2->code.op1().type())
         t2->code.op1().make_typecast(t2->code.op0().type());
     }
-    
-    // build (*ptr==oldval)?newval:*ptr    
+
+    // build (*ptr==oldval)?newval:*ptr
     if_exprt if_expr(equal, arguments[2], deref_ptr, deref_ptr.type());
     if(if_expr.op1().type()!=if_expr.type())
       if_expr.op1().make_typecast(if_expr.type());
@@ -1844,19 +1905,20 @@ void goto_convertt::do_function_call_symbol(
     goto_programt::targett t3=dest.add_instruction(ASSIGN);
     t3->source_location=function.source_location();
     t3->code=code_assignt(deref_ptr, if_expr);
-    
+
     // this instruction implies an mfence, i.e., WRfence
     goto_programt::targett t4=dest.add_instruction(OTHER);
     t4->source_location=function.source_location();
     t4->code=codet(ID_fence);
     t4->code.set(ID_WRfence, true);
-    
+
     goto_programt::targett t5=dest.add_instruction(ATOMIC_END);
     t5->source_location=function.source_location();
   }
   else if(identifier=="__sync_val_compare_and_swap")
   {
-    // type __sync_val_compare_and_swap (type *ptr, type oldval, type newval, ...)
+    // type __sync_val_compare_and_swap(
+    //   type *ptr, type oldval, type newval, ...)
     if(arguments.size()<3)
     {
       error().source_location=function.find_source_location();
@@ -1888,13 +1950,13 @@ void goto_convertt::do_function_call_symbol(
       if(t2->code.op0().type()!=t2->code.op1().type())
         t2->code.op1().make_typecast(t2->code.op0().type());
     }
-    
-    // build *ptr==oldval    
+
+    // build *ptr==oldval
     equal_exprt equal(deref_ptr, arguments[1]);
     if(equal.op1().type()!=equal.op0().type())
       equal.op1().make_typecast(equal.op0().type());
-      
-    // build (*ptr==oldval)?newval:*ptr    
+
+    // build (*ptr==oldval)?newval:*ptr
     if_exprt if_expr(equal, arguments[2], deref_ptr, deref_ptr.type());
     if(if_expr.op1().type()!=if_expr.type())
       if_expr.op1().make_typecast(if_expr.type());
@@ -1902,22 +1964,22 @@ void goto_convertt::do_function_call_symbol(
     goto_programt::targett t3=dest.add_instruction(ASSIGN);
     t3->source_location=function.source_location();
     t3->code=code_assignt(deref_ptr, if_expr);
-    
+
     // this instruction implies an mfence, i.e., WRfence
     goto_programt::targett t4=dest.add_instruction(OTHER);
     t4->source_location=function.source_location();
     t4->code=codet(ID_fence);
     t4->code.set(ID_WRfence, true);
-    
+
     goto_programt::targett t5=dest.add_instruction(ATOMIC_END);
     t5->source_location=function.source_location();
   }
   else if(identifier=="__sync_lock_test_and_set")
   {
     // type __sync_lock_test_and_set (type *ptr, type value, ...)
-    
+
     // This builtin, as described by Intel, is not a traditional
-    // test-and-set operation, but rather an atomic exchange operation. 
+    // test-and-set operation, but rather an atomic exchange operation.
     // It writes value into *ptr, and returns the previous contents of
     // *ptr.  Many targets have only minimal support for such locks, and
     // do not support a full exchange operation.  In this case, a target

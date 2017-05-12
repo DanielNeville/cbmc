@@ -8,6 +8,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "irep_hash_container.h"
 #include "irep.h"
+#include "irep_hash.h"
 
 /*******************************************************************\
 
@@ -21,22 +22,43 @@ Function: irep_hash_container_baset::number
 
 \*******************************************************************/
 
-unsigned irep_hash_container_baset::number(const irept &irep)
-{ 
+size_t irep_hash_container_baset::number(const irept &irep)
+{
   // the ptr-hash provides a speedup of up to 3x
-  
+
   ptr_hasht::const_iterator it=ptr_hash.find(&irep.read());
-  
+
   if(it!=ptr_hash.end())
     return it->second;
 
   packedt packed;
   pack(irep, packed);
-  unsigned id=numbering.number(packed);
-  
+  size_t id=numbering.number(packed);
+
   ptr_hash[&irep.read()]=id;
-  
+
   return id;
+}
+
+/*******************************************************************\
+
+Function: irep_hash_container_baset::vector_hasht::operator()
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+size_t irep_hash_container_baset::vector_hasht::operator()(
+  const packedt &p) const
+{
+  size_t result=p.size(); // seed
+  for(auto elem : p)
+    result=hash_combine(result, elem);
+  return result;
 }
 
 /*******************************************************************\
@@ -62,10 +84,10 @@ void irep_hash_container_baset::pack(
   packed.reserve(
     1+1+sub.size()+named_sub.size()*2+
     (full?comments.size()*2:0));
-  
+
   packed.push_back(irep_id_hash()(irep.id()));
 
-  packed.push_back(sub.size());  
+  packed.push_back(sub.size());
   forall_irep(it, sub)
     packed.push_back(number(*it));
 
@@ -86,4 +108,3 @@ void irep_hash_container_baset::pack(
     }
   }
 }
-

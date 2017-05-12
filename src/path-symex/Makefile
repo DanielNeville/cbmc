@@ -1,6 +1,12 @@
-SRC = locs.cpp var_map.cpp path_symex_history.cpp path_symex_state.cpp \
-      path_symex.cpp build_goto_trace.cpp path_replay.cpp \
-      path_symex_state_read.cpp
+SRC = build_goto_trace.cpp \
+      locs.cpp \
+      path_replay.cpp \
+      path_symex.cpp \
+      path_symex_history.cpp \
+      path_symex_state.cpp \
+      path_symex_state_read.cpp \
+      var_map.cpp \
+      # Empty last line
 
 INCLUDES= -I ..
 
@@ -15,4 +21,3 @@ all: path-symex$(LIBEXT)
 
 path-symex$(LIBEXT): $(OBJ)
 	$(LINKLIB)
-

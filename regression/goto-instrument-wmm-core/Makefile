@@ -13,15 +13,15 @@ testnew:
 	@../test.pl -c ../chain.sh -F
 
 test:
-	@../test.pl -c ../chain.sh 
+	@../test.pl -c ../chain.sh
 
 tests.log: ../test.pl
-	@../test.pl -c ../chain.sh 
+	@../test.pl -c ../chain.sh
 
 clean:
 	@for dir in *; do \
                 if [ -d "$$dir" ]; then \
-                        rm $$dir/*.txt $$dir/*.dot $$dir/*.gb $$dir/*.out; \
+                        $(RM) $$dir/*.txt $$dir/*.dot $$dir/*.gb $$dir/*.out; \
                 fi; \
         done;
 

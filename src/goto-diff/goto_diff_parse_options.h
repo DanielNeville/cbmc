@@ -6,8 +6,8 @@ Author: Peter Schrammel
 
 \*******************************************************************/
 
-#ifndef CPROVER_GOTO_DIFF_PARSEOPTIONS_H
-#define CPROVER_GOTO_DIFF_PARSEOPTIONS_H
+#ifndef CPROVER_GOTO_DIFF_GOTO_DIFF_PARSE_OPTIONS_H
+#define CPROVER_GOTO_DIFF_GOTO_DIFF_PARSE_OPTIONS_H
 
 #include <util/ui_message.h>
 #include <util/parse_options.h>
@@ -15,6 +15,7 @@ Author: Peter Schrammel
 #include <langapi/language_ui.h>
 
 #include <goto-programs/goto_model.h>
+#include <goto-programs/show_goto_functions.h>
 
 #include "goto_diff_languages.h"
 
@@ -23,7 +24,7 @@ class optionst;
 
 #define GOTO_DIFF_OPTIONS \
   "(json-ui)" \
-  "(show-goto-functions)" \
+  OPT_SHOW_GOTO_FUNCTIONS \
   "(verbosity):(version)" \
   "u(unified)(change-impact)(forward-impact)(backward-impact)" \
   "(compact-output)"
@@ -56,10 +57,10 @@ protected:
   virtual bool process_goto_program(
     const optionst &options,
     goto_modelt &goto_model);
-    
+
   void eval_verbosity();
-  
+
   void preprocessing();
 };
 
-#endif
+#endif // CPROVER_GOTO_DIFF_GOTO_DIFF_PARSE_OPTIONS_H

@@ -6,8 +6,6 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
-#include <util/i2string.h>
-#include <util/expr_util.h>
 #include <util/source_location.h>
 
 #include "cpp_typecheck.h"
@@ -66,7 +64,7 @@ Function: cpp_typecheckt::typecheck_try_catch
 void cpp_typecheckt::typecheck_try_catch(codet &code)
 {
   codet::operandst &operands=code.operands();
-  
+
   for(codet::operandst::iterator
       it=operands.begin();
       it!=operands.end();
@@ -81,10 +79,10 @@ void cpp_typecheckt::typecheck_try_catch(codet &code)
     {
       // This is (one of) the catch clauses.
       codet &code=to_code_block(to_code(*it));
-      
+
       // look at the catch operand
       assert(!code.operands().empty());
-      
+
       if(to_code(code.op0()).get_statement()==ID_ellipsis)
       {
         code.operands().erase(code.operands().begin());
@@ -99,19 +97,19 @@ void cpp_typecheckt::typecheck_try_catch(codet &code)
           assert(to_code(code.op0()).get_statement()==ID_decl);
           cpp_declarationt &cpp_declaration=
             to_cpp_declaration(to_code_decl(to_code(code.op0())).symbol());
-          
+
           assert(cpp_declaration.declarators().size()==1);
           cpp_declaratort &declarator=cpp_declaration.declarators().front();
-        
+
           if(is_reference(declarator.type()))
             declarator.type()=declarator.type().subtype();
         }
 
         // typecheck the body
         typecheck_code(code);
-        
+
         // the declaration is now in a decl_block
-        
+
         assert(!code.operands().empty());
         assert(to_code(code.op0()).get_statement()==ID_decl_block);
 
@@ -121,7 +119,7 @@ void cpp_typecheckt::typecheck_try_catch(codet &code)
 
         // get the type
         const typet &type=code_decl.op0().type();
-        
+
         // annotate exception ID
         it->set(ID_exception_id, cpp_exception_id(type, *this));
       }
@@ -146,7 +144,7 @@ void cpp_typecheckt::typecheck_ifthenelse(code_ifthenelset &code)
   // In addition to the C syntax, C++ also allows a declaration
   // as condition. E.g.,
   // if(void *p=...) ...
-  
+
   if(code.cond().id()==ID_code)
   {
     typecheck_code(to_code(code.cond()));
@@ -172,7 +170,7 @@ void cpp_typecheckt::typecheck_while(code_whilet &code)
   // In addition to the C syntax, C++ also allows a declaration
   // as condition. E.g.,
   // while(void *p=...) ...
-  
+
   if(code.cond().id()==ID_code)
   {
     typecheck_code(to_code(code.cond()));
@@ -198,24 +196,24 @@ void cpp_typecheckt::typecheck_switch(code_switcht &code)
   // In addition to the C syntax, C++ also allows a declaration
   // as condition. E.g.,
   // switch(int i=...) ...
-  
+
   if(code.value().id()==ID_code)
   {
     // we shall rewrite that into
     // { int i=....; switch(i) .... }
-    
+
     codet decl=to_code(code.value());
     typecheck_decl(decl);
-    
+
     assert(decl.get_statement()==ID_decl_block);
     assert(decl.operands().size()==1);
-    
-    // replace declaration by its symbol    
+
+    // replace declaration by its symbol
     assert(decl.op0().op0().id()==ID_symbol);
     code.value()=decl.op0().op0();
 
     c_typecheck_baset::typecheck_switch(code);
-    
+
     code_blockt code_block;
     code_block.move_to_operands(decl.op0(), code);
     code.swap(code_block);
@@ -240,11 +238,11 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
 {
   const cpp_namet &member=
     to_cpp_name(code.find(ID_member));
-    
+
   // Let's first typecheck the operands.
   Forall_operands(it, code)
     typecheck_expr(*it);
-    
+
   // The initializer may be a data member (non-type)
   // or a parent class (type).
   // We ask for VAR only, as we get the parent classes via their
@@ -263,12 +261,12 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
   if(symbol_expr.type().id()==ID_code)
   {
     const code_typet &code_type=to_code_type(symbol_expr.type());
-    
+
     assert(code_type.parameters().size()>=1);
-  
+
     // It's a parent. Call the constructor that we got.
     side_effect_expr_function_callt function_call;
-    
+
     function_call.function()=symbol_expr;
     function_call.add_source_location()=code.source_location();
     function_call.arguments().reserve(code.operands().size()+1);
@@ -276,16 +274,16 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
     // we have to add 'this'
     exprt this_expr = cpp_scopes.current_scope().this_expr;
     assert(this_expr.is_not_nil());
-  
+
     make_ptr_typecast(
       this_expr,
       code_type.parameters().front().type());
 
     function_call.arguments().push_back(this_expr);
-    
+
     forall_operands(it, code)
       function_call.arguments().push_back(*it);
-      
+
     // done building the expression, check the argument types
     typecheck_function_call_arguments(function_call);
 
@@ -308,7 +306,7 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
         #endif
       }
     }
-    
+
     code_expressiont code_expression;
     code_expression.expression()=function_call;
 
@@ -329,16 +327,19 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
     if(symbol_expr.id() == ID_symbol &&
        symbol_expr.type().id()!=ID_code)
     {
-      // maybe the name of the member collides with a parameter of the constructor
+      // maybe the name of the member collides with a parameter of the
+      // constructor
       symbol_expr.make_nil();
       cpp_typecheck_fargst fargs;
-      exprt dereference(ID_dereference, cpp_scopes.current_scope().this_expr.type().subtype());
+      exprt dereference(
+        ID_dereference, cpp_scopes.current_scope().this_expr.type().subtype());
       dereference.copy_to_operands(cpp_scopes.current_scope().this_expr);
       fargs.add_object(dereference);
 
       {
         cpp_save_scopet cpp_saved_scope(cpp_scopes);
-        cpp_scopes.go_to(*(cpp_scopes.id_map[cpp_scopes.current_scope().class_identifier]));
+        cpp_scopes.go_to(
+          *(cpp_scopes.id_map[cpp_scopes.current_scope().class_identifier]));
         symbol_expr=resolve(member, cpp_typecheck_resolvet::VAR, fargs);
       }
 
@@ -386,7 +387,7 @@ void cpp_typecheckt::typecheck_member_initializer(codet &code)
       {
         // it's a data member
         already_typechecked(symbol_expr);
-        
+
         Forall_operands(it, code)
           already_typechecked(*it);
 
@@ -437,9 +438,9 @@ void cpp_typecheckt::typecheck_decl(codet &code)
 
   cpp_declarationt &declaration=
     to_cpp_declaration(code.op0());
-    
+
   typet &type=declaration.type();
-    
+
   bool is_typedef=declaration.is_typedef();
 
   typecheck_type(type);
@@ -463,17 +464,17 @@ void cpp_typecheckt::typecheck_decl(codet &code)
   codet new_code(ID_decl_block);
   new_code.reserve_operands(declaration.declarators().size());
 
-  // Do the declarators (optional).
-  Forall_cpp_declarators(it, declaration)
+  // Do the declarators (if any)
+  for(auto &declarator : declaration.declarators())
   {
-    cpp_declaratort &declarator=*it;
     cpp_declarator_convertert cpp_declarator_converter(*this);
     cpp_declarator_converter.is_typedef=is_typedef;
 
     const symbolt &symbol=
       cpp_declarator_converter.convert(declaration, declarator);
 
-    if(is_typedef) continue;
+    if(is_typedef)
+      continue;
 
     codet decl_statement(ID_decl);
     decl_statement.reserve_operands(2);
@@ -487,13 +488,13 @@ void cpp_typecheckt::typecheck_decl(codet &code)
       decl_statement.copy_to_operands(symbol.value);
       assert(follow(decl_statement.op1().type())==follow(symbol.type));
     }
-    
+
     new_code.move_to_operands(decl_statement);
 
     // is there a constructor to be called?
     if(symbol.value.is_not_nil())
     {
-      assert(it->find("init_args").is_nil());
+      assert(declarator.find("init_args").is_nil());
       if(symbol.value.id()==ID_code)
         new_code.copy_to_operands(symbol.value);
     }
@@ -502,7 +503,7 @@ void cpp_typecheckt::typecheck_decl(codet &code)
       exprt object_expr=cpp_symbol_expr(symbol);
 
       already_typechecked(object_expr);
-      
+
       exprt constructor_call=
         cpp_constructor(
           symbol.location,

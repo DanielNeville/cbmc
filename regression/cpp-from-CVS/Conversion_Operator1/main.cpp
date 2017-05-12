@@ -1,15 +1,15 @@
 struct Char {
-	char c;
-	Char(char c):c(c){}
+  char c;
+  Char(char c):c(c){}
 };
 
 struct Int {
-	int i;
-	operator int& ();
-	Int(int i):i(i){}
+  int i;
+  operator int& ();
+  Int(int i):i(i){}
 };
 
-Int::operator int&(){return i;}
+Int::operator int&() {return i;}
 
 int  main()
 {
@@ -17,7 +17,7 @@ int  main()
    int i1 = int(I1);
    assert(i1==1);
 
-   
+
    Int I2(2);
    int i2 = (int&)I2;
    assert(i2==2);

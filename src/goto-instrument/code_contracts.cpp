@@ -8,8 +8,8 @@ Date: February 2016
 
 \*******************************************************************/
 
-#include <util/i2string.h>
 #include <util/cprover_prefix.h>
+#include <util/fresh_symbol.h>
 #include <util/replace_symbol.h>
 
 #include <goto-programs/remove_skip.h>
@@ -41,7 +41,7 @@ protected:
 
   unsigned temporary_counter;
 
-  typedef hash_set_cont<irep_idt, irep_id_hash> id_sett;
+  typedef std::unordered_set<irep_idt, irep_id_hash> id_sett;
   id_sett summarized;
 
   void code_contracts(goto_functionst::goto_functiont &goto_function);
@@ -94,20 +94,21 @@ static void check_apply_invariants(
   exprt invariant=
     static_cast<const exprt&>(
       loop_end->guard.find(ID_C_spec_loop_invariant));
-  if(invariant.is_nil()) return;
+  if(invariant.is_nil())
+    return;
 
   // change H: loop; E: ...
   // to
   // H: assert(invariant);
   // havoc;
   // assume(invariant);
-  // if(guard) goto E: 
+  // if(guard) goto E:
   // loop;
   // assert(invariant);
   // assume(false);
   // E: ...
 
-  // find out what can get changed in the loop  
+  // find out what can get changed in the loop
   modifiest modifies;
   get_modifies(local_may_alias, loop, modifies);
 
@@ -186,7 +187,8 @@ void code_contractst::apply_contract(
 {
   const code_function_callt &call=to_code_function_call(target->code);
   // we don't handle function pointers
-  if(call.function().id()!=ID_symbol) return;
+  if(call.function().id()!=ID_symbol)
+    return;
 
   const irep_idt &function=
     to_symbol_expr(call.function()).get_identifier();
@@ -199,7 +201,8 @@ void code_contractst::apply_contract(
     static_cast<const exprt&>(type.find(ID_C_spec_ensures));
 
   // is there a contract?
-  if(ensures.is_nil()) return;
+  if(ensures.is_nil())
+    return;
 
   // replace formal parameters by arguments, replace return
   replace_symbolt replace;
@@ -289,19 +292,13 @@ const symbolt &code_contractst::new_tmp_symbol(
   const typet &type,
   const source_locationt &source_location)
 {
-  auxiliary_symbolt new_symbol;
-  new_symbol.type=type;
-  new_symbol.location=source_location;
-
-  symbolt *symbol_ptr;
-
-  do
-  {
-    new_symbol.base_name="tmp_cc$"+i2string(++temporary_counter);
-    new_symbol.name=new_symbol.base_name;
-  } while(symbol_table.move(new_symbol, symbol_ptr));
-
-  return *symbol_ptr;
+  return get_fresh_aux_symbol(
+    type,
+    "",
+    "tmp_cc",
+    source_location,
+    irep_idt(),
+    symbol_table);
 }
 
 /*******************************************************************\
@@ -489,4 +486,3 @@ void code_contracts(
 {
   code_contractst(symbol_table, goto_functions)();
 }
-

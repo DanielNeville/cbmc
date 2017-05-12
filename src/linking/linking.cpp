@@ -12,7 +12,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/find_symbols.h>
 #include <util/source_location.h>
 #include <util/base_type.h>
-#include <util/i2string.h>
 #include <util/std_expr.h>
 #include <util/std_types.h>
 #include <util/simplify_expr.h>
@@ -39,7 +38,7 @@ std::string linkingt::expr_to_string(
   const namespacet &ns,
   const irep_idt &identifier,
   const exprt &expr) const
-{ 
+{
   return from_expr(ns, identifier, expr);
 }
 
@@ -59,7 +58,7 @@ std::string linkingt::type_to_string(
   const namespacet &ns,
   const irep_idt &identifier,
   const typet &type) const
-{ 
+{
   return from_type(ns, identifier, type);
 }
 
@@ -107,7 +106,7 @@ std::string linkingt::type_to_string_verbose(
   const namespacet &ns,
   const symbolt &symbol,
   const typet &type) const
-{ 
+{
   const typet &followed=follow_tags_symbols(ns, type);
 
   if(followed.id()==ID_struct || followed.id()==ID_union)
@@ -115,9 +114,10 @@ std::string linkingt::type_to_string_verbose(
     std::string result=followed.id_string();
 
     const std::string &tag=followed.get_string(ID_tag);
-    if(tag!="") result+=" "+tag;
+    if(tag!="")
+      result+=" "+tag;
     result+=" {\n";
-    
+
     const struct_union_typet::componentst &components=
       to_struct_union_type(followed).components();
 
@@ -138,9 +138,9 @@ std::string linkingt::type_to_string_verbose(
 
       result+=";\n";
     }
-    
+
     result+='}';
-    
+
     return result;
   }
   else if(followed.id()==ID_pointer)
@@ -222,10 +222,11 @@ void linkingt::detailed_conflict_report_rec(
     if(components1.size()!=components2.size())
     {
       msg="number of members is different (";
-      msg+=i2string(components1.size())+'/';
-      msg+=i2string(components2.size())+')';
+      msg+=std::to_string(components1.size())+'/';
+      msg+=std::to_string(components2.size())+')';
     }
     else
+    {
       for(std::size_t i=0; i<components1.size(); ++i)
       {
         const typet &subtype1=components1[i].type();
@@ -233,14 +234,14 @@ void linkingt::detailed_conflict_report_rec(
 
         if(components1[i].get_name()!=components2[i].get_name())
         {
-          msg="names of member "+i2string(i)+" differ (";
+          msg="names of member "+std::to_string(i)+" differ (";
           msg+=id2string(components1[i].get_name())+'/';
           msg+=id2string(components2[i].get_name())+')';
           break;
         }
         else if(!base_type_eq(subtype1, subtype2, ns))
         {
-          typedef hash_set_cont<typet, irep_hash> type_sett;
+          typedef std::unordered_set<typet, irep_hash> type_sett;
           type_sett parent_types;
 
           exprt e=conflict_path_before;
@@ -285,13 +286,13 @@ void linkingt::detailed_conflict_report_rec(
                 c);
               msg.swap(msg_bak);
             }
-
           }
 
           if(parent_types.find(t1)==parent_types.end())
             break;
         }
       }
+    }
   }
   else if(t1.id()==ID_c_enum)
   {
@@ -310,27 +311,29 @@ void linkingt::detailed_conflict_report_rec(
     else if(members1.size()!=members2.size())
     {
       msg="number of enum members is different (";
-      msg+=i2string(members1.size())+'/';
-      msg+=i2string(members2.size())+')';
+      msg+=std::to_string(members1.size())+'/';
+      msg+=std::to_string(members2.size())+')';
     }
     else
+    {
       for(std::size_t i=0; i<members1.size(); ++i)
       {
         if(members1[i].get_base_name()!=members2[i].get_base_name())
         {
-          msg="names of member "+i2string(i)+" differ (";
+          msg="names of member "+std::to_string(i)+" differ (";
           msg+=id2string(members1[i].get_base_name())+'/';
           msg+=id2string(members2[i].get_base_name())+')';
           break;
         }
         else if(members1[i].get_value()!=members2[i].get_value())
         {
-          msg="values of member "+i2string(i)+" differ (";
+          msg="values of member "+std::to_string(i)+" differ (";
           msg+=id2string(members1[i].get_value())+'/';
           msg+=id2string(members2[i].get_value())+')';
           break;
         }
       }
+    }
 
     msg+="\nenum declarations at\n";
     msg+=t1.source_location().as_string()+" and\n";
@@ -350,14 +353,14 @@ void linkingt::detailed_conflict_report_rec(
     if(parameters1.size()!=parameters2.size())
     {
       msg="parameter counts differ (";
-      msg+=i2string(parameters1.size())+'/';
-      msg+=i2string(parameters2.size())+')';
+      msg+=std::to_string(parameters1.size())+'/';
+      msg+=std::to_string(parameters2.size())+')';
     }
     else if(!base_type_eq(return_type1, return_type2, ns))
     {
       conflict_path=
         index_exprt(conflict_path,
-                    constant_exprt(i2string(-1), integer_typet()));
+                    constant_exprt(std::to_string(-1), integer_typet()));
 
       if(depth>0)
         detailed_conflict_report_rec(
@@ -371,6 +374,7 @@ void linkingt::detailed_conflict_report_rec(
         msg="return types differ";
     }
     else
+    {
       for(std::size_t i=0; i<parameters1.size(); i++)
       {
         const typet &subtype1=parameters1[i].type();
@@ -380,7 +384,7 @@ void linkingt::detailed_conflict_report_rec(
         {
           conflict_path=
             index_exprt(conflict_path,
-                        constant_exprt(i2string(i), integer_typet()));
+                        constant_exprt(std::to_string(i), integer_typet()));
 
           if(depth>0)
             detailed_conflict_report_rec(
@@ -396,6 +400,7 @@ void linkingt::detailed_conflict_report_rec(
           break;
         }
       }
+    }
   }
   else
     msg="conflict on POD";
@@ -498,12 +503,12 @@ irep_idt linkingt::rename(const irep_idt id)
   while(true)
   {
     irep_idt new_identifier=
-      id2string(id)+"$link"+i2string(++cnt);
+      id2string(id)+"$link"+std::to_string(++cnt);
 
     if(main_symbol_table.symbols.find(new_identifier)!=
        main_symbol_table.symbols.end())
       continue; // already in main symbol table
-    
+
     if(!renamed_ids.insert(new_identifier).second)
       continue; // used this for renaming already
 
@@ -537,10 +542,10 @@ bool linkingt::needs_renaming_non_type(
   if(new_symbol.is_file_local ||
      old_symbol.is_file_local)
     return true;
-  
+
   return false;
 }
-  
+
 /*******************************************************************\
 
 Function: linkingt::duplicate_code_symbol
@@ -931,11 +936,6 @@ bool linkingt::adjust_object_type_rec(
   else if(t1.id()!=t2.id())
   {
     // type classes do not match and can't be fixed
-    #ifdef DEBUG
-    str << "LINKING: cannot join " << t1.id() << " vs. " << t2.id();
-    debug_msg();
-    #endif
-
     return true;
   }
 
@@ -1036,11 +1036,6 @@ bool linkingt::adjust_object_type(
   const symbolt &new_symbol,
   bool &set_to_new)
 {
-  #ifdef DEBUG
-  str << "LINKING: trying to adjust types of " << old_symbol.name;
-  debug_msg();
-  #endif
-
   const typet &old_type=follow_tags_symbols(ns, old_symbol.type);
   const typet &new_type=follow_tags_symbols(ns, new_symbol.type);
 
@@ -1100,8 +1095,8 @@ void linkingt::duplicate_object_symbol(
       old_symbol.type=new_symbol.type;
   }
 
-  // care about initializers    
-  
+  // care about initializers
+
   if(!new_symbol.value.is_nil() &&
      !new_symbol.value.get_bool(ID_C_zero_initializer))
   {
@@ -1118,27 +1113,30 @@ void linkingt::duplicate_object_symbol(
       // try simplifier
       exprt tmp_old=old_symbol.value,
             tmp_new=new_symbol.value;
-            
+
       simplify(tmp_old, ns);
       simplify(tmp_new, ns);
-      
+
       if(base_type_eq(tmp_old, tmp_new, ns))
       {
         // ok, the same
       }
       else
       {
-        err_location(new_symbol.value);
-        error() << "error: conflicting initializers for variable \""
-                << old_symbol.name
-                << "\"" << '\n';
-        error() << "old value in module " << old_symbol.module
-                << " " << old_symbol.value.find_source_location() << '\n'
-                << expr_to_string(ns, old_symbol.name, tmp_old) << '\n';
-        error() << "new value in module " << new_symbol.module
-                << " " << new_symbol.value.find_source_location() << '\n'
-                << expr_to_string(ns, new_symbol.name, tmp_new) << eom;
-        throw 0;
+        warning().source_location=new_symbol.location;
+
+        warning() << "warning: conflicting initializers for"
+                  << " variable \"" << old_symbol.name << "\"\n";
+        warning() << "using old value in module "
+                  << old_symbol.module << " "
+                  << old_symbol.value.find_source_location() << '\n'
+                  << expr_to_string(ns, old_symbol.name, tmp_old)
+                  << '\n';
+        warning() << "ignoring new value in module "
+                  << new_symbol.module << " "
+                  << new_symbol.value.find_source_location() << '\n'
+                  << expr_to_string(ns, new_symbol.name, tmp_new)
+                  << eom;
       }
     }
   }
@@ -1202,7 +1200,7 @@ void linkingt::duplicate_type_symbol(
   symbolt &new_symbol)
 {
   assert(new_symbol.is_type);
-  
+
   if(!old_symbol.is_type)
     link_error(
       old_symbol,
@@ -1219,14 +1217,14 @@ void linkingt::duplicate_type_symbol(
     old_symbol.location=new_symbol.location;
     return;
   }
-  
+
   if(old_symbol.type.id()==ID_struct &&
      new_symbol.type.id()==ID_incomplete_struct)
   {
     // ok, keep old
     return;
   }
-  
+
   if(old_symbol.type.id()==ID_incomplete_union &&
      new_symbol.type.id()==ID_union)
   {
@@ -1234,7 +1232,7 @@ void linkingt::duplicate_type_symbol(
     old_symbol.location=new_symbol.location;
     return;
   }
-  
+
   if(old_symbol.type.id()==ID_union &&
      new_symbol.type.id()==ID_incomplete_union)
   {
@@ -1291,25 +1289,25 @@ bool linkingt::needs_renaming_type(
   const symbolt &new_symbol)
 {
   assert(new_symbol.is_type);
-  
+
   if(!old_symbol.is_type)
     return true;
 
   if(old_symbol.type==new_symbol.type)
     return false;
-  
+
   if(old_symbol.type.id()==ID_incomplete_struct &&
      new_symbol.type.id()==ID_struct)
     return false; // not different
-  
+
   if(old_symbol.type.id()==ID_struct &&
      new_symbol.type.id()==ID_incomplete_struct)
     return false; // not different
-  
+
   if(old_symbol.type.id()==ID_incomplete_union &&
      new_symbol.type.id()==ID_union)
     return false; // not different
-  
+
   if(old_symbol.type.id()==ID_union &&
      new_symbol.type.id()==ID_incomplete_union)
     return false; // not different
@@ -1396,7 +1394,7 @@ void linkingt::do_type_dependencies(id_sett &needs_to_be_renamed)
       }
   }
 }
-  
+
 /*******************************************************************\
 
 Function: linkingt::rename_symbols
@@ -1428,7 +1426,7 @@ void linkingt::rename_symbols(const id_sett &needs_to_be_renamed)
       new_identifier=rename(*it);
 
     new_symbol.name=new_identifier;
-    
+
     #ifdef DEBUG
     debug() << "LINKING: renaming " << *it << " to "
             << new_identifier << eom;
@@ -1465,7 +1463,7 @@ void linkingt::copy_symbols()
 
   // Move over all the non-colliding ones
   id_sett collisions;
-  
+
   Forall_symbols(s_it, src_symbol_table.symbols)
   {
     // renamed?
@@ -1478,7 +1476,7 @@ void linkingt::copy_symbols()
     {
       symbol_tablet::symbolst::iterator
         m_it=main_symbol_table.symbols.find(s_it->first);
-    
+
       if(m_it==main_symbol_table.symbols.end())
       {
         // new
@@ -1488,7 +1486,7 @@ void linkingt::copy_symbols()
         collisions.insert(s_it->first);
     }
   }
-  
+
   // Now do the collisions
   for(id_sett::const_iterator
       i_it=collisions.begin();
@@ -1497,13 +1495,12 @@ void linkingt::copy_symbols()
   {
     symbolt &old_symbol=main_symbol_table.symbols[*i_it];
     symbolt &new_symbol=src_symbol_table.symbols[*i_it];
-    
+
     if(new_symbol.is_type)
       duplicate_type_symbol(old_symbol, new_symbol);
     else
       duplicate_non_type_symbol(old_symbol, new_symbol);
   }
-
 }
 
 /*******************************************************************\
@@ -1523,16 +1520,16 @@ void linkingt::typecheck()
   // We do this in three phases. We first figure out which symbols need to
   // be renamed, and then build the renaming, and finally apply this
   // renaming in the second pass over the symbol table.
-  
+
   // PHASE 1: identify symbols to be renamed
-  
+
   id_sett needs_to_be_renamed;
-  
+
   forall_symbols(s_it, src_symbol_table.symbols)
   {
     symbol_tablet::symbolst::const_iterator
       m_it=main_symbol_table.symbols.find(s_it->first);
-  
+
     if(m_it!=main_symbol_table.symbols.end() && // duplicate
        needs_renaming(m_it->second, s_it->second))
     {
@@ -1543,10 +1540,10 @@ void linkingt::typecheck()
       #endif
     }
   }
-  
+
   // renaming types may trigger further renaming
   do_type_dependencies(needs_to_be_renamed);
-  
+
   // PHASE 2: actually rename them
   rename_symbols(needs_to_be_renamed);
 
@@ -1573,6 +1570,6 @@ bool linking(
 {
   linkingt linking(
     dest_symbol_table, new_symbol_table, message_handler);
-  
+
   return linking.typecheck_main();
 }

@@ -6,8 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_JAVA_BYTECODE_PARSE_TREE_H
-#define CPROVER_JAVA_BYTECODE_PARSE_TREE_H
+#ifndef CPROVER_JAVA_BYTECODE_JAVA_BYTECODE_PARSE_TREE_H
+#define CPROVER_JAVA_BYTECODE_JAVA_BYTECODE_PARSE_TREE_H
 
 #include <set>
 
@@ -23,7 +23,7 @@ public:
   {
   public:
     typet type;
-  
+
     class element_value_pairt
     {
     public:
@@ -31,13 +31,13 @@ public:
       exprt value;
       void output(std::ostream &) const;
     };
-    
+
     typedef std::vector<element_value_pairt> element_value_pairst;
     element_value_pairst element_value_pairs;
-    
+
     void output(std::ostream &) const;
   };
-  
+
   typedef std::vector<annotationt> annotationst;
 
   class instructiont
@@ -49,7 +49,7 @@ public:
     typedef std::vector<exprt> argst;
     argst args;
   };
-  
+
   class membert
   {
   public:
@@ -59,36 +59,42 @@ public:
     annotationst annotations;
 
     virtual void output(std::ostream &out) const = 0;
-    
-    inline membert():
+
+    membert():
       is_public(false), is_protected(false), is_private(false),
       is_static(false), is_final(false)
     {
     }
   };
-  
+
   class methodt:public membert
   {
   public:
     irep_idt base_name;
     bool is_native, is_abstract, is_synchronized;
+    source_locationt source_location;
 
     typedef std::vector<instructiont> instructionst;
     instructionst instructions;
-    
+
     instructiont &add_instruction()
     {
       instructions.push_back(instructiont());
       return instructions.back();
     }
-    
-    class exceptiont
+
+    struct exceptiont
     {
+    public:
+      std::size_t start_pc;
+      std::size_t end_pc;
+      std::size_t handler_pc;
+      symbol_typet catch_type;
     };
-    
+
     typedef std::vector<exceptiont> exception_tablet;
     exception_tablet exception_table;
-    
+
     class local_variablet
     {
     public:
@@ -117,15 +123,20 @@ public:
     class stack_map_table_entryt
     {
     public:
-      enum stack_frame_type { SAME, SAME_LOCALS_ONE_STACK, SAME_LOCALS_ONE_STACK_EXTENDED,
-                              CHOP, SAME_EXTENDED, APPEND, FULL};
+      enum stack_frame_type
+      {
+        SAME, SAME_LOCALS_ONE_STACK, SAME_LOCALS_ONE_STACK_EXTENDED,
+        CHOP, SAME_EXTENDED, APPEND, FULL
+      };
       stack_frame_type type;
       size_t offset_delta;
       size_t chops;
       size_t appends;
 
-      typedef std::vector<verification_type_infot> local_verification_type_infot;
-      typedef std::vector<verification_type_infot> stack_verification_type_infot;
+      typedef std::vector<verification_type_infot>
+        local_verification_type_infot;
+      typedef std::vector<verification_type_infot>
+        stack_verification_type_infot;
 
       local_verification_type_infot locals;
       stack_verification_type_infot stack;
@@ -135,51 +146,58 @@ public:
     stack_map_tablet stack_map_table;
 
     virtual void output(std::ostream &out) const;
-    
-    inline methodt():is_native(false), is_abstract(false), is_synchronized(false)
+
+    methodt():
+      is_native(false),
+      is_abstract(false),
+      is_synchronized(false)
     {
     }
   };
-  
+
   class fieldt:public membert
   {
   public:
     virtual void output(std::ostream &out) const;
+    bool is_enum;
   };
-  
+
   class classt
   {
   public:
     irep_idt name, extends;
-    bool is_abstract;
+    bool is_abstract=false;
+    bool is_enum=false;
+    size_t enum_elements=0;
+
     typedef std::list<irep_idt> implementst;
     implementst implements;
-    
+
     typedef std::list<fieldt> fieldst;
     typedef std::list<methodt> methodst;
     fieldst fields;
     methodst methods;
     annotationst annotations;
-    
-    inline fieldt &add_field()
+
+    fieldt &add_field()
     {
       fields.push_back(fieldt());
       return fields.back();
     }
 
-    inline methodt &add_method()
+    methodt &add_method()
     {
       methods.push_back(methodt());
       return methods.back();
     }
 
     void output(std::ostream &out) const;
-    
+
     void swap(classt &other);
   };
-  
+
   classt parsed_class;
-  
+
   void swap(java_bytecode_parse_treet &other)
   {
     other.parsed_class.swap(parsed_class);
@@ -191,12 +209,12 @@ public:
 
   typedef std::set<irep_idt> class_refst;
   class_refst class_refs;
-  
+
   bool loading_successful;
-  
-  inline java_bytecode_parse_treet():loading_successful(false)
+
+  java_bytecode_parse_treet():loading_successful(false)
   {
   }
 };
 
-#endif
+#endif // CPROVER_JAVA_BYTECODE_JAVA_BYTECODE_PARSE_TREE_H

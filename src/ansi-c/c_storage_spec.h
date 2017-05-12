@@ -18,13 +18,13 @@ public:
   {
     clear();
   }
-  
+
   explicit c_storage_spect(const typet &type)
   {
     clear();
     read(type);
   }
-  
+
   void clear()
   {
     is_typedef=false;
@@ -38,7 +38,7 @@ public:
     asm_label.clear();
     section.clear();
   }
-  
+
   bool is_typedef, is_extern, is_static, is_register,
        is_inline, is_thread_local, is_weak;
 
@@ -48,46 +48,40 @@ public:
   // GCC asm labels __asm__("foo") - these change the symbol name
   irep_idt asm_label;
   irep_idt section;
-  
-  friend bool operator == (
-    const c_storage_spect &a,
-    const c_storage_spect &b)
+
+  bool operator==(const c_storage_spect &other) const
   {
-    return a.is_typedef==b.is_typedef &&
-           a.is_extern==b.is_extern &&
-           a.is_static==b.is_static &&
-           a.is_register==b.is_register &&
-           a.is_thread_local==b.is_thread_local &&
-           a.is_inline==b.is_inline &&
-           a.is_weak==b.is_weak &&
-           a.alias==b.alias &&
-           a.asm_label==b.asm_label &&
-           a.section==b.section;
+    return is_typedef==other.is_typedef &&
+           is_extern==other.is_extern &&
+           is_static==other.is_static &&
+           is_register==other.is_register &&
+           is_thread_local==other.is_thread_local &&
+           is_inline==other.is_inline &&
+           is_weak==other.is_weak &&
+           alias==other.alias &&
+           asm_label==other.asm_label &&
+           section==other.section;
   }
 
-  friend bool operator != (
-    const c_storage_spect &a,
-    const c_storage_spect &b)
+  bool operator!=(const c_storage_spect &other) const
   {
-    return !(a==b);
+    return !(*this==other);
   }
 
-  friend c_storage_spect &operator |= (
-    c_storage_spect &a,
-    const c_storage_spect &b)
+  c_storage_spect &operator|=(const c_storage_spect &other)
   {
-    a.is_typedef      |=b.is_typedef;
-    a.is_extern       |=b.is_extern;
-    a.is_static       |=b.is_static;
-    a.is_register     |=b.is_register;
-    a.is_inline       |=b.is_inline;
-    a.is_thread_local |=b.is_thread_local;
+    is_typedef      |=other.is_typedef;
+    is_extern       |=other.is_extern;
+    is_static       |=other.is_static;
+    is_register     |=other.is_register;
+    is_inline       |=other.is_inline;
+    is_thread_local |=other.is_thread_local;
     // attributes belong to the declarator, don't replace them
-    
-    return a;
+
+    return *this;
   }
-  
+
   void read(const typet &type);
 };
 
-#endif
+#endif // CPROVER_ANSI_C_C_STORAGE_SPEC_H

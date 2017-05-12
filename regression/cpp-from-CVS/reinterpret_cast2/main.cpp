@@ -1,15 +1,15 @@
 struct A {
-	 int* pi;
-	
+   int* pi;
+
 };
 
 int main()
 {
-	A a;
-	const A* cpa = &a;
-	
-	int* ptr = reinterpret_cast<int*>(cpa->pi);
+  A a;
+  const A* cpa = &a;
 
-	return 0;
-	
+  int* ptr = reinterpret_cast<int*>(cpa->pi);
+
+  return 0;
+
 }

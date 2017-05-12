@@ -19,9 +19,9 @@ class value_set_domaint:public domain_baset
 public:
   value_sett value_set;
 
-  // overloading  
+  // overloading
 
-  inline bool merge(const value_set_domaint &other, locationt to)
+  bool merge(const value_set_domaint &other, locationt to)
   {
     return value_set.make_union(other.value_set);
   }
@@ -32,7 +32,7 @@ public:
   {
     value_set.output(ns, out);
   }
-    
+
   virtual void initialize(
     const namespacet &ns,
     locationt l)
@@ -53,7 +53,6 @@ public:
   {
     value_set.get_reference_set(expr, dest, ns);
   }
-  
 };
 
-#endif
+#endif // CPROVER_POINTER_ANALYSIS_VALUE_SET_DOMAIN_H

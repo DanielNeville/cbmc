@@ -6,8 +6,10 @@ Author: Michael Tautschnig, tautschn@amazon.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_JSIL_TYPECHECK_H
-#define CPROVER_JSIL_TYPECHECK_H
+#ifndef CPROVER_JSIL_JSIL_TYPECHECK_H
+#define CPROVER_JSIL_JSIL_TYPECHECK_H
+
+#include <unordered_set>
 
 #include <util/typecheck.h>
 #include <util/namespace.h>
@@ -49,9 +51,9 @@ protected:
   // prefix to variables which is set in typecheck_declaration
   irep_idt proc_name;
 
-  void update_expr_type (exprt &expr, const typet &type);
+  void update_expr_type(exprt &expr, const typet &type);
   void make_type_compatible(exprt &expr, const typet &type, bool must);
-  void typecheck_type_symbol(symbolt &symbol) {};
+  void typecheck_type_symbol(symbolt &symbol) {}
   void typecheck_non_type_symbol(symbolt &symbol);
   void typecheck_symbol_expr(symbol_exprt &symbol_expr);
   void typecheck_expr_side_effect_throw(side_effect_expr_throwt &expr);
@@ -81,7 +83,7 @@ protected:
   void typecheck_block(codet &code);
   void typecheck_ifthenelse(code_ifthenelset &code);
   void typecheck_assign(code_assignt &code);
-  void typecheck_try_catch (code_try_catcht &code);
+  void typecheck_try_catch(code_try_catcht &code);
   void typecheck_type(typet &type);
   irep_idt add_prefix(const irep_idt &ds);
 
@@ -89,7 +91,7 @@ protected:
   virtual std::string to_string(const exprt &expr);
   virtual std::string to_string(const typet &type);
 
-  hash_set_cont<irep_idt, irep_id_hash> already_typechecked;
+  std::unordered_set<irep_idt, irep_id_hash> already_typechecked;
 };
 
-#endif
+#endif // CPROVER_JSIL_JSIL_TYPECHECK_H

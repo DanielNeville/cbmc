@@ -6,8 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_JAVA_TYPES_H
-#define CPROVER_JAVA_TYPES_H
+#ifndef CPROVER_JAVA_BYTECODE_JAVA_TYPES_H
+#define CPROVER_JAVA_BYTECODE_JAVA_TYPES_H
 
 #include <util/type.h>
 #include <util/std_types.h>
@@ -20,7 +20,7 @@ typet java_char_type();
 typet java_float_type();
 typet java_double_type();
 typet java_boolean_type();
-typet java_reference_type(const typet &subtype);
+reference_typet java_reference_type(const typet &subtype);
 symbol_typet java_classname(const std::string &);
 
 pointer_typet java_array_type(const char subtype);
@@ -44,4 +44,4 @@ char java_char_from_type(const typet &type);
 typet java_bytecode_promotion(const typet &);
 exprt java_bytecode_promotion(const exprt &);
 
-#endif
+#endif // CPROVER_JAVA_BYTECODE_JAVA_TYPES_H

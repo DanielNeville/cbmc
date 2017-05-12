@@ -8,7 +8,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/std_types.h>
 #include <util/std_expr.h>
-#include <util/expr_util.h>
 #include <util/arith_tools.h>
 #include <util/base_type.h>
 #include <util/endianness_map.h>
@@ -67,13 +66,14 @@ bvt boolbvt::convert_with(const exprt &expr)
   {
     bv.swap(prev_bv);
 
-    convert_with(expr.op0().type(),
-                 ops[op_no],
-                 ops[op_no+1],
-                 prev_bv,
-                 bv);
+    convert_with(
+      expr.op0().type(),
+      ops[op_no],
+      ops[op_no+1],
+      prev_bv,
+      bv);
   }
-  
+
   return bv;
 }
 
@@ -107,7 +107,8 @@ void boolbvt::convert_with(
           type.id()==ID_signedbv)
     return convert_with_bv(type, op1, op2, prev_bv, next_bv);
   else if(type.id()==ID_struct)
-    return convert_with_struct(to_struct_type(type), op1, op2, prev_bv, next_bv);
+    return
+      convert_with_struct(to_struct_type(type), op1, op2, prev_bv, next_bv);
   else if(type.id()==ID_union)
     return convert_with_union(to_union_type(type), op1, op2, prev_bv, next_bv);
   else if(type.id()==ID_symbol)
@@ -139,7 +140,7 @@ void boolbvt::convert_with_array(
 {
   if(is_unbounded_array(type))
   {
-    // can't do this    
+    // can't do this
     error().source_location=type.source_location();
     error() << "convert_with_array called for unbounded array" << eom;
     throw 0;
@@ -155,7 +156,7 @@ void boolbvt::convert_with_array(
     error() << "convert_with_array expects constant array size" << eom;
     throw 0;
   }
-    
+
   const bvt &op2_bv=convert_bv(op2);
 
   if(size*op2_bv.size()!=prev_bv.size())
@@ -277,7 +278,6 @@ void boolbvt::convert_with_struct(
       it!=components.end();
       it++)
   {
-
     const typet &subtype=it->type();
 
     std::size_t sub_width=boolbv_width(subtype);
@@ -304,7 +304,7 @@ void boolbvt::convert_with_struct(
 
       for(std::size_t i=0; i<sub_width; i++)
         next_bv[offset+i]=op2_bv[i];
-        
+
       break; // done
     }
 
@@ -349,7 +349,8 @@ void boolbvt::convert_with_union(
   }
   else
   {
-    assert(config.ansi_c.endianness==configt::ansi_ct::endiannesst::IS_BIG_ENDIAN);
+    assert(
+      config.ansi_c.endianness==configt::ansi_ct::endiannesst::IS_BIG_ENDIAN);
 
     endianness_mapt map_u(type, false, ns);
     endianness_mapt map_op2(op2.type(), false, ns);
@@ -358,4 +359,3 @@ void boolbvt::convert_with_union(
       next_bv[map_u.map_bit(i)]=op2_bv[map_op2.map_bit(i)];
   }
 }
-

@@ -1,7 +1,7 @@
 class C
 {
   public:
-    C(int& v):v(v){};
+    C(int& v):v(v) {}
     int v;
 };
 
@@ -22,4 +22,3 @@ int main(int argc, char* argv[])
   D* pd = new D(ref_d);
   assert(pd->r == 10);
 }
-

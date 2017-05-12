@@ -36,13 +36,14 @@ void invariant_set_domaint::transform(
 
       goto_programt::const_targett next=from_l;
       next++;
-      if(next==to_l) tmp.make_not();
+      if(next==to_l)
+        tmp.make_not();
 
       simplify(tmp, ns);
       invariant_set.strengthen(tmp);
     }
     break;
-    
+
   case ASSERT:
   case ASSUME:
     {
@@ -51,7 +52,7 @@ void invariant_set_domaint::transform(
       invariant_set.strengthen(tmp);
     }
     break;
-    
+
   case RETURN:
     // ignore
     break;
@@ -62,25 +63,27 @@ void invariant_set_domaint::transform(
       invariant_set.assignment(assignment.lhs(), assignment.rhs());
     }
     break;
-  
+
   case OTHER:
     if(from_l->code.is_not_nil())
       invariant_set.apply_code(from_l->code);
     break;
-  
+
   case DECL:
     invariant_set.apply_code(from_l->code);
     break;
-  
+
   case FUNCTION_CALL:
     invariant_set.apply_code(from_l->code);
     break;
-  
+
   case START_THREAD:
-    invariant_set.make_threaded(); 
+    invariant_set.make_threaded();
     break;
-  
-  default:;
-    // do nothing
+
+  default:
+    {
+      // do nothing
+    }
   }
 }

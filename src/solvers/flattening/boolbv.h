@@ -13,7 +13,6 @@ Author: Daniel Kroening, kroening@kroening.com
 // convert expression to boolean formula
 //
 
-#include <util/hash_cont.h>
 #include <util/mp_arith.h>
 #include <util/expr.h>
 #include <util/byte_operators.h>
@@ -42,28 +41,28 @@ public:
     map(_prop, _ns, boolbv_width)
   {
   }
- 
-  virtual const bvt& convert_bv(const exprt &expr); // check cache
+
+  virtual const bvt &convert_bv(const exprt &expr); // check cache
   virtual bvt convert_bitvector(const exprt &expr); // no cache
 
   // overloading
-  virtual exprt get(const exprt &expr) const;
-  virtual void set_to(const exprt &expr, bool value);
-  virtual void print_assignment(std::ostream &out) const;
-  
-  virtual void clear_cache()
+  exprt get(const exprt &expr) const override;
+  void set_to(const exprt &expr, bool value) override;
+  void print_assignment(std::ostream &out) const override;
+
+  void clear_cache() override
   {
     SUB::clear_cache();
     bv_cache.clear();
   }
 
-  virtual void post_process()
+  void post_process() override
   {
     post_process_quantifiers();
     functions.post_process();
     SUB::post_process();
   }
-  
+
   // get literals for variables/expressions, if available
   virtual bool literal(
     const exprt &expr,
@@ -71,7 +70,7 @@ public:
     literalt &literal) const;
 
   using arrayst::literal;
-    
+
   typedef enum { U_NONE, U_ALL, U_AUTO } unbounded_arrayt;
   unbounded_arrayt unbounded_array;
 
@@ -79,9 +78,9 @@ public:
   {
     return get_value(bv, 0, bv.size());
   }
-  
+
   mp_integer get_value(const bvt &bv, std::size_t offset, std::size_t width);
-  
+
   const boolbv_mapt &get_map() const
   {
     return map;
@@ -91,17 +90,18 @@ public:
 
 protected:
   bv_utilst bv_utils;
-  
+
   // uninterpreted functions
   functionst functions;
 
   // the mapping from identifiers to literals
-  boolbv_mapt map;  
-  
+  boolbv_mapt map;
+
   // overloading
-  virtual literalt convert_rest(const exprt &expr);
+  virtual literalt convert_rest(const exprt &expr) override;
   virtual bool boolbv_set_equality_to_true(const equal_exprt &expr);
-  
+
+  // NOLINTNEXTLINE(readability/identifiers)
   typedef arrayst SUB;
 
   void conversion_failed(const exprt &expr, bvt &bv)
@@ -111,13 +111,13 @@ protected:
 
   bvt conversion_failed(const exprt &expr);
 
-  typedef hash_map_cont<const exprt, bvt, irep_hash> bv_cachet;
+  typedef std::unordered_map<const exprt, bvt, irep_hash> bv_cachet;
   bv_cachet bv_cache;
 
   bool type_conversion(
     const typet &src_type, const bvt &src,
     const typet &dest_type, bvt &dest);
-  
+
   virtual literalt convert_bv_rel(const exprt &expr);
   virtual literalt convert_typecast(const typecast_exprt &expr);
   virtual literalt convert_reduction(const unary_exprt &expr);
@@ -125,7 +125,8 @@ protected:
   virtual literalt convert_extractbit(const extractbit_exprt &expr);
   virtual literalt convert_overflow(const exprt &expr);
   virtual literalt convert_equality(const equal_exprt &expr);
-  virtual literalt convert_verilog_case_equality(const binary_relation_exprt &expr);
+  virtual literalt convert_verilog_case_equality(
+    const binary_relation_exprt &expr);
   virtual literalt convert_ieee_float_rel(const exprt &expr);
   virtual literalt convert_quantifier(const exprt &expr);
 
@@ -169,6 +170,8 @@ protected:
   virtual bvt convert_bv_reduction(const unary_exprt &expr);
   virtual bvt convert_not(const not_exprt &expr);
   virtual bvt convert_power(const binary_exprt &expr);
+  virtual bvt convert_function_application(
+    const function_application_exprt &expr);
 
   virtual void make_bv_expr(const typet &type, const bvt &bv, exprt &dest);
   virtual void make_free_bv_expr(const typet &type, exprt &dest);
@@ -217,7 +220,7 @@ protected:
     bvt &bv);
 
   virtual exprt bv_get_unbounded_array(const exprt &) const;
-                    
+
   virtual exprt bv_get_rec(
     const bvt &bv,
     const std::vector<bool> &unknown,
@@ -226,11 +229,10 @@ protected:
 
   exprt bv_get(const bvt &bv, const typet &type) const;
   exprt bv_get_cache(const exprt &expr) const;
-                          
-  // unbounded arrays
 
-  bool is_unbounded_array(const typet &type) const;
-  
+  // unbounded arrays
+  bool is_unbounded_array(const typet &type) const override;
+
   // quantifier instantiations
   class quantifiert
   {
@@ -241,14 +243,14 @@ protected:
 
   typedef std::list<quantifiert> quantifier_listt;
   quantifier_listt quantifier_list;
-  
+
   void post_process_quantifiers();
-  
+
   typedef std::vector<std::size_t> offset_mapt;
   void build_offset_map(const struct_typet &src, offset_mapt &dest);
-  
+
   // strings
   numbering<irep_idt> string_numbering;
 };
 
-#endif
+#endif // CPROVER_SOLVERS_FLATTENING_BOOLBV_H

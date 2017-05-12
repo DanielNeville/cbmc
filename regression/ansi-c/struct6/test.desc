@@ -1,8 +1,8 @@
 CORE
 main.c
 
-^EXIT=\(64\|1\)$
+^EXIT=(64|1)$
 ^SIGNAL=0$
-^file main.c line 2: incomplete type not permitted here$
+^main.c:2:1: error: incomplete type not permitted here$
 ^CONVERSION ERROR$
 --

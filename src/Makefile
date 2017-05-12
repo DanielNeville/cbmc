@@ -1,7 +1,8 @@
 DIRS = ansi-c big-int cbmc cpp goto-cc goto-instrument goto-programs \
        goto-symex langapi pointer-analysis solvers util linking xmllang \
-       assembler analyses java_bytecode aa-path-symex path-symex musketeer \
-       json cegis goto-analyzer jsil symex goto-diff
+       assembler analyses java_bytecode path-symex musketeer \
+       json goto-analyzer jsil symex goto-diff clobber \
+       memory-models miniz
 
 all: cbmc.dir goto-cc.dir goto-instrument.dir symex.dir goto-analyzer.dir goto-diff.dir
 
@@ -19,7 +20,7 @@ cpp.dir: ansi-c.dir linking.dir
 
 languages: util.dir langapi.dir \
            cpp.dir ansi-c.dir xmllang.dir assembler.dir java_bytecode.dir \
-           jsil.dir
+           jsil.dir miniz.dir
 
 goto-instrument.dir: languages goto-programs.dir pointer-analysis.dir \
                      goto-symex.dir linking.dir analyses.dir solvers.dir \
@@ -53,7 +54,7 @@ $(patsubst %, %.dir, $(DIRS)):
 
 $(patsubst %, %_generated_files, $(DIRS)):
 	$(MAKE) $(MAKEARGS) -C $(patsubst %_generated_files, %, $@) generated_files
-	
+
 generated_files: $(patsubst %, %_generated_files, $(DIRS))
 
 # cleaning
@@ -83,26 +84,4 @@ glucose-download:
 	@(cd ../glucose-syrup; patch -p1 < ../scripts/glucose-syrup-patch)
 	@rm glucose-syrup.tgz
 
-zlib-download:
-	@echo "Downloading zlib 1.2.8"
-	@lwp-download http://zlib.net/zlib-1.2.8.tar.gz
-	@tar xfz zlib-1.2.8.tar.gz
-	@rm -Rf ../zlib
-	@mv zlib-1.2.8 ../zlib
-	@rm zlib-1.2.8.tar.gz
-
-libzip-download:
-	@echo "Downloading libzip 1.1.2"
-	@lwp-download http://www.nih.at/libzip/libzip-1.1.2.tar.gz
-	@tar xfz libzip-1.1.2.tar.gz
-	@rm -Rf ../libzip
-	@mv libzip-1.1.2 ../libzip
-	@rm libzip-1.1.2.tar.gz
-
-libzip-build:
-	@echo "Building zlib"
-	@(cd ../zlib; ./configure; make)
-	@echo "Building libzip"
-	@(cd ../libzip; BASE=`pwd`; ./configure --with-zlib=$(BASE)/zlib ; make)
-
-.PHONY: minisat2-download glucose-download zlib-download libzip-download libzip-build
+.PHONY: minisat2-download glucose-download

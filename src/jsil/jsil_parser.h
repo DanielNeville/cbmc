@@ -6,8 +6,8 @@ Author: Michael Tautschnig, tautschn@amazon.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_JSIL_PARSER_H
-#define CPROVER_JSIL_PARSER_H
+#ifndef CPROVER_JSIL_JSIL_PARSER_H
+#define CPROVER_JSIL_JSIL_PARSER_H
 
 #include <util/parser.h>
 
@@ -20,12 +20,12 @@ class jsil_parsert:public parsert
 public:
   jsil_parse_treet parse_tree;
 
-  virtual bool parse()
+  virtual bool parse() override
   {
     return yyjsilparse()!=0;
   }
 
-  virtual void clear()
+  virtual void clear() override
   {
     parsert::clear();
     parse_tree.clear();
@@ -43,4 +43,4 @@ extern jsil_parsert jsil_parser;
 int yyjsilerror(const std::string &error);
 void jsil_scanner_init();
 
-#endif
+#endif // CPROVER_JSIL_JSIL_PARSER_H

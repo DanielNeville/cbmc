@@ -38,12 +38,13 @@ void class_hierarchyt::operator()(const symbol_tablet &symbol_table)
 
       const irept::subt &bases=
         struct_type.find(ID_bases).get_sub();
-      
-      for(const auto & base : bases)
+
+      for(const auto &base : bases)
       {
         irep_idt parent=base.find(ID_type).get(ID_identifier);
-        if(parent.empty()) continue;
-      
+        if(parent.empty())
+          continue;
+
         class_map[parent].children.push_back(it->first);
         class_map[it->first].parents.push_back(parent);
       }
@@ -68,14 +69,15 @@ void class_hierarchyt::get_children_trans_rec(
   idst &dest) const
 {
   class_mapt::const_iterator it=class_map.find(c);
-  if(it==class_map.end()) return;
+  if(it==class_map.end())
+    return;
   const entryt &entry=it->second;
-  
-  for(const auto & child : entry.children)
+
+  for(const auto &child : entry.children)
     dest.push_back(child);
 
   // recursive calls
-  for(const auto & child : entry.children)
+  for(const auto &child : entry.children)
     get_children_trans_rec(child, dest);
 }
 
@@ -96,14 +98,15 @@ void class_hierarchyt::get_parents_trans_rec(
   idst &dest) const
 {
   class_mapt::const_iterator it=class_map.find(c);
-  if(it==class_map.end()) return;
+  if(it==class_map.end())
+    return;
   const entryt &entry=it->second;
-  
-  for(const auto & child : entry.parents)
+
+  for(const auto &child : entry.parents)
     dest.push_back(child);
 
   // recursive calls
-  for(const auto & child : entry.parents)
+  for(const auto &child : entry.parents)
     get_parents_trans_rec(child, dest);
 }
 
@@ -121,13 +124,13 @@ Function: class_hierarchyt::output
 
 void class_hierarchyt::output(std::ostream &out) const
 {
-  for(const auto & c : class_map)
+  for(const auto &c : class_map)
   {
-    for(const auto & pa : c.second.parents)
+    for(const auto &pa : c.second.parents)
       out << "Parent of " << c.first << ": "
           << pa << '\n';
 
-    for(const auto & ch : c.second.children)
+    for(const auto &ch : c.second.children)
       out << "Child of " << c.first << ": "
           << ch << '\n';
   }

@@ -15,7 +15,7 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 
 /*******************************************************************\
 
-Function: safe_c_str2number
+Function: str2number
 
   Inputs:
 
@@ -56,59 +56,8 @@ inline T str2number(const char *str, int base, bool safe)
       assert(val >= (long long)std::numeric_limits<T>::min());
     }
   }
-  
+
   return (T)val;
-}
-
-/*******************************************************************\
-
-Function: safe_c_str2int
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-int safe_c_str2int(const char *str, int base)
-{
-  return str2number<int>(str, base, true);
-}
-
-/*******************************************************************\
-
-Function: safe_c_str2unsigned
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-unsigned safe_c_str2unsigned(const char *str, int base)
-{
-  return str2number<unsigned>(str, base, true);
-}
-
-/*******************************************************************\
-
-Function: safe_string2int
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-int safe_string2int(const std::string &str, int base)
-{
-  return str2number<int>(str.c_str(), base, true);
 }
 
 /*******************************************************************\
@@ -143,40 +92,6 @@ Function: safe_string2size_t
 std::size_t safe_string2size_t(const std::string &str, int base)
 {
   return str2number<std::size_t>(str.c_str(), base, true);
-}
-
-/*******************************************************************\
-
-Function: unsafe_c_str2int
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-int unsafe_c_str2int(const char *str, int base)
-{
-  return str2number<int>(str, base, false);
-}
-
-/*******************************************************************\
-
-Function: unsafe_c_str2unsigned
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-unsigned unsafe_c_str2unsigned(const char *str, int base)
-{
-  return str2number<unsigned>(str, base, false);
 }
 
 /*******************************************************************\
@@ -242,7 +157,9 @@ Function: unsafe_string2signedlonglong
 
 \*******************************************************************/
 
-signed long long int unsafe_string2signedlonglong(const std::string &str, int base)
+signed long long int unsafe_string2signedlonglong(
+  const std::string &str,
+  int base)
 {
   return str2number<signed long long int>(str.c_str(), base, false);
 }
@@ -259,8 +176,9 @@ Function: unsafe_string2unsignedlonglong
 
 \*******************************************************************/
 
-unsigned long long int unsafe_string2unsignedlonglong(const std::string &str, int base)
+unsigned long long int unsafe_string2unsignedlonglong(
+  const std::string &str,
+  int base)
 {
   return str2number<unsigned long long int>(str.c_str(), base, false);
 }
-

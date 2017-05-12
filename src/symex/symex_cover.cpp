@@ -8,7 +8,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <iostream>
 
-#include <util/i2string.h>
 #include <util/json_expr.h>
 #include <util/xml_expr.h>
 
@@ -34,8 +33,8 @@ std::string symex_parse_optionst::get_test(const goto_tracet &goto_trace)
   bool first=true;
   std::string test;
   const namespacet ns(goto_model.symbol_table);
-  
-  for(const auto & step : goto_trace.steps)
+
+  for(const auto &step : goto_trace.steps)
   {
     if(step.is_input())
     {
@@ -70,27 +69,28 @@ void symex_parse_optionst::report_cover(
 {
   // report
   unsigned goals_covered=0;
-  
-  for(const auto & it : property_map)
-    if(it.second.is_failure())
+
+  for(const auto &prop_pair : property_map)
+    if(prop_pair.second.is_failure())
       goals_covered++;
-  
+
   switch(get_ui())
   {
     case ui_message_handlert::PLAIN:
     {
       status() << "\n** coverage results:" << eom;
 
-      for(const auto & it : property_map)
+      for(const auto &prop_pair : property_map)
       {
-        const auto &property=it.second;
+        const auto &property=prop_pair.second;
 
-        status() << "[" << it.first << "]";
+        status() << "[" << prop_pair.first << "]";
 
         if(property.source_location.is_not_nil())
           status() << ' ' << property.source_location;
 
-        if(!property.description.empty()) status() << ' ' << property.description;
+        if(!property.description.empty())
+          status() << ' ' << property.description;
 
         status() << ": " << (property.is_failure()?"SATISFIED":"FAILED")
                  << eom;
@@ -103,14 +103,16 @@ void symex_parse_optionst::report_cover(
 
     case ui_message_handlert::XML_UI:
     {
-      for(const auto & it : property_map)
+      for(const auto &prop_pair : property_map)
       {
-        const auto &property=it.second;
+        const auto &property=prop_pair.second;
 
         xmlt xml_result("result");
-        xml_result.set_attribute("goal", id2string(it.first));
-        xml_result.set_attribute("description", id2string(property.description));
-        xml_result.set_attribute("status", property.is_failure()?"SATISFIED":"FAILED");
+        xml_result.set_attribute("goal", id2string(prop_pair.first));
+        xml_result.set_attribute(
+          "description", id2string(property.description));
+        xml_result.set_attribute(
+          "status", property.is_failure()?"SATISFIED":"FAILED");
 
         if(property.source_location.is_not_nil())
           xml_result.new_element()=xml(property.source_location);
@@ -127,7 +129,7 @@ void symex_parse_optionst::report_cover(
           {
             xmlt &xml_test=xml_result.new_element("test");
 
-            for(const auto & step : property.error_trace.steps)
+            for(const auto &step : property.error_trace.steps)
             {
               if(step.is_input())
               {
@@ -138,7 +140,6 @@ void symex_parse_optionst::report_cover(
                     xml(step.io_args.front(), ns);
               }
             }
-            
           }
         }
 
@@ -151,13 +152,14 @@ void symex_parse_optionst::report_cover(
     {
       json_objectt json_result;
       json_arrayt &result_array=json_result["results"].make_array();
-      for(const auto & it : property_map)
+      for(const auto &prop_pair : property_map)
       {
-        const auto &property=it.second;
+        const auto &property=prop_pair.second;
 
         json_objectt &result=result_array.push_back().make_object();
-        result["status"]=json_stringt(property.is_failure()?"satisfied":"failed");
-        result["goal"]=json_stringt(id2string(it.first));
+        result["status"]=
+          json_stringt(property.is_failure()?"satisfied":"failed");
+        result["goal"]=json_stringt(id2string(prop_pair.first));
         result["description"]=json_stringt(id2string(property.description));
 
         if(property.source_location.is_not_nil())
@@ -176,7 +178,7 @@ void symex_parse_optionst::report_cover(
           {
             json_arrayt &json_test=result["test"].make_array();
 
-            for(const auto & step : property.error_trace.steps)
+            for(const auto &step : property.error_trace.steps)
             {
               if(step.is_input())
               {
@@ -187,12 +189,12 @@ void symex_parse_optionst::report_cover(
                 json_test.push_back(json_input);
               }
             }
-            
           }
         }
       }
-      json_result["totalGoals"]=json_numbert(i2string(property_map.size()));
-      json_result["goalsCovered"]=json_numbert(i2string(goals_covered));
+      json_result["totalGoals"]=
+        json_numbert(std::to_string(property_map.size()));
+      json_result["goalsCovered"]=json_numbert(std::to_string(goals_covered));
       std::cout << ",\n" << json_result;
       break;
     }
@@ -201,7 +203,8 @@ void symex_parse_optionst::report_cover(
   status() << "** " << goals_covered
            << " of " << property_map.size() << " covered ("
            << std::fixed << std::setw(1) << std::setprecision(1)
-           << (property_map.empty()?100.0:100.0*goals_covered/property_map.size())
+           << (property_map.empty()?
+               100.0:100.0*goals_covered/property_map.size())
            << "%)"
            << eom;
 
@@ -209,14 +212,13 @@ void symex_parse_optionst::report_cover(
   {
     std::set<std::string> tests;
 
-    for(const auto & it : property_map)
-      if(it.second.is_failure())
-        tests.insert(get_test(it.second.error_trace));
-    
+    for(const auto &prop_pair : property_map)
+      if(prop_pair.second.is_failure())
+        tests.insert(get_test(prop_pair.second.error_trace));
+
     std::cout << "Test suite:" << '\n';
 
-    for(const auto & t : tests)
+    for(const auto &t : tests)
       std::cout << t << '\n';
   }
 }
-

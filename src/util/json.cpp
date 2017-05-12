@@ -26,38 +26,38 @@ Function: jsont::escape_string
 
 void jsont::escape_string(const std::string &src, std::ostream &out)
 {
-  for(const auto & it : src)
+  for(const auto &ch : src)
   {
-    switch(it)
+    switch(ch)
     {
     case '\\':
     case '"':
       out << '\\';
-      out << it;
+      out << ch;
       break;
-    
+
     case '\b':
       out << "\\b";
       break;
-      
+
     case '\f':
       out << "\\f";
       break;
-      
+
     case '\n':
       out << "\\n";
       break;
-      
+
     case '\r':
       out << "\\r";
       break;
-      
+
     case '\t':
       out << "\\t";
       break;
-      
+
     default:
-      out << it;
+      out << ch;
     }
   }
 }
@@ -98,7 +98,7 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
         out << ',';
 
       out << '\n';
-      
+
       out << std::string((indent+1)*2, ' ');
 
       out << '"';
@@ -148,11 +148,11 @@ void jsont::output_rec(std::ostream &out, unsigned indent) const
 
     out << ']';
     break;
-    
+
   case J_TRUE: out << "true"; break;
-  
+
   case J_FALSE: out << "false"; break;
-  
+
   case J_NULL: out << "null"; break;
   }
 }
@@ -176,4 +176,3 @@ void jsont::swap(jsont &other)
   other.object.swap(object);
   other.value.swap(value);
 }
-

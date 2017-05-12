@@ -59,19 +59,19 @@ int armcc_modet::doit()
   if(cmdline.isset("verbosity"))
     verbosity=unsafe_string2int(cmdline.get_value("verbosity"));
 
-  compiler.ui_message_handler.set_verbosity(verbosity);
-  ui_message_handler.set_verbosity(verbosity);
+  compiler.set_message_handler(get_message_handler());
+  message_handler.set_verbosity(verbosity);
 
   debug() << "ARM mode" << eom;
-  
+
   // get configuration
   config.set(cmdline);
 
-  config.ansi_c.mode=configt::ansi_ct::flavourt::MODE_ARM_C_CPP;
+  config.ansi_c.mode=configt::ansi_ct::flavourt::ARM;
   config.ansi_c.arch="arm";
-  
+
   // determine actions to be taken
-  
+
   if(cmdline.isset('E'))
     compiler.mode=compilet::PREPROCESS_ONLY;
   else if(cmdline.isset('c') || cmdline.isset('S'))
@@ -111,13 +111,13 @@ int armcc_modet::doit()
       config.ansi_c.preprocessor_options.push_back("--preinclude="+*it);
   }
 
-  // armcc's default is .o    
+  // armcc's default is .o
   if(cmdline.isset("default_extension="))
     compiler.object_file_extension=
       cmdline.get_value("default_extension=");
   else
     compiler.object_file_extension="o";
-      
+
   // note that ARM's default is "unsigned_chars",
   // in contrast to gcc's default!
   if(cmdline.isset("signed_chars"))
@@ -187,8 +187,10 @@ int armcc_modet::doit()
       std::cout << "  " << (*it) << std::endl;
     }
 
-    std::cout << "Output file (object): " << compiler.output_file_object << std::endl;
-    std::cout << "Output file (executable): " << compiler.output_file_executable << std::endl;
+    std::cout << "Output file (object): "
+              << compiler.output_file_object << std::endl;
+    std::cout << "Output file (executable): "
+              << compiler.output_file_executable << std::endl;
   }
 
   // Parse input program, convert to goto program, write output
@@ -209,7 +211,6 @@ Function: armcc_modet::help_mode
 
 void armcc_modet::help_mode()
 {
-  std::cout << "goto-armcc understands the options of armcc plus the following.\n\n";
+  std::cout << "goto-armcc understands the options "
+            << "of armcc plus the following.\n\n";
 }
-
-

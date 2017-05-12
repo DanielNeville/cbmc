@@ -8,12 +8,14 @@ Date: May 2016
 
 \*******************************************************************/
 
-#ifndef CPROVER_COVER_H
-#define CPROVER_COVER_H
+#ifndef CPROVER_GOTO_INSTRUMENT_COVER_H
+#define CPROVER_GOTO_INSTRUMENT_COVER_H
 
 #include <goto-programs/goto_model.h>
+#include <util/cmdline.h>
 
-enum class coverage_criteriont {
+enum class coverage_criteriont
+{
   LOCATION, BRANCH, DECISION, CONDITION,
   PATH, MCDC, ASSERTION, COVER };
 
@@ -27,4 +29,10 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont);
 
-#endif
+bool instrument_cover_goals(
+  const cmdlinet &cmdline,
+  const symbol_tablet &symbol_table,
+  goto_functionst &goto_functions,
+  message_handlert &msgh);
+
+#endif // CPROVER_GOTO_INSTRUMENT_COVER_H

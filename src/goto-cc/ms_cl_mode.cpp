@@ -41,7 +41,8 @@ Function: ms_cl_modet::doit
 
 static bool is_directory(const std::string &s)
 {
-  if(s.size()<1) return false;
+  if(s.empty())
+    return false;
   char last_char=s[s.size()-1];
   // Visual CL recognizes both
   return last_char=='\\' || last_char=='/';
@@ -49,7 +50,7 @@ static bool is_directory(const std::string &s)
 
 int ms_cl_modet::doit()
 {
-  if(cmdline.isset('?') || 
+  if(cmdline.isset('?') ||
      cmdline.isset("help"))
   {
     help();
@@ -60,7 +61,7 @@ int ms_cl_modet::doit()
 
   compilet compiler(cmdline);
 
-  #if 0  
+  #if 0
   bool act_as_ld=
     has_prefix(base_name, "link") ||
     has_prefix(base_name, "goto-link");
@@ -69,17 +70,17 @@ int ms_cl_modet::doit()
   if(cmdline.isset("verbosity"))
     verbosity=unsafe_string2unsigned(cmdline.get_value("verbosity"));
 
-  compiler.ui_message_handler.set_verbosity(verbosity);
-  ui_message_handler.set_verbosity(verbosity);
+  compiler.set_message_handler(get_message_handler());
+  message_handler.set_verbosity(verbosity);
 
   debug() << "Visual Studio mode" << eom;
-  
+
   // get configuration
   config.set(cmdline);
 
-  config.ansi_c.mode=configt::ansi_ct::flavourt::MODE_VISUAL_STUDIO_C_CPP;
+  config.ansi_c.mode=configt::ansi_ct::flavourt::VISUAL_STUDIO;
   compiler.object_file_extension="obj";
-  
+
   // determine actions to be undertaken
 
   if(cmdline.isset('E') || cmdline.isset('P'))
@@ -88,7 +89,7 @@ int ms_cl_modet::doit()
     compiler.mode=compilet::COMPILE_ONLY;
   else
     compiler.mode=compilet::COMPILE_LINK_EXECUTABLE;
-                     
+
   compiler.echo_file_name=true;
 
   if(cmdline.isset("Fo"))
@@ -120,7 +121,7 @@ int ms_cl_modet::doit()
       compiler.output_file_executable=
         get_base_name(cmdline.args[0], true)+".exe";
   }
-  
+
   if(cmdline.isset('J'))
     config.ansi_c.char_is_unsigned=true;
 
@@ -168,8 +169,10 @@ int ms_cl_modet::doit()
       std::cout << "  " << (*it) << std::endl;
     }
 
-    std::cout << "Output file (object): " << compiler.output_file_object << std::endl;
-    std::cout << "Output file (executable): " << compiler.output_file_executable << std::endl;
+    std::cout << "Output file (object): "
+              << compiler.output_file_object << std::endl;
+    std::cout << "Output file (executable): "
+              << compiler.output_file_executable << std::endl;
   }
 
   // Parse input program, convert to goto program, write output
@@ -192,5 +195,3 @@ void ms_cl_modet::help_mode()
 {
   std::cout << "goto-cl understands the options of CL plus the following.\n\n";
 }
-
-

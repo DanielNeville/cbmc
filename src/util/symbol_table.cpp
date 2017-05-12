@@ -14,11 +14,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 Function: symbol_tablet::add
 
-  Inputs:
+ Inputs:
+  symbol - The symbol to be added to the symbol table
 
- Outputs:
+ Outputs: Returns a boolean indicating whether the process failed,
+          which should only happen if there is a symbol with the same
+          name already in the symbol table
 
- Purpose:
+ Purpose: Add a new symbol to the symbol table
 
 \*******************************************************************/
 
@@ -26,9 +29,11 @@ bool symbol_tablet::add(const symbolt &symbol)
 {
   if(!symbols.insert(std::pair<irep_idt, symbolt>(symbol.name, symbol)).second)
     return true;
-    
-  symbol_base_map.insert(std::pair<irep_idt, irep_idt>(symbol.base_name, symbol.name));
-  symbol_module_map.insert(std::pair<irep_idt, irep_idt>(symbol.module, symbol.name));
+
+  symbol_base_map.insert(
+    std::pair<irep_idt, irep_idt>(symbol.base_name, symbol.name));
+  symbol_module_map.insert(
+    std::pair<irep_idt, irep_idt>(symbol.module, symbol.name));
 
   return false;
 }
@@ -37,11 +42,28 @@ bool symbol_tablet::add(const symbolt &symbol)
 
 Function: symbol_tablet::move
 
-  Inputs:
+ Inputs:
+  symbol - The symbol to be added to the symbol table
+  new_symbol - Pointer which the function will set to either point
+               to the symbol in the symbol table with the same name
+               or to the symbol that has been successfully moved
+               into the symbol table
 
- Outputs:
+ Outputs: Returns a boolean indicating whether the process failed,
+          which should only happen if there is a symbol with the
+          same name already in the symbol table. If the process
+          failed then symbol is unchanged and new_symbol points to
+          the symbol with the same name. If the process succeeded
+          symbol is set to be empty and new_symbol points to its new
+          location in the symbol table
 
- Purpose:
+ Purpose: Move a symbol into the symbol table. If there is already
+          a symbol with the same name then symbol is unchanged,
+          new_symbol points to the symbol with the same name and
+          true is returned. Otherwise, the symbol is moved into the
+          symbol table, symbol is set to be empty, new_symbol points
+          to its new location in the symbol table and false is
+          returned
 
 \*******************************************************************/
 
@@ -57,9 +79,11 @@ bool symbol_tablet::move(symbolt &symbol, symbolt *&new_symbol)
     new_symbol=&result.first->second;
     return true;
   }
-    
-  symbol_base_map.insert(std::pair<irep_idt, irep_idt>(symbol.base_name, symbol.name));
-  symbol_module_map.insert(std::pair<irep_idt, irep_idt>(symbol.module, symbol.name));
+
+  symbol_base_map.insert(
+    std::pair<irep_idt, irep_idt>(symbol.base_name, symbol.name));
+  symbol_module_map.insert(
+    std::pair<irep_idt, irep_idt>(symbol.module, symbol.name));
 
   result.first->second.swap(symbol);
   new_symbol=&result.first->second;
@@ -71,18 +95,19 @@ bool symbol_tablet::move(symbolt &symbol, symbolt *&new_symbol)
 
 Function: symbol_tablet::remove
 
-  Inputs:
+ Inputs:
+  name - The name of the symbol to remove
 
- Outputs:
+ Outputs: Returns a boolean indicating whether the process failed
 
- Purpose:
+ Purpose: Remove a symbol from the symbol table
 
 \*******************************************************************/
 
 bool symbol_tablet::remove(const irep_idt &name)
 {
   symbolst::iterator entry=symbols.find(name);
-  
+
   if(entry==symbols.end())
     return true;
 
@@ -117,11 +142,12 @@ bool symbol_tablet::remove(const irep_idt &name)
 
 Function: symbol_tablet::show
 
-  Inputs:
+ Inputs:
+  out - The ostream to direct output to
 
  Outputs:
 
- Purpose:
+ Purpose: Print the contents of the symbol table
 
 \*******************************************************************/
 
@@ -137,21 +163,23 @@ void symbol_tablet::show(std::ostream &out) const
 
 Function: symbol_tablet::lookup
 
-  Inputs:
+ Inputs:
+  identifier - The name of the symbol to look for
 
- Outputs:
+ Outputs: The symbol in the symbol table with the correct name
 
- Purpose:
+ Purpose: Find a symbol in the symbol table. Throws a string if no
+          such symbol is found.
 
 \*******************************************************************/
 
 const symbolt &symbol_tablet::lookup(const irep_idt &identifier) const
 {
   symbolst::const_iterator it=symbols.find(identifier);
-      
+
   if(it==symbols.end())
     throw "symbol "+id2string(identifier)+" not found";
-                    
+
   return it->second;
 }
 
@@ -159,21 +187,23 @@ const symbolt &symbol_tablet::lookup(const irep_idt &identifier) const
 
 Function: symbol_tablet::lookup
 
-  Inputs:
+ Inputs:
+  identifier - The name of the symbol to look for
 
- Outputs:
+ Outputs: The symbol in the symbol table with the correct name
 
- Purpose:
+ Purpose: Find a symbol in the symbol table. Throws a string if no
+          such symbol is found.
 
 \*******************************************************************/
 
 symbolt &symbol_tablet::lookup(const irep_idt &identifier)
 {
   symbolst::iterator it=symbols.find(identifier);
-      
+
   if(it==symbols.end())
     throw "symbol "+id2string(identifier)+" not found";
-                    
+
   return it->second;
 }
 
@@ -181,11 +211,13 @@ symbolt &symbol_tablet::lookup(const irep_idt &identifier)
 
 Function: operator <<
 
-  Inputs:
+ Inputs:
+  out - The ostream to direct output to
+  symbol_table - The symbol table to print out
 
  Outputs:
 
- Purpose:
+ Purpose: Print the contents of the symbol table
 
 \*******************************************************************/
 

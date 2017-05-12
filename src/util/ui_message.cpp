@@ -9,7 +9,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <fstream>
 #include <iostream>
 
-#include "i2string.h"
 #include "xml.h"
 #include "json.h"
 #include "xml_expr.h"
@@ -40,16 +39,16 @@ ui_message_handlert::ui_message_handlert(
   case XML_UI:
     std::cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
     std::cout << "<cprover>" << "\n";
-    
+
     {
       xmlt program_xml;
       program_xml.name="program";
       program_xml.data=program;
-      
+
       std::cout << program_xml;
     }
     break;
-    
+
   case JSON_UI:
     {
       std::cout << "[\n";
@@ -103,7 +102,7 @@ ui_message_handlert::~ui_message_handlert()
   case XML_UI:
     std::cout << "</cprover>" << "\n";
     break;
-  
+
   case JSON_UI:
     std::cout << "\n]\n";
     break;
@@ -208,11 +207,11 @@ void ui_message_handlert::print(
 
       if(!tmp_message.empty() && *tmp_message.rbegin()=='\n')
         tmp_message.resize(tmp_message.size()-1);
-      
+
       const char *type=level_string(level);
-        
+
       std::string sequence_number_str=
-        sequence_number>=0?i2string(sequence_number):"";
+        sequence_number>=0?std::to_string(sequence_number):"";
 
       ui_msg(type, tmp_message, sequence_number_str, location);
     }
@@ -247,7 +246,7 @@ void ui_message_handlert::ui_msg(
   case XML_UI:
     xml_ui_msg(type, msg1, msg2, location);
     break;
-    
+
   case JSON_UI:
     json_ui_msg(type, msg1, msg2, location);
     break;
@@ -281,7 +280,7 @@ void ui_message_handlert::xml_ui_msg(
 
   result.new_element("text").data=msg1;
   result.set_attribute("type", type);
-  
+
   std::cout << result;
   std::cout << std::endl;
 }
@@ -315,9 +314,8 @@ void ui_message_handlert::json_ui_msg(
   result["messageType"] = json_stringt(type);
   result["messageText"] = json_stringt(msg1);
 
-  //By convention a leading comma is created by every new array entry.
-  //The first entry is generated in the constructor and does not have
+  // By convention a leading comma is created by every new array entry.
+  // The first entry is generated in the constructor and does not have
   //  a trailing comma.
   std::cout << ",\n" << result;
 }
-

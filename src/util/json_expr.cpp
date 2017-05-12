@@ -14,7 +14,6 @@ Author: Peter Schrammel
 #include "fixedbv.h"
 #include "std_expr.h"
 #include "config.h"
-#include "i2string.h"
 
 #include "json_expr.h"
 
@@ -33,7 +32,7 @@ Function: json
 json_objectt json(const source_locationt &location)
 {
   json_objectt result;
-  
+
   if(!location.get_file().empty())
     result["file"]=json_stringt(id2string(location.get_file()));
 
@@ -45,7 +44,11 @@ json_objectt json(const source_locationt &location)
 
   if(!location.get_function().empty())
     result["function"]=json_stringt(id2string(location.get_function()));
-  
+
+  if(!location.get_java_bytecode_index().empty())
+    result["bytecode_index"]=
+      json_stringt(id2string(location.get_java_bytecode_index()));
+
   return result;
 }
 
@@ -74,28 +77,30 @@ json_objectt json(
   {
     result["name"]=json_stringt("integer");
     result["width"]=
-      json_numbert(i2string(to_unsignedbv_type(type).get_width()));
+      json_numbert(std::to_string(to_unsignedbv_type(type).get_width()));
   }
   else if(type.id()==ID_signedbv)
   {
     result["name"]=json_stringt("integer");
-    result["width"]=json_numbert(i2string(to_signedbv_type(type).get_width()));
+    result["width"]=
+      json_numbert(std::to_string(to_signedbv_type(type).get_width()));
   }
   else if(type.id()==ID_floatbv)
   {
     result["name"]=json_stringt("float");
-    result["width"]=json_numbert(i2string(to_floatbv_type(type).get_width()));
+    result["width"]=
+      json_numbert(std::to_string(to_floatbv_type(type).get_width()));
   }
   else if(type.id()==ID_bv)
   {
     result["name"]=json_stringt("integer");
-    result["width"]=json_numbert(i2string(to_bv_type(type).get_width()));
+    result["width"]=json_numbert(std::to_string(to_bv_type(type).get_width()));
   }
   else if(type.id()==ID_c_bit_field)
   {
     result["name"]=json_stringt("integer");
     result["width"]=
-      json_numbert(i2string(to_c_bit_field_type(type).get_width()));
+      json_numbert(std::to_string(to_c_bit_field_type(type).get_width()));
   }
   else if(type.id()==ID_c_enum_tag)
   {
@@ -105,7 +110,8 @@ json_objectt json(
   else if(type.id()==ID_fixedbv)
   {
     result["name"]=json_stringt("fixed");
-    result["width"]=json_numbert(i2string(to_fixedbv_type(type).get_width()));
+    result["width"]=
+      json_numbert(std::to_string(to_fixedbv_type(type).get_width()));
   }
   else if(type.id()==ID_pointer)
   {
@@ -133,11 +139,11 @@ json_objectt json(
     json_arrayt &members=result["members"].make_array();
     const struct_typet::componentst &components=
       to_struct_type(type).components();
-    for(const auto & it : components)
+    for(const auto &component : components)
     {
       json_objectt &e=members.push_back().make_object();
-      e["name"]=json_stringt(id2string(it.get_name()));
-      e["type"]=json(it.type(), ns);
+      e["name"]=json_stringt(id2string(component.get_name()));
+      e["type"]=json(component.type(), ns);
     }
   }
   else if(type.id()==ID_union)
@@ -146,11 +152,11 @@ json_objectt json(
     json_arrayt &members=result["members"].make_array();
     const union_typet::componentst &components=
       to_union_type(type).components();
-    for(const auto & it : components)
+    for(const auto &component : components)
     {
       json_objectt &e=members.push_back().make_object();
-      e["name"]=json_stringt(id2string(it.get_name()));
-      e["type"]=json(it.type(), ns);
+      e["name"]=json_stringt(id2string(component.get_name()));
+      e["type"]=json(component.type(), ns);
     }
   }
   else
@@ -176,7 +182,7 @@ json_objectt json(
   const namespacet &ns)
 {
   json_objectt result;
-  
+
   const typet &type=ns.follow(expr.type());
 
   if(expr.id()==ID_constant)
@@ -186,17 +192,17 @@ json_objectt json(
        type.id()==ID_c_bit_field)
     {
       std::size_t width=to_bitvector_type(type).get_width();
-    
+
       result["name"]=json_stringt("integer");
       result["binary"]=json_stringt(expr.get_string(ID_value));
-      result["width"]=json_numbert(i2string(width));
-      
+      result["width"]=json_numbert(std::to_string(width));
+
       const typet &underlying_type=
         type.id()==ID_c_bit_field?type.subtype():
         type;
 
       bool is_signed=underlying_type.id()==ID_signedbv;
-        
+
       std::string sig=is_signed?"":"unsigned ";
 
       if(width==config.ansi_c.char_width)
@@ -266,6 +272,15 @@ json_objectt json(
       result["binary"]=json_stringt(expr.is_true()?"1":"0");
       result["data"]=jsont::json_boolean(expr.is_true());
     }
+    else if(type.id()==ID_c_bool)
+    {
+      result["name"]=json_stringt("integer");
+      result["c_type"]=json_stringt("_Bool");
+      result["binary"]=json_stringt(expr.get_string(ID_value));
+      mp_integer b;
+      to_integer(to_constant_expr(expr), b);
+      result["data"]=json_stringt(integer2string(b));
+    }
     else
     {
       result["name"]=json_stringt("unknown");
@@ -275,13 +290,13 @@ json_objectt json(
   {
     result["name"]=json_stringt("array");
     json_arrayt &elements=result["elements"].make_array();
-    
+
     unsigned index=0;
-    
+
     forall_operands(it, expr)
     {
       json_objectt &e=elements.push_back().make_object();
-      e["index"]=json_numbert(i2string(index));
+      e["index"]=json_numbert(std::to_string(index));
       e["value"]=json(*it, ns);
       index++;
     }
@@ -289,7 +304,7 @@ json_objectt json(
   else if(expr.id()==ID_struct)
   {
     result["name"]=json_stringt("struct");
-    
+
     // these are expected to have a struct type
     if(type.id()==ID_struct)
     {
@@ -307,11 +322,11 @@ json_objectt json(
     }
   }
   else if(expr.id()==ID_union)
-  { 
+  {
     result["name"]=json_stringt("union");
-    
+
     assert(expr.operands().size()==1);
-    
+
     json_objectt &e=result["member"].make_object();
     e["value"]=json(expr.op0(), ns);
     e["name"]=json_stringt(id2string(to_union_expr(expr).get_component_name()));
@@ -321,4 +336,3 @@ json_objectt json(
 
   return result;
 }
-

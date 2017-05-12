@@ -22,7 +22,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <fstream>
 
 #include <util/config.h>
-#include <util/i2string.h>
 #include <util/message.h>
 #include <util/tempfile.h>
 #include <util/unicode.h>
@@ -38,6 +37,7 @@ Author: Daniel Kroening, kroening@kroening.com
   " -D__CHAR_BIT__=8"\
   " -D__SCHAR_MAX__=127"\
   " -D__SHRT_MAX__=32767"\
+  " -D__INT32_TYPE__=long"\
   " -D__LONG_LONG_MAX__=2147483647L"\
   " -D__LONG_MAX__=2147483647" \
   " -D__SIZE_TYPE__=\"unsigned int\""\
@@ -46,13 +46,14 @@ Author: Daniel Kroening, kroening@kroening.com
   " -D__INTMAX_TYPE__=\"long long int\""\
   " -D__UINTMAX_TYPE__=\"long long unsigned int\""\
   " -D__INTPTR_TYPE__=\"int\""\
-  " -D__UINTPTR_TYPE__=\"unsigned int\""  
+  " -D__UINTPTR_TYPE__=\"unsigned int\""
 
 #define GCC_DEFINES_32 \
   " -D__INT_MAX__=2147483647"\
   " -D__CHAR_BIT__=8"\
   " -D__SCHAR_MAX__=127"\
   " -D__SHRT_MAX__=32767"\
+  " -D__INT32_TYPE__=int"\
   " -D__LONG_LONG_MAX__=9223372036854775807LL"\
   " -D__LONG_MAX__=2147483647L" \
   " -D__SIZE_TYPE__=\"long unsigned int\""\
@@ -61,13 +62,14 @@ Author: Daniel Kroening, kroening@kroening.com
   " -D__INTMAX_TYPE__=\"long long int\""\
   " -D__UINTMAX_TYPE__=\"long long unsigned int\""\
   " -D__INTPTR_TYPE__=\"long int\""\
-  " -D__UINTPTR_TYPE__=\"long unsigned int\""  
-                        
+  " -D__UINTPTR_TYPE__=\"long unsigned int\""
+
 #define GCC_DEFINES_LP64 \
   " -D__INT_MAX__=2147483647"\
   " -D__CHAR_BIT__=8"\
   " -D__SCHAR_MAX__=127"\
   " -D__SHRT_MAX__=32767"\
+  " -D__INT32_TYPE__=int"\
   " -D__LONG_LONG_MAX__=9223372036854775807LL"\
   " -D__LONG_MAX__=9223372036854775807L"\
   " -D__SIZE_TYPE__=\"long unsigned int\""\
@@ -76,13 +78,14 @@ Author: Daniel Kroening, kroening@kroening.com
   " -D__INTMAX_TYPE__=\"long int\""\
   " -D__UINTMAX_TYPE__=\"long unsigned int\""\
   " -D__INTPTR_TYPE__=\"long int\""\
-  " -D__UINTPTR_TYPE__=\"long unsigned int\""  
+  " -D__UINTPTR_TYPE__=\"long unsigned int\""
 
 #define GCC_DEFINES_LLP64 \
   " -D__INT_MAX__=2147483647"\
   " -D__CHAR_BIT__=8"\
   " -D__SCHAR_MAX__=127"\
   " -D__SHRT_MAX__=32767"\
+  " -D__INT32_TYPE__=int"\
   " -D__LONG_LONG_MAX__=9223372036854775807LL"\
   " -D__LONG_MAX__=2147483647"\
   " -D__SIZE_TYPE__=\"long long unsigned int\""\
@@ -91,7 +94,7 @@ Author: Daniel Kroening, kroening@kroening.com
   " -D__INTMAX_TYPE__=\"long long int\""\
   " -D__UINTMAX_TYPE__=\"long long unsigned int\""\
   " -D__INTPTR_TYPE__=\"long long int\""\
-  " -D__UINTPTR_TYPE__=\"long long unsigned int\""  
+  " -D__UINTPTR_TYPE__=\"long long unsigned int\""
 
 /*******************************************************************\
 
@@ -133,7 +136,7 @@ static std::string shell_quote(const std::string &src)
 {
   #ifdef _WIN32
   // first check if quoting is needed at all
-  
+
   if(src.find(' ')==std::string::npos &&
      src.find('"')==std::string::npos &&
      src.find('&')==std::string::npos &&
@@ -147,18 +150,18 @@ static std::string shell_quote(const std::string &src)
     // seems fine -- return as is
     return src;
   }
-  
+
   std::string result;
-  
+
   result+='"';
 
-  for(unsigned i=0; i<src.size(); i++)
+  for(const char ch : src)
   {
-    const char ch=src[i];
-    if(ch=='"') result+='"'; // quotes are doubled
+    if(ch=='"')
+      result+='"'; // quotes are doubled
     result+=ch;
-  }  
-  
+  }
+
   result+='"';
 
   return result;
@@ -166,7 +169,7 @@ static std::string shell_quote(const std::string &src)
   #else
 
   // first check if quoting is needed at all
-  
+
   if(src.find(' ')==std::string::npos &&
      src.find('"')==std::string::npos &&
      src.find('*')==std::string::npos &&
@@ -183,19 +186,19 @@ static std::string shell_quote(const std::string &src)
     // seems fine -- return as is
     return src;
   }
-  
+
   std::string result;
-  
+
   // the single quotes catch everything but themselves!
   result+='\'';
 
-  for(unsigned i=0; i<src.size(); i++)
+  for(const char ch : src)
   {
-    const char ch=src[i];
-    if(ch=='\'') result+="'\\''";
+    if(ch=='\'')
+      result+="'\\''";
     result+=ch;
-  }  
-  
+  }
+
   result+='\'';
 
   return result;
@@ -374,19 +377,23 @@ bool c_preprocess(
   std::ostream &outstream,
   message_handlert &message_handler)
 {
-  std::string file=get_temporary_file("tmp.stdin", ".c");
-  FILE *tmp=fopen(file.c_str(), "wt");
+  temporary_filet tmp_file("tmp.stdin", ".c");
 
-  char ch;
-  while(instream.read(&ch, 1))
-    fputc(ch, tmp);
+  std::ofstream tmp(tmp_file());
 
-  fclose(tmp);
+  if(!tmp)
+  {
+    messaget message(message_handler);
+    message.error() << "failed to open temporary file" << messaget::eom;
+    return true; // error
+  }
 
-  bool result=c_preprocess(file, outstream, message_handler);
-  
-  unlink(file.c_str());
-  
+  tmp << instream.rdbuf(); // copy
+
+  tmp.close(); // flush
+
+  bool result=c_preprocess(tmp_file(), outstream, message_handler);
+
   return result;
 }
 
@@ -405,9 +412,11 @@ Function: is_dot_i_file
 static bool is_dot_i_file(const std::string &path)
 {
   const char *ext=strrchr(path.c_str(), '.');
-  if(ext==NULL) return false;
+  if(ext==NULL)
+    return false;
   if(std::string(ext)==".i" ||
-     std::string(ext)==".ii") return true;
+     std::string(ext)==".ii")
+    return true;
   return false;
 }
 
@@ -423,11 +432,19 @@ Function: c_preprocess
 
 \*******************************************************************/
 
-bool c_preprocess_codewarrior(const std::string &, std::ostream &, message_handlert &);
-bool c_preprocess_arm(const std::string &, std::ostream &, message_handlert &);
-bool c_preprocess_gcc_clang(const std::string &, std::ostream &, message_handlert &, configt::ansi_ct::preprocessort);
-bool c_preprocess_none(const std::string &, std::ostream &, message_handlert &);
-bool c_preprocess_visual_studio(const std::string &, std::ostream &, message_handlert &);
+bool c_preprocess_codewarrior(
+  const std::string &, std::ostream &, message_handlert &);
+bool c_preprocess_arm(
+  const std::string &, std::ostream &, message_handlert &);
+bool c_preprocess_gcc_clang(
+  const std::string &,
+  std::ostream &,
+  message_handlert &,
+  configt::ansi_ct::preprocessort);
+bool c_preprocess_none(
+  const std::string &, std::ostream &, message_handlert &);
+bool c_preprocess_visual_studio(
+  const std::string &, std::ostream &, message_handlert &);
 
 bool c_preprocess(
   const std::string &path,
@@ -436,26 +453,30 @@ bool c_preprocess(
 {
   switch(config.ansi_c.preprocessor)
   {
-  case configt::ansi_ct::preprocessort::PP_CODEWARRIOR:
+  case configt::ansi_ct::preprocessort::CODEWARRIOR:
     return c_preprocess_codewarrior(path, outstream, message_handler);
-  
-  case configt::ansi_ct::preprocessort::PP_GCC:
-    return c_preprocess_gcc_clang(path, outstream, message_handler, config.ansi_c.preprocessor);
-  
-  case configt::ansi_ct::preprocessort::PP_CLANG:
-    return c_preprocess_gcc_clang(path, outstream, message_handler, config.ansi_c.preprocessor);
-  
-  case configt::ansi_ct::preprocessort::PP_VISUAL_STUDIO:
+
+  case configt::ansi_ct::preprocessort::GCC:
+    return
+      c_preprocess_gcc_clang(
+        path, outstream, message_handler, config.ansi_c.preprocessor);
+
+  case configt::ansi_ct::preprocessort::CLANG:
+    return
+      c_preprocess_gcc_clang(
+        path, outstream, message_handler, config.ansi_c.preprocessor);
+
+  case configt::ansi_ct::preprocessort::VISUAL_STUDIO:
     return c_preprocess_visual_studio(path, outstream, message_handler);
-  
-  case configt::ansi_ct::preprocessort::PP_ARM:
+
+  case configt::ansi_ct::preprocessort::ARM:
     return c_preprocess_arm(path, outstream, message_handler);
-  
-  case configt::ansi_ct::preprocessort::NO_PP:
+
+  case configt::ansi_ct::preprocessort::NONE:
     return c_preprocess_none(path, outstream, message_handler);
   }
 
-  // not reached  
+  // not reached
   return true;
 }
 
@@ -483,17 +504,17 @@ bool c_preprocess_visual_studio(
   messaget message(message_handler);
 
   // use Visual Studio's CL
-  
+
   std::string stderr_file=get_temporary_file("tmp.stderr", "");
   std::string command_file_name=get_temporary_file("tmp.cl-cmd", "");
 
   {
-    std::ofstream command_file(command_file_name.c_str());
+    std::ofstream command_file(command_file_name);
 
     // This marks the file as UTF-8, which Visual Studio
     // understands.
     command_file << char(0xef) << char(0xbb) << char(0xbf);
-  
+
     command_file << "/nologo" << "\n";
     command_file << "/E" << "\n";
     command_file << "/D__CPROVER__" << "\n";
@@ -519,32 +540,23 @@ bool c_preprocess_visual_studio(
     command_file << "/D__STDC_IEC_559__=1" << "\n";
     command_file << "/D__STDC_IEC_559_COMPLEX__=1" << "\n";
     command_file << "/D__STDC_ISO_10646__=1" << "\n";
-  
-    for(std::list<std::string>::const_iterator
-        it=config.ansi_c.defines.begin();
-        it!=config.ansi_c.defines.end();
-        it++)
-      command_file << "/D" << shell_quote(*it) << "\n";
 
-    for(std::list<std::string>::const_iterator
-        it=config.ansi_c.include_paths.begin();
-        it!=config.ansi_c.include_paths.end();
-        it++)
-      command_file << "/I" << shell_quote(*it) << "\n";
+    for(const auto &define : config.ansi_c.defines)
+      command_file << "/D" << shell_quote(define) << "\n";
 
-       for(std::list<std::string>::const_iterator
-               it=config.ansi_c.include_files.begin();
-               it!=config.ansi_c.include_files.end();
-               it++)
-         command_file << "/FI" << shell_quote(*it) << "\n";
+    for(const auto &include_path : config.ansi_c.include_paths)
+      command_file << "/I" << shell_quote(include_path) << "\n";
+
+    for(const auto &include_file : config.ansi_c.include_files)
+      command_file << "/FI" << shell_quote(include_file) << "\n";
 
     // Finally, the file to be preprocessed
     // (this is already in UTF-8).
     command_file << shell_quote(file) << "\n";
   }
-  
+
   std::string tmpi=get_temporary_file("tmp.cl", "");
-  
+
   std::string command="CL @\""+command_file_name+"\"";
   command+=" > \""+tmpi+"\"";
   command+=" 2> \""+stderr_file+"\"";
@@ -553,30 +565,26 @@ bool c_preprocess_visual_studio(
   // that's why we use system()
   int result=system(command.c_str());
 
-  FILE *stream=fopen(tmpi.c_str(), "r");
+  std::ifstream instream(tmpi);
 
-  if(stream==NULL)
+  if(!instream)
   {
     unlink(tmpi.c_str());
     unlink(stderr_file.c_str());
     unlink(command_file_name.c_str());
-    message.error() << "CL Preprocessing failed (fopen failed)"
+    message.error() << "CL Preprocessing failed (open failed)"
                     << messaget::eom;
     return true;
   }
 
-  {
-    int ch;
-    while((ch=fgetc(stream))!=EOF)
-      outstream << (unsigned char)ch;
-  }
+  outstream << instream.rdbuf(); // copy
 
-  fclose(stream);
+  instream.close();
   unlink(tmpi.c_str());
   unlink(command_file_name.c_str());
 
   // errors/warnings
-  std::ifstream stderr_stream(stderr_file.c_str());
+  std::ifstream stderr_stream(stderr_file);
   error_parse(stderr_stream, result==0, message);
 
   unlink(stderr_file.c_str());
@@ -615,13 +623,13 @@ void postprocess_codewarrior(
   // /* #line 1      "__ppc_eabi_init.cpp"   /* stack depth 0 */
   //
   // We remove the initial '/* ' prefix
-  
+
   std::string line;
-  
+
   while(instream)
   {
     std::getline(instream, line);
-    
+
     if(line.size()>=2 &&
        line[0]=='#' && (line[1]=='#' || line[1]==' ' || line[1]=='\t'))
     {
@@ -664,33 +672,21 @@ bool c_preprocess_codewarrior(
   std::string stderr_file=get_temporary_file("tmp.stderr", "");
 
   std::string command;
-  
+
   command="mwcceppc -E -P -D__CPROVER__ -ppopt line -ppopt full";
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.defines.begin();
-      it!=config.ansi_c.defines.end();
-      it++)
-    command+=" -D"+shell_quote(*it);
+  for(const auto &define : config.ansi_c.defines)
+    command+=" -D"+shell_quote(define);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.include_paths.begin();
-      it!=config.ansi_c.include_paths.end();
-      it++)
-    command+=" -I"+shell_quote(*it);
+  for(const auto &include_path : config.ansi_c.include_paths)
+    command+=" -I"+shell_quote(include_path);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.include_files.begin();
-      it!=config.ansi_c.include_files.end();
-      it++)
-    command+=" -include "+shell_quote(*it);
+  for(const auto &include_file : config.ansi_c.include_files)
+    command+=" -include "+shell_quote(include_file);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.preprocessor_options.begin();
-      it!=config.ansi_c.preprocessor_options.end();
-      it++)
-    command+=" "+*it;
-    
+  for(const auto &opt : config.ansi_c.preprocessor_options)
+    command+=" "+opt;
+
   int result;
 
   std::string tmpi=get_temporary_file("tmp.cl", "");
@@ -700,7 +696,7 @@ bool c_preprocess_codewarrior(
 
   result=system(command.c_str());
 
-  std::ifstream stream_i(tmpi.c_str());
+  std::ifstream stream_i(tmpi);
 
   if(stream_i)
   {
@@ -719,7 +715,7 @@ bool c_preprocess_codewarrior(
   }
 
   // errors/warnings
-  std::ifstream stderr_stream(stderr_file.c_str());
+  std::ifstream stderr_stream(stderr_file);
   error_parse(stderr_stream, result==0, message);
 
   unlink(stderr_file.c_str());
@@ -761,16 +757,16 @@ bool c_preprocess_gcc_clang(
   std::string stderr_file=get_temporary_file("tmp.stderr", "");
 
   std::string command;
-  
-  if(preprocessor==configt::ansi_ct::preprocessort::PP_CLANG)
+
+  if(preprocessor==configt::ansi_ct::preprocessort::CLANG)
     command="clang";
   else
     command="gcc";
-  
+
   command +=" -E -undef -D__CPROVER__";
 
-  command+=" -D__WORDSIZE="+i2string(config.ansi_c.pointer_width);
-  
+  command+=" -D__WORDSIZE="+std::to_string(config.ansi_c.pointer_width);
+
   command+=" -D__DBL_MIN_EXP__=\"(-1021)\"";
   command+=" -D__FLT_MIN__=1.17549435e-38F";
   command+=" -D__DEC64_SUBNORMAL_MIN__=0.000000000000001E-383DD";
@@ -826,6 +822,7 @@ bool c_preprocess_gcc_clang(
   command+=" -D__DEC64_MAX__=9.999999999999999E384DD";
   command+=" -D__DEC64_MANT_DIG__=16";
   command+=" -D__DEC32_MAX_EXP__=96";
+  // NOLINTNEXTLINE(whitespace/line_length)
   command+=" -D__DEC128_SUBNORMAL_MIN__=0.000000000000000000000000000000001E-6143DL";
   command+=" -D__LDBL_MANT_DIG__=64";
   command+=" -D__CONSTANT_CFSTRINGS__=1";
@@ -834,7 +831,7 @@ bool c_preprocess_gcc_clang(
   command+=" -D__pic__=2";
   command+=" -D__FLT_DIG__=6";
   command+=" -D__FLT_MAX_EXP__=128";
-  //command+=" -D__BLOCKS__=1";
+  // command+=" -D__BLOCKS__=1";
   command+=" -D__DBL_MANT_DIG__=53";
   command+=" -D__DEC64_MIN__=1E-383DD";
   command+=" -D__LDBL_MIN_EXP__=\"(-16381)\"";
@@ -855,8 +852,12 @@ bool c_preprocess_gcc_clang(
   command+=" -D__DEC128_MANT_DIG__=34";
   command+=" -D__LDBL_MIN_10_EXP__=\"(-4931)\"";
 
-  if(preprocessor==configt::ansi_ct::preprocessort::PP_CLANG)
+  if(preprocessor==configt::ansi_ct::preprocessort::CLANG)
+  {
     command+=" -D_Noreturn=\"__attribute__((__noreturn__))\"";
+    command+=" -D__llvm__";
+    command+=" -D__clang__";
+  }
 
   if(config.ansi_c.int_width==16)
     command+=GCC_DEFINES_16;
@@ -872,13 +873,13 @@ bool c_preprocess_gcc_clang(
     else
       command+=GCC_DEFINES_32;
   }
-  
+
   // The width of wchar_t depends on the OS!
   {
     command+=" -D__WCHAR_MAX__="+type_max(wchar_t_type());
-    
+
     std::string sig=config.ansi_c.wchar_t_is_unsigned?"unsigned":"signed";
-    
+
     if(config.ansi_c.wchar_t_width==config.ansi_c.short_int_width)
       command+=" -D__WCHAR_TYPE__=\""+sig+" short int\"";
     else if(config.ansi_c.wchar_t_width==config.ansi_c.int_width)
@@ -911,7 +912,7 @@ bool c_preprocess_gcc_clang(
   case configt::ansi_ct::ost::OS_WIN:
     command+=" -D _WIN32";
 
-    if(config.ansi_c.mode!=configt::ansi_ct::flavourt::MODE_VISUAL_STUDIO_C_CPP)
+    if(config.ansi_c.mode!=configt::ansi_ct::flavourt::VISUAL_STUDIO)
       command+=" -D _M_IX86=Blend";
 
     if(config.ansi_c.arch=="x86_64")
@@ -924,11 +925,11 @@ bool c_preprocess_gcc_clang(
   case configt::ansi_ct::ost::NO_OS:
     command+=" -nostdinc"; // make sure we don't mess with the system library
     break;
-    
+
   default:
     assert(false);
   }
-  
+
   // Standard Defines, ANSI9899 6.10.8
   switch(config.ansi_c.c_standard)
   {
@@ -947,40 +948,32 @@ bool c_preprocess_gcc_clang(
   command += " -D __STDC_IEC_559__=1";
   command += " -D __STDC_IEC_559_COMPLEX__=1";
   command += " -D __STDC_ISO_10646__=1";
-  
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.defines.begin();
-      it!=config.ansi_c.defines.end();
-      it++)
-    command+=" -D"+shell_quote(*it);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.include_paths.begin();
-      it!=config.ansi_c.include_paths.end();
-      it++)
-    command+=" -I"+shell_quote(*it);
+  for(const auto &define : config.ansi_c.defines)
+    command+=" -D"+shell_quote(define);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.include_files.begin();
-      it!=config.ansi_c.include_files.end();
-      it++)
-    command+=" -include "+shell_quote(*it);
+  for(const auto &include_path : config.ansi_c.include_paths)
+    command+=" -I"+shell_quote(include_path);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.preprocessor_options.begin();
-      it!=config.ansi_c.preprocessor_options.end();
-      it++)
-    command+=" "+*it;
-    
+  for(const auto &include_file : config.ansi_c.include_files)
+    command+=" -include "+shell_quote(include_file);
+
+  for(const auto &opt : config.ansi_c.preprocessor_options)
+    command+=" "+opt;
+
   int result;
-  
+
+  #if 0
   // the following forces the mode
   switch(config.ansi_c.mode)
   {
-  case configt::ansi_ct::flavourt::MODE_GCC_C: command+=" -x c"; break;
-  case configt::ansi_ct::flavourt::MODE_GCC_CPP: command+=" -x c++"; break;
-  default:;
+  case configt::ansi_ct::flavourt::GCC_C: command+=" -x c"; break;
+  case configt::ansi_ct::flavourt::GCC_CPP: command+=" -x c++"; break;
+  default:
+    {
+    }
   }
+  #endif
 
   #ifdef _WIN32
   std::string tmpi=get_temporary_file("tmp.gcc", "");
@@ -992,27 +985,24 @@ bool c_preprocess_gcc_clang(
   // that's why we use system() and a temporary file
   result=system(command.c_str());
 
-  FILE *stream=fopen(tmpi.c_str(), "r");
+  std::ifstream instream(tmpi);
 
   // errors/warnings
-  std::ifstream stderr_stream(stderr_file.c_str());
+  std::ifstream stderr_stream(stderr_file);
   error_parse(stderr_stream, result==0, message);
 
   unlink(stderr_file.c_str());
 
-  if(stream!=NULL)
+  if(instream)
   {
-    int ch;
-    while((ch=fgetc(stream))!=EOF)
-      outstream << (unsigned char)ch;
-
-    fclose(stream);
+    outstream << instream.rdbuf();
+    instream.close();
     unlink(tmpi.c_str());
   }
   else
   {
     unlink(tmpi.c_str());
-    message.error() << "GCC preprocessing failed (fopen failed)"
+    message.error() << "GCC preprocessing failed (open failed)"
                     << messaget::eom;
     result=1;
   }
@@ -1038,7 +1028,7 @@ bool c_preprocess_gcc_clang(
   }
 
   // errors/warnings
-  std::ifstream stderr_stream(stderr_file.c_str());
+  std::ifstream stderr_stream(stderr_file);
   error_parse(stderr_stream, result==0, message);
 
   unlink(stderr_file.c_str());
@@ -1081,16 +1071,16 @@ bool c_preprocess_arm(
   std::string stderr_file=get_temporary_file("tmp.stderr", "");
 
   std::string command;
-  
+
   command="armcc -E -D__CPROVER__";
-  
-//  command+=" -D__sizeof_int="+i2string(config.ansi_c.int_width/8);
-//  command+=" -D__sizeof_long="+i2string(config.ansi_c.long_int_width/8);
-//  command+=" -D__sizeof_ptr="+i2string(config.ansi_c.pointer_width/8);
-  //command+=" -D__EDG_VERSION__=308";
-  //command+=" -D__EDG__";
+
+//  command+=" -D__sizeof_int="+std::to_string(config.ansi_c.int_width/8);
+//  command+=" -D__sizeof_long="+std::to_string(config.ansi_c.long_int_width/8);
+//  command+=" -D__sizeof_ptr="+std::to_string(config.ansi_c.pointer_width/8);
+  // command+=" -D__EDG_VERSION__=308";
+  // command+=" -D__EDG__";
 //  command+=" -D__CC_ARM=1";
-  //command+=" -D__ARMCC_VERSION=410000";
+  // command+=" -D__ARMCC_VERSION=410000";
 //  command+=" -D__arm__";
 
 //  if(config.ansi_c.endianness==configt::ansi_ct::IS_BIG_ENDIAN)
@@ -1098,10 +1088,10 @@ bool c_preprocess_arm(
 
 //  if(config.ansi_c.char_is_unsigned)
 //    command+=" -D__CHAR_UNSIGNED__";
-    
+
   if(config.ansi_c.os!=configt::ansi_ct::ost::OS_WIN)
   {
-    command+=" -D__WORDSIZE="+i2string(config.ansi_c.pointer_width);
+    command+=" -D__WORDSIZE="+std::to_string(config.ansi_c.pointer_width);
 
     if(config.ansi_c.int_width==16)
       command+=GCC_DEFINES_16;
@@ -1110,22 +1100,16 @@ bool c_preprocess_arm(
     else if(config.ansi_c.int_width==64)
       command+=GCC_DEFINES_LP64;
   }
-      
+
   // Standard Defines, ANSI9899 6.10.8
   command+=" -D__STDC__";
-  //command+=" -D__STDC_VERSION__=199901L";
+  // command+=" -D__STDC_VERSION__=199901L";
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.defines.begin();
-      it!=config.ansi_c.defines.end();
-      it++)
-    command+=" "+shell_quote("-D"+*it);
+  for(const auto &define : config.ansi_c.defines)
+    command+=" "+shell_quote("-D"+define);
 
-  for(std::list<std::string>::const_iterator
-      it=config.ansi_c.include_paths.begin();
-      it!=config.ansi_c.include_paths.end();
-      it++)
-    command+=" "+shell_quote("-I"+*it);
+  for(const auto &include_path : config.ansi_c.include_paths)
+    command+=" "+shell_quote("-I"+include_path);
 
   int result;
 
@@ -1139,15 +1123,12 @@ bool c_preprocess_arm(
   // that's why we use system() and a temporary file
   result=system(command.c_str());
 
-  FILE *stream=fopen(tmpi.c_str(), "r");
+  std::ifstream instream(tmpi);
 
-  if(stream!=NULL)
+  if(!instream)
   {
-    int ch;
-    while((ch=fgetc(stream))!=EOF)
-      outstream << (unsigned char)ch;
-
-    fclose(stream);
+    outstream << instream.rdbuf(); // copy
+    instream.close();
     unlink(tmpi.c_str());
   }
   else
@@ -1182,7 +1163,7 @@ bool c_preprocess_arm(
   #endif
 
   // errors/warnings
-  std::ifstream stderr_stream(stderr_file.c_str());
+  std::ifstream stderr_stream(stderr_file);
   error_parse(stderr_stream, result==0, message);
 
   unlink(stderr_file.c_str());
@@ -1214,19 +1195,19 @@ bool c_preprocess_none(
   message_handlert &message_handler)
 {
   #ifdef _MSC_VER
-  std::ifstream infile(widen(file).c_str());
+  std::ifstream infile(widen(file));
   #else
-  std::ifstream infile(file.c_str());
+  std::ifstream infile(file);
   #endif
-  
+
   if(!infile)
   {
     messaget message(message_handler);
     message.error() << "failed to open `" << file << "'" << messaget::eom;
     return true;
   }
-  
-  if(config.ansi_c.mode==configt::ansi_ct::flavourt::MODE_CODEWARRIOR_C_CPP)
+
+  if(config.ansi_c.mode==configt::ansi_ct::flavourt::CODEWARRIOR)
   {
     // special treatment for "/* #line"
     postprocess_codewarrior(infile, outstream);
@@ -1263,6 +1244,6 @@ bool test_c_preprocessor(message_handlert &message_handler)
 {
   std::ostringstream out;
   std::istringstream in(c_test_program);
-  
+
   return c_preprocess(in, out, message_handler);
 }

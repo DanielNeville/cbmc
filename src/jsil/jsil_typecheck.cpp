@@ -87,7 +87,10 @@ void jsil_typecheckt::update_expr_type(exprt &expr, const typet &type)
     const irep_idt &id=to_symbol_expr(expr).get_identifier();
 
     if(!symbol_table.has_symbol(id))
-      throw "Unexpected symbol: "+id2string(id);
+    {
+      error() << "unexpected symbol: " << id << eom;
+      throw 0;
+    }
 
     symbolt &s=symbol_table.lookup(id);
     if(s.type.id().empty() || s.type.is_nil())
@@ -258,16 +261,16 @@ void jsil_typecheckt::typecheck_expr_main(exprt &expr)
     throw 0;
   }
   else if(expr.id()==ID_symbol)
-    typecheck_symbol_expr(to_symbol_expr (expr));
+    typecheck_symbol_expr(to_symbol_expr(expr));
   else if(expr.id()==ID_constant)
   {
   }
   else
   {
     // expressions are expected not to have type set just yet
-    assert(expr.type().is_nil()||expr.type().id().empty());
+    assert(expr.type().is_nil() || expr.type().id().empty());
 
-    if (expr.id()==ID_null ||
+    if(expr.id()==ID_null ||
         expr.id()=="undefined" ||
         expr.id()==ID_empty)
       typecheck_expr_constant(expr);
@@ -306,7 +309,8 @@ void jsil_typecheckt::typecheck_expr_main(exprt &expr)
       typecheck_expr_unary_num(expr);
       expr.type()=floatbv_typet();
     }
-    else if(expr.id()=="num_to_string") {
+    else if(expr.id()=="num_to_string")
+    {
       typecheck_expr_unary_num(expr);
       expr.type()=string_typet();
     }
@@ -518,7 +522,7 @@ void jsil_typecheckt::typecheck_expr_index(exprt &expr)
   make_type_compatible(expr.op1(), string_typet(), true);
 
   // special case for function identifiers
-  if (expr.op1().id()=="fid" || expr.op1().id()=="constructid")
+  if(expr.op1().id()=="fid" || expr.op1().id()=="constructid")
     expr.type()=code_typet();
   else
     expr.type()=jsil_value_type();
@@ -783,7 +787,7 @@ void jsil_typecheckt::typecheck_exp_binary_equal(exprt &expr)
     throw 0;
   }
 
- // operands can be of any types
+  // operands can be of any types
 
   expr.type()=bool_typet();
 }
@@ -923,7 +927,10 @@ void jsil_typecheckt::typecheck_symbol_expr(symbol_exprt &symbol_expr)
       symbol_table.symbols.find(identifier);
 
     if(s_it==symbol_table.symbols.end())
-      throw "unexpected internal symbol: "+id2string(identifier);
+    {
+      error() << "unexpected internal symbol: " << identifier << eom;
+      throw 0;
+    }
     else
     {
       // symbol already exists
@@ -1005,7 +1012,12 @@ void jsil_typecheckt::typecheck_code(codet &code)
   else if(statement==ID_expression)
   {
     if(code.operands().size()!=1)
-      throw "expression statement expected to have one operand";
+    {
+      err_location(code);
+      error() << "expression statement expected to have one operand"
+              << eom;
+      throw 0;
+    }
 
     typecheck_expr(code.op0());
   }
@@ -1089,7 +1101,11 @@ void jsil_typecheckt::typecheck_try_catch(code_try_catcht &code)
 {
   // A special case of try catch with one catch clause
   if(code.operands().size()!=3)
-    throw "try_catch expected to have three operands";
+  {
+    err_location(code);
+    error() << "try_catch expected to have three operands" << eom;
+    throw 0;
+  }
 
   // function call
   typecheck_function_call(to_code_function_call(code.try_code()));
@@ -1115,7 +1131,11 @@ void jsil_typecheckt::typecheck_function_call(
   code_function_callt &call)
 {
   if(call.operands().size()!=3)
-    throw "function call expected to have three operands";
+  {
+    err_location(call);
+    error() << "function call expected to have three operands" << eom;
+    throw 0;
+  }
 
   exprt &lhs=call.lhs();
   typecheck_expr(lhs);
@@ -1141,7 +1161,8 @@ void jsil_typecheckt::typecheck_function_call(
 
         for(std::size_t i=0; i<codet.parameters().size(); i++)
         {
-          if(i>=call.arguments().size()) break;
+          if(i>=call.arguments().size())
+            break;
 
           const typet &param_type=codet.parameters()[i].type();
 
@@ -1192,7 +1213,12 @@ void jsil_typecheckt::typecheck_function_call(
       make_type_compatible(lhs, jsil_any_type(), true);
 
       if(symbol_table.add(new_symbol))
-        throw "failed to add expression symbol to symbol table";
+      {
+        error().source_location=new_symbol.location;
+        error() << "failed to add expression symbol to symbol table"
+                << eom;
+        throw 0;
+      }
     }
   }
   else
@@ -1285,8 +1311,12 @@ void jsil_typecheckt::typecheck_non_type_symbol(symbolt &symbol)
     // Do nothing
   }
   else
-    throw "Non type symbol value expected code, but got "+
-      symbol.value.pretty();
+  {
+    error().source_location=symbol.location;
+    error() << "non-type symbol value expected code, but got "
+            << symbol.value.pretty() << eom;
+    throw 0;
+  }
 }
 
 /*******************************************************************\
