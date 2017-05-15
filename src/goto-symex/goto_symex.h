@@ -76,7 +76,7 @@ public:
 
   /** start symex in a given state */
   virtual void operator()(
-    statet &state,
+    statet &old_state,
     const goto_functionst &goto_functions,
     const goto_programt &goto_program);
 
@@ -99,6 +99,9 @@ public:
   /// language_mode: ID_java, ID_C or another language identifier
   /// if we know the source language in use, irep_idt() otherwise.
   irep_idt language_mode;
+
+  bool path_based_symex;
+  std::vector<statet> states;
 
 protected:
   const namespacet &ns;

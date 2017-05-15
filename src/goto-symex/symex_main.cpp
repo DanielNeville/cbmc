@@ -156,10 +156,19 @@ Function: goto_symext::operator()
 \*******************************************************************/
 
 void goto_symext::operator()(
-  statet &state,
+  statet &old_state,
   const goto_functionst &goto_functions,
   const goto_programt &goto_program)
 {
+  /* We ignore the state parameter (to change) and simply
+   * load from the vector.
+   */
+
+  /* Pick initial state */
+  statet state = states.back();
+  states.pop_back();
+  /*/ Pick state */
+
   assert(!goto_program.instructions.empty());
 
   state.source=symex_targett::sourcet(goto_program);
@@ -172,8 +181,38 @@ void goto_symext::operator()(
 
   assert(state.top().end_of_function->is_end_function());
 
-  while(!state.call_stack().empty())
+  states.push_back(state);
+
+  /* Initial done */
+
+  bool complete = false;
+
+  const unsigned max_steps = 10000;
+  unsigned steps = 0;
+
+  while(!complete)
   {
+    if(steps > max_steps) {
+      break;
+    }
+
+    if(states.empty()) {
+      complete = true;
+      break;
+    }
+
+    steps++;
+
+    /* Select state (wrong data structure choice) */
+    statet state = states.front();
+    states.erase(states.begin());
+    /*/ Select state */
+
+    if(state.call_stack().empty()) {
+      continue;
+      /* No more here */
+    }
+
     symex_step(goto_functions, state);
 
     // is there another thread to execute?
@@ -184,6 +223,8 @@ void goto_symext::operator()(
       // std::cout << "********* Now executing thread " << t << std::endl;
       state.switch_to_thread(t);
     }
+
+    states.push_back(state);
   }
 
   delete state.dirty;
@@ -207,6 +248,8 @@ void goto_symext::operator()(
   const goto_programt &goto_program)
 {
   statet state;
+  states.push_back(state);
+
   operator() (state, goto_functions, goto_program);
 }
 

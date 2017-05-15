@@ -548,6 +548,11 @@ int cbmc_parse_optionst::doit()
   if(options.get_bool_option("java-unwind-enum-static"))
     remove_static_init_loops(symbol_table, goto_functions, options);
 
+  if(cmdline.isset("symex"))
+  {
+    bmc.set_path_based_symex(true);
+  }
+
   // do actual BMC
   return do_bmc(bmc, goto_functions);
 }

@@ -442,6 +442,56 @@ safety_checkert::resultt bmct::run(
 
   symex.last_source_location.make_nil();
 
+  if(path_based_symex)
+  {
+
+    try
+    {
+      setup_unwind();
+
+      symex.path_based_symex = true;
+
+      symex(goto_functions);
+
+      {
+        statistics() << "Generated " << symex.total_vccs << " VCC(s), "
+            << symex.remaining_vccs << " remaining after simplification" << eom;
+      }
+
+      safety_checkert::resultt result = decide(goto_functions, prop_conv);
+
+      return result;
+    }
+
+    catch (const std::string &error_str)
+    {
+      messaget message(get_message_handler());
+      message.error().source_location=symex.last_source_location;
+      message.error() << error_str << messaget::eom;
+
+      return safety_checkert::ERROR;
+    }
+
+    catch (const char *error_str)
+    {
+      messaget message(get_message_handler());
+      message.error().source_location=symex.last_source_location;
+      message.error() << error_str << messaget::eom;
+
+      return safety_checkert::ERROR;
+    }
+
+    catch (std::bad_alloc)
+    {
+      error() << "Out of memory" << eom;
+      return safety_checkert::ERROR;
+    }
+  }
+
+
+
+
+
   try
   {
     // get unwinding info

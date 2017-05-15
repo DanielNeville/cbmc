@@ -40,6 +40,7 @@ public:
     equation(ns),
     symex(ns, new_symbol_table, equation),
     prop_conv(_prop_conv),
+    path_based_symex(false),
     ui(ui_message_handlert::PLAIN)
   {
     symex.constant_propagation=options.get_bool_option("propagation");
@@ -54,6 +55,8 @@ public:
   expr_listt bmc_constraints;
 
   void set_ui(language_uit::uit _ui) { ui=_ui; }
+  void set_path_based_symex(bool on) { path_based_symex = on; }
+  bool path_based_symex_set() { return path_based_symex; }
 
   // the safety_checkert interface
   virtual resultt operator()(
@@ -69,6 +72,7 @@ protected:
   symex_target_equationt equation;
   symex_bmct symex;
   prop_convt &prop_conv;
+  bool path_based_symex = false;
 
   // use gui format
   language_uit::uit ui;
