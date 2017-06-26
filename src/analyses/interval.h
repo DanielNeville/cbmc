@@ -117,7 +117,7 @@ private:
   typet get_type() const;
   void set_type() { type=nil_typet(); }
   void set_type(exprt &e) { type=e.type(); }
-  // More flexible in future
+  // More flexible in future?
   void set_type(exprt &l, exprt &u) { assert(l.type() == u.type()); type=u.type(); }
 
 
@@ -136,6 +136,30 @@ private:
   {
     return zero_initializer(get_type(), get_lower().source_location(), ns);
   }
+
+  bool is_int() const
+  {
+    return is_int(get_type());
+  }
+
+  bool is_float() const
+  {
+    return is_float(get_type());
+  }
+
+  static bool is_int(const typet &src)
+  {
+    return src.id()==ID_signedbv || src.id()==ID_unsignedbv;
+  }
+
+  static bool is_float(const typet &src)
+  {
+    return src.id()==ID_floatbv;
+  }
+
+  static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
+
+  static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */
