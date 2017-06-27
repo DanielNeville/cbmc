@@ -11,8 +11,8 @@
 #include <util/symbol_table.h>
 #include <util/arith_tools.h>
 
-#define V(X)   (string2integer(X.get(ID_value).c_str(), 2))
-#define V_(X)  (string2integer(X.c_str(), 2))
+#define V(X)   (binary2integer(X.get(ID_value).c_str(), 2))
+#define V_(X)  (binary2integer(X.c_str(), 2))
 
 
 SCENARIO("add interval domain",
