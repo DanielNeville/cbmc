@@ -10,7 +10,9 @@
 
 #include <util/expr.h>
 #include <util/simplify_expr.h>
-
+#include <util/std_types.h>
+#include <util/symbol_table.h>
+#include <util/namespace.h>
 
 #include "interval_template.h"
 
@@ -27,24 +29,20 @@ public:
   intervalt()
       : interval_templatet<exprt>()
   {
-
   }
 
   explicit intervalt(const exprt &x)
       : interval_templatet<exprt>(x)
   {
-
   }
 
   intervalt(const exprt &l, const exprt &u)
       :
-        interval_templatet<exprt>(l, u),
-        set_type(l, u)
+        interval_templatet<exprt>(l, u)
   {
+    set_type(l, u);
   }
 
-  // Eventually allow inclusion of namespace or something like that
-  static namespacet ns;
 
 
   /* Decide names later */
@@ -81,34 +79,41 @@ public:
   intervalt increment(const intervalt &o) const;
   intervalt decrement(const intervalt &o) const;
 
-  bool operator< (const intervalt &lhs, const intervalt &rhs);
-  bool operator> (const intervalt &lhs, const intervalt &rhs);
-  bool operator<=(const intervalt &lhs, const intervalt &rhs);
-  bool operator>=(const intervalt &lhs, const intervalt &rhs);
-  bool operator==(const intervalt &lhs, const intervalt &rhs);
-  bool operator!=(const intervalt &lhs, const intervalt &rhs);
+//  bool operator< (const intervalt &lhs, const intervalt &rhs);
+//  bool operator> (const intervalt &lhs, const intervalt &rhs);
+//  bool operator<=(const intervalt &lhs, const intervalt &rhs);
+//  bool operator>=(const intervalt &lhs, const intervalt &rhs);
+//  bool operator==(const intervalt &lhs, const intervalt &rhs);
+//  bool operator!=(const intervalt &lhs, const intervalt &rhs);
 
-  intervalt operator+(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator-(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator/(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator*(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator%(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator&(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator|(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator^(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
-  intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator+(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator-(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator/(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator*(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator%(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator&(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator|(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator^(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
+//  intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
 
 
   bool valid()
   {
-    return set() && !empty();
+    return set();
   }
 
   intervalt top()
   {
     return intervalt();
   }
+
+
+  /* Private? */
+
+  static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
+
+  static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
 
 private:
   typet type;
@@ -118,7 +123,7 @@ private:
   void set_type() { type=nil_typet(); }
   void set_type(exprt &e) { type=e.type(); }
   // More flexible in future?
-  void set_type(exprt &l, exprt &u) { assert(l.type() == u.type()); type=u.type(); }
+  void set_type(const exprt &l, const exprt &u) { assert(l.type() == u.type()); type=u.type(); }
 
 
   bool set() const
@@ -127,15 +132,20 @@ private:
   }
 
   /* we don't simplify in the constructor otherwise */
-  intervalt simplified_interval(exprt &l, exprt &r) const
+  static intervalt simplified_interval(exprt &l, exprt &r)
   {
-    return intervalt(simplify(l, ns), simplify(r, ns));
+    return intervalt(simplified_expr(l), simplified_expr(r));
   }
 
-  exprt zero() const
+  static exprt simplified_expr(exprt &expr)
   {
-    return zero_initializer(get_type(), get_lower().source_location(), ns);
+    symbol_tablet symbol_table;
+    const namespacet ns(symbol_table);
+
+    return simplify_expr(expr, ns);
   }
+
+  exprt zero() const;
 
   bool is_int() const
   {
@@ -157,9 +167,6 @@ private:
     return src.id()==ID_floatbv;
   }
 
-  static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
-
-  static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */

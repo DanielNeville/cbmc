@@ -25,6 +25,7 @@ SRC = ai.cpp \
       replace_symbol_ext.cpp \
       static_analysis.cpp \
       uninitialized_domain.cpp \
+      interval.cpp \
       # Empty last line
 
 INCLUDES= -I ..

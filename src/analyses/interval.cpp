@@ -15,11 +15,16 @@
 
 #include "interval.h"
 
+#include <util/std_expr.h>
+#include <linking/zero_initializer.cpp>
+#include <util/symbol_table.h>
+
+
 typet intervalt::get_type() const
 {
   if(!set())
   {
-    return nil_typet;
+    return nil_typet();
   }
 
   assert(set());
@@ -36,7 +41,7 @@ intervalt intervalt::add() const
 intervalt intervalt::minus() const
 {
   assert(set());
-  return intervalt(zero).subtract(*this);
+  return intervalt(zero()).subtract(*this);
 }
 
 intervalt intervalt::add(const intervalt& o) const
@@ -82,7 +87,7 @@ intervalt intervalt::modulo(const intervalt& o) const
 
 intervalt intervalt::left_shift(const intervalt& o) const
 {
-
+  return intervalt();
 }
 
 intervalt intervalt::right_shift(const intervalt& o) const
@@ -163,101 +168,103 @@ intervalt intervalt::decrement(const intervalt& o) const
 
 }
 
-bool intervalt::operator <(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
+//bool intervalt::operator <(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//bool intervalt::operator >(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//bool intervalt::operator <=(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//bool intervalt::operator >=(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//bool intervalt::operator ==(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//bool intervalt::operator !=(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator +(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator -(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator /(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator *(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator %(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator &(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator |(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator ^(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator <<(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
+//
+//intervalt intervalt::operator >>(const intervalt& lhs, const intervalt& rhs)
+//{
+//  return intervalt();
+//
+//}
 
-}
-
-bool intervalt::operator >(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-bool intervalt::operator <=(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-bool intervalt::operator >=(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-bool intervalt::operator ==(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-bool intervalt::operator !=(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator +(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator -(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator /(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator *(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator %(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator &(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator |(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator ^(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator <<(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
-
-intervalt intervalt::operator >>(const intervalt& lhs, const intervalt& rhs)
-{
-  return intervalt();
-
-}
+#include <iostream>
 
 intervalt intervalt::get_extremes(
     const intervalt &a,
@@ -278,25 +285,25 @@ intervalt intervalt::get_extremes(
   {
     exprt op = operation;
     op.copy_to_operands(a.get_lower(), b.get_lower());
-    results.push_back(simplify_expr(op, ns));
+    results.push_back(simplified_expr(op));
   }
 
   {
     exprt op = operation;
     op.copy_to_operands(a.get_lower(), b.get_upper());
-    results.push_back(simplify_expr(op, ns));
+    results.push_back(simplified_expr(op));
   }
 
   {
     exprt op = operation;
     op.copy_to_operands(a.get_upper(), b.get_lower());
-    results.push_back(simplify_expr(op, ns));
+    results.push_back(simplified_expr(op));
   }
 
   {
     exprt op = operation;
     op.copy_to_operands(a.get_upper(), b.get_upper());
-    results.push_back(simplify_expr(op, ns));
+    results.push_back(simplified_expr(op));
   }
 
   exprt min = get_extreme(results, true);
@@ -305,10 +312,19 @@ intervalt intervalt::get_extremes(
   return simplified_interval(min, max);
 }
 
+exprt intervalt::zero() const
+{
+  symbol_tablet symbol_table;
+  const namespacet ns(symbol_table);
+  return zero_initializer(get_type(), get_lower().source_location(), ns);
+}
+
+
 exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
 {
-  exprt operation = min ? ID_le : ID_ge;
-  namespacet ns; // Empty
+  dstringt op_string = min ? ID_le : ID_ge;
+  symbol_tablet symbol_table;
+  namespacet ns(symbol_table); // Empty
 
   if(values.size() == 0)
   {
@@ -326,15 +342,8 @@ exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
 
     for(auto right: values)
     {
-      exprt op = operation;
-      op.copy_to_operands(left, right);
+      binary_relation_exprt op(left, op_string, right);
       simplify(op, ns);
-
-      if(!(op.is_true() || op.is_false()))
-      {
-        // Not comparable
-        return nil_exprt();
-      }
 
       if(op.is_true())
       {
