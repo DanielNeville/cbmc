@@ -279,31 +279,36 @@ intervalt intervalt::get_extremes(
   // 4) a.u X b.u
   // We must return a pair with {min, max} of the above under operation X.
 
-  std::vector<exprt> results(4);
+  std::vector<exprt> results;
+  results.reserve(4);
 
   // Generate all results
   {
-    exprt op = operation;
-    op.copy_to_operands(a.get_lower(), b.get_lower());
-    results.push_back(simplified_expr(op));
+    exprt op1 = operation;
+    op1.type() = a.get_type();
+    op1.copy_to_operands(a.get_lower(), b.get_lower());
+    results.push_back(simplified_expr(op1));
   }
 
   {
-    exprt op = operation;
-    op.copy_to_operands(a.get_lower(), b.get_upper());
-    results.push_back(simplified_expr(op));
+    exprt op2 = operation;
+    op2.type() = a.get_type();
+    op2.copy_to_operands(a.get_lower(), b.get_upper());
+    results.push_back(simplified_expr(op2));
   }
 
   {
-    exprt op = operation;
-    op.copy_to_operands(a.get_upper(), b.get_lower());
-    results.push_back(simplified_expr(op));
+    exprt op3 = operation;
+    op3.type() = a.get_type();
+    op3.copy_to_operands(a.get_upper(), b.get_lower());
+    results.push_back(simplified_expr(op3));
   }
 
   {
-    exprt op = operation;
-    op.copy_to_operands(a.get_upper(), b.get_upper());
-    results.push_back(simplified_expr(op));
+    exprt op4 = operation;
+    op4.type() = a.get_type();
+    op4.copy_to_operands(a.get_upper(), b.get_upper());
+    results.push_back(simplified_expr(op4));
   }
 
   exprt min = get_extreme(results, true);

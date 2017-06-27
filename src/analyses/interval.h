@@ -115,22 +115,6 @@ public:
 
   static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
 
-private:
-  typet type;
-
-  /* Don't allow different types in upper and lower */
-  typet get_type() const;
-  void set_type() { type=nil_typet(); }
-  void set_type(exprt &e) { type=e.type(); }
-  // More flexible in future?
-  void set_type(const exprt &l, const exprt &u) { assert(l.type() == u.type()); type=u.type(); }
-
-
-  bool set() const
-  {
-    return lower_set && upper_set;
-  }
-
   /* we don't simplify in the constructor otherwise */
   static intervalt simplified_interval(exprt &l, exprt &r)
   {
@@ -143,6 +127,24 @@ private:
     const namespacet ns(symbol_table);
 
     return simplify_expr(expr, ns);
+  }
+
+  /* Don't allow different types in upper and lower */
+  typet get_type() const;
+  void set_type() { type=nil_typet(); }
+  void set_type(exprt &e) { type=e.type(); }
+  // More flexible in future?
+  void set_type(const exprt &l, const exprt &u) { assert(l.type() == u.type()); type=u.type(); }
+
+private:
+  typet type;
+
+
+
+
+  bool set() const
+  {
+    return lower_set && upper_set;
   }
 
   exprt zero() const;
