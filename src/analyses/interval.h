@@ -174,224 +174,54 @@ public:
   static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
 
   /* we don't simplify in the constructor otherwise */
-  static intervalt simplified_interval(exprt &l, exprt &r)
-  {
-    return intervalt(simplified_expr(l), simplified_expr(r));
-  }
-
-
-  static exprt simplified_expr(exprt expr)
-  {
-    symbol_tablet symbol_table;
-    const namespacet ns(symbol_table);
-
-    return simplify_expr(expr, ns);
-  }
+  static intervalt simplified_interval(exprt &l, exprt &r);
+  static exprt simplified_expr(exprt expr);
 
   /* Don't allow different types in upper and lower */
   typet get_type() const;
+  typet calculate_type(const exprt &l, const exprt &u) const;
 
-//  void set_type() { type=nil_typet(); }
-//  void set_type(const typet type_) { type=type_; }
-//
-//  void set_type(const exprt &e) { type=e.type(); }
-  // More flexible in future?
-  typet calculate_type(const exprt &l, const exprt &u) const
-  {
-    if(u.type() != l.type())
-    {
-      std::cout << "ERROR!\n1)\n" << l.pretty() << "\n2)\n" << u.pretty() << "\n";
-      assert(0 && "Cannot support mixed types." );
-    }
+  min_exprt min() const;
+  max_exprt max() const;
 
-    assert(u.type() == l.type());
-
-    return u.type();
-  }
-
-  min_exprt min() const
-  {
-    return min_exprt(get_type());
-  }
-
-  max_exprt max() const
-  {
-    return max_exprt(get_type());
-  }
-
-  static intervalt swap(intervalt &i)
-  {
-    return intervalt(i.get_upper(), i.get_lower());
-  }
-
-  intervalt swap() const
-  {
-    return intervalt(get_lower(), get_upper());
-  }
+  static intervalt swap(intervalt &i);
+  intervalt swap() const;
 
 
   /* Helpers */
+  /* Four common params: self, type, expr, interval */
 
-  bool is_int() const
-  {
-    return is_int(get_type());
-  }
+  bool is_int() const;
+  bool is_float() const;
+  static bool is_int(const typet &type);
+  static bool is_float(const typet &src);
 
-  bool is_float() const
-  {
-    return is_float(get_type());
-  }
+  static bool is_bitvector(const typet &t);
+  static bool is_signed(const typet &t);
+  static bool is_unsigned(const typet &t);
 
-  static bool is_int(const typet &type)
-  {
-    return (is_signed(type) || is_unsigned(type));
-  }
+  static bool is_signed(const intervalt &interval);
+  static bool is_unsigned(const intervalt &interval);
+  static bool is_bitvector(const intervalt &interval);
 
-  static bool is_float(const typet &src)
-  {
-    return src.id()==ID_floatbv;
-  }
+  static bool is_signed(const exprt &expr);
+  static bool is_unsigned(const exprt &expr);
+  static bool is_bitvector(const exprt &expr);
 
-  static bool is_bitvector(const typet &t)
-  {
-    return t.id()==ID_bv ||
-           t.id()==ID_signedbv ||
-           t.id()==ID_unsignedbv ||
-           t.id()==ID_pointer ||
-           t.id()==ID_bool;
-  }
+  bool is_signed() const;
+  bool is_unsigned() const;
+  bool is_bitvector() const;
 
-  static bool is_signed(const typet &t)
-  {
-    return t.id()==ID_signedbv;
-  }
+  static bool is_extreme(const exprt &expr);
+  static bool is_max(const exprt &expr);
+  static bool is_min(const exprt &expr);
 
-  static bool is_unsigned(const typet &t)
-  {
-    return t.id()==ID_bv ||
-           t.id()==ID_unsignedbv ||
-           t.id()==ID_pointer ||
-           t.id()==ID_bool;
-  }
+  bool is_max() const;
+  bool is_min() const;
 
-  static bool is_signed(const intervalt &interval)
-  {
-    return is_signed(interval.get_type());
-  }
-
-  static bool is_unsigned(const intervalt &interval)
-  {
-    return is_unsigned(interval.get_type());
-  }
-
-  static bool is_bitvector(const intervalt &interval)
-  {
-    return is_bitvector(interval.get_type());
-  }
-
-  static bool is_signed(const exprt &expr)
-  {
-    return is_signed(expr.type());
-  }
-
-  static bool is_unsigned(const exprt &expr)
-  {
-    return is_unsigned(expr.type());
-  }
-
-  static bool is_bitvector(const exprt &expr)
-  {
-    return is_bitvector(expr.type());
-  }
-
-  bool is_signed() const
-  {
-    return is_signed(get_type());
-  }
-
-  bool is_unsigned() const
-  {
-    return is_unsigned(get_type());
-  }
-
-  bool is_bitvector() const
-  {
-    return is_bitvector(get_type());
-  }
-
-
-  static bool is_extreme(const exprt &expr)
-  {
-    return (expr.id() == ID_max || expr.id() == ID_min);
-  }
-
-  bool is_max() const
-  {
-    return is_max(get_upper());
-  }
-
-  bool is_min() const
-  {
-    return is_min(get_lower());
-  }
-
-  static bool is_max(const exprt &expr)
-  {
-    return expr.id() == ID_max;
-  }
-
-  static bool is_min(const exprt &expr)
-  {
-    return expr.id() == ID_min;
-  }
-
-  static bool is_positive(const exprt &expr)
-  {
-    symbol_tablet symbol_table;
-    namespacet ns(symbol_table);
-
-    exprt simplified = simplify_expr(expr, ns);
-
-    if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
-    {
-      return false;
-    }
-
-    binary_relation_exprt op(expr, ID_gt, from_integer(0, expr.type()));
-    simplify(op, ns);
-
-    return op.is_true();
-  }
-
-  static bool is_zero(const exprt &expr)
-  {
-    return expr.is_zero();
-  }
-
-  static bool is_negative(const exprt &expr)
-  {
-    symbol_tablet symbol_table;
-    namespacet ns(symbol_table);
-
-    exprt simplified = simplify_expr(expr, ns);
-
-    if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
-    {
-      return false;
-    }
-
-    if(is_min(expr) && intervalt::is_signed(expr))
-    {
-      return true;
-    }
-
-    binary_relation_exprt op(expr, ID_lt, from_integer(0, expr.type()));
-    simplify(op, ns);
-
-    return op.is_true();
-  }
-
-
+  static bool is_positive(const exprt &expr);
+  static bool is_zero(const exprt &expr);
+  static bool is_negative(const exprt &expr);
 private:
 
   /* This is the entirety */

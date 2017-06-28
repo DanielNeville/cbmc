@@ -25,11 +25,6 @@
 
 //make clean -s && make -j 7 CXX="/usr/local/bin/ccache g++" -s && ./unit_tests
 
-typet intervalt::get_type() const
-{
-  return type;
-}
-
 intervalt intervalt::add() const
 {
   return *this;
@@ -305,7 +300,6 @@ intervalt intervalt::decrement(const intervalt& o) const
 //
 //}
 
-#include <iostream>
 
 
 intervalt intervalt::get_extremes(
@@ -405,8 +399,28 @@ exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
     return *(values.begin());
   }
 
+  for(auto value: values)
+  {
+    if(min)
+    {
+      if(is_min(value))
+      {
+        return value;
+      }
+    }
+    else
+    {
+      if(is_max(value))
+      {
+        return value;
+      }
+    }
+  }
+
   for(auto left: values)
   {
+    assert(!is_min(left) && !is_max(left));
+
     bool all_left_OP_right = true;
 
     for(auto right: values)
