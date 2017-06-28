@@ -110,5 +110,53 @@ SCENARIO("multiply interval domain",
          REQUIRE(V(result.get_upper()) == 55);
        }
      }
+
+    WHEN("One domain is infinite and other crosses zero [-2,5]*[7,INF]")
+       {
+         intervalt a(values[-2], values[5]);
+
+         intervalt b = intervalt(lower_interval(static_cast<exprt>(values[7])));
+
+         intervalt result = a.multiply(b);
+
+         THEN("Domain is consistent")
+         {
+           REQUIRE(V(a.get_lower()) == -2);
+           REQUIRE(V(a.get_upper()) == 5);
+           REQUIRE(V(b.get_lower()) == 7);
+           REQUIRE_FALSE(b.upper_set);
+         }
+
+         THEN("The result is [-INF, INF]")
+         {
+           REQUIRE_FALSE(result.lower_set);
+           REQUIRE_FALSE(result.upper_set);
+         }
+       }
+
+    WHEN("One domain is infinite and other is positive [2,5]*[7,INF]")
+       {
+         intervalt a(values[-2], values[5]);
+
+         intervalt b = intervalt(lower_interval(static_cast<exprt>(values[7])));
+
+         intervalt result = a.multiply(b);
+
+         THEN("Domain is consistent")
+         {
+           REQUIRE(V(a.get_lower()) == 2);
+           REQUIRE(V(a.get_upper()) == 5);
+           REQUIRE(V(b.get_lower()) == 7);
+           REQUIRE_FALSE(b.upper_set);
+         }
+
+         THEN("The result is [14, INF]")
+         {
+           REQUIRE_FALSE(result.lower_set);
+           REQUIRE_FALSE(result.upper_set);
+         }
+       }
   }
+
+
 }

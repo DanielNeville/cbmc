@@ -11,6 +11,7 @@
 #include <util/expr.h>
 #include <util/simplify_expr.h>
 #include <util/std_types.h>
+#include <util/std_expr.h>
 #include <util/symbol_table.h>
 #include <util/namespace.h>
 
@@ -22,6 +23,26 @@
  * Lower set = Specific min (otherwise INF)
  */
 
+class max_infinity_exprt:public exprt
+{
+public:
+  explicit max_infinity_exprt(const typet &_type):
+    exprt(ID_max_infinity, _type)
+  {
+  }
+};
+
+class min_infinity_exprt:public exprt
+{
+public:
+  explicit min_infinity_exprt(const typet &_type):
+    exprt(ID_min_infinity, _type)
+  {
+  }
+};
+
+
+
 class intervalt:
     public interval_templatet<exprt>
 {
@@ -31,9 +52,33 @@ public:
   {
   }
 
+  intervalt(interval_templatet<exprt> x)
+    : interval_templatet<exprt>()
+  {
+    if(x.lower_set)
+    {
+      lower_set=true;
+      lower=x.lower;
+      set_type(x.lower);
+    }
+    if(x.upper_set)
+    {
+      upper_set=true;
+      upper=x.upper;
+      set_type(x.upper);
+    }
+  }
+
   explicit intervalt(const exprt &x)
       : interval_templatet<exprt>(x)
   {
+    set_type(x);
+  }
+
+  intervalt(const typet type_)
+    : interval_templatet<exprt>()
+  {
+    type=type_;
   }
 
   intervalt(const exprt &l, const exprt &u)
@@ -108,7 +153,6 @@ public:
     return intervalt();
   }
 
-
   /* Private? */
 
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
@@ -132,9 +176,39 @@ public:
   /* Don't allow different types in upper and lower */
   typet get_type() const;
   void set_type() { type=nil_typet(); }
-  void set_type(exprt &e) { type=e.type(); }
+  void set_type(const exprt &e) { type=e.type(); }
   // More flexible in future?
-  void set_type(const exprt &l, const exprt &u) { assert(l.type() == u.type()); type=u.type(); }
+  void set_type(const exprt &l, const exprt &u)
+  {
+//    if(l.is_nil() && u.is_nil())
+//    {
+//
+//    }
+//
+//
+//    if(is_signed(l.type()))
+//    {
+//      if(is_unsigned(u.type()))
+//      {
+//        to_signedbv_type(u.type());
+//      }
+//      u.type()=l.type();
+//      type=l.type();
+//
+//      return;
+//    }
+
+    if(is_signed(u.type()))
+    {
+
+      type=u.type();
+    }
+
+//    assert(l.type() == u.type());
+    type=u.type();
+  }
+
+
 
 private:
   typet type;
@@ -147,8 +221,6 @@ private:
     return lower_set && upper_set;
   }
 
-  exprt zero() const;
-
   bool is_int() const
   {
     return is_int(get_type());
@@ -159,9 +231,9 @@ private:
     return is_float(get_type());
   }
 
-  static bool is_int(const typet &src)
+  static bool is_int(const typet &type)
   {
-    return src.id()==ID_signedbv || src.id()==ID_unsignedbv;
+    return (is_signed(type) || is_unsigned(type));
   }
 
   static bool is_float(const typet &src)
@@ -169,6 +241,72 @@ private:
     return src.id()==ID_floatbv;
   }
 
+  static bool is_bitvector(const typet &t)
+  {
+    return t.id()==ID_bv ||
+           t.id()==ID_signedbv ||
+           t.id()==ID_unsignedbv ||
+           t.id()==ID_pointer ||
+           t.id()==ID_bool;
+  }
+
+  static bool is_signed(const typet &t)
+  {
+    return t.id()==ID_signedbv;
+  }
+
+  static bool is_unsigned(const typet &t)
+  {
+    return t.id()==ID_bv ||
+           t.id()==ID_unsignedbv ||
+           t.id()==ID_pointer ||
+           t.id()==ID_bool;
+  }
+
+  static bool is_signed(const intervalt &interval)
+  {
+    return is_signed(interval.get_type());
+  }
+
+  static bool is_unsigned(const intervalt &interval)
+  {
+    return is_unsigned(interval.get_type());
+  }
+
+  static bool is_bitvector(const intervalt &interval)
+  {
+    return is_bitvector(interval.get_type());
+  }
+
+  static bool is_signed(const exprt &expr)
+  {
+    return is_signed(expr.type());
+  }
+
+  static bool is_unsigned(const exprt &expr)
+  {
+    return is_unsigned(expr.type());
+  }
+
+  static bool is_bitvector(const exprt &expr)
+  {
+    return is_bitvector(expr.type());
+  }
+
+  bool is_signed() const
+  {
+    return is_signed(get_type());
+  }
+
+  bool is_unsigned() const
+  {
+    return is_unsigned(get_type());
+  }
+
+  bool is_bitvector() const
+  {
+    return is_bitvector(get_type());
+  }
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */
