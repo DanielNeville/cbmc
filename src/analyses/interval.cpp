@@ -105,8 +105,10 @@ intervalt intervalt::multiply(const intervalt& o) const
 
 //  if(upper_set && o.upper_set && lower_set && o.lower_set)
 //  {
-    mult_exprt operation;
-    return get_extremes(*this, o, operation);
+
+
+  mult_exprt operation;
+  return get_extremes(*this, o, operation);
 //  }
 
 }

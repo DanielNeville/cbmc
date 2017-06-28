@@ -50,57 +50,57 @@ SCENARIO("subtract interval domain",
 
       THEN("The result is [2, 6]")
       {
-        CHECK(V(result.get_lower()) == 2);
-        CHECK(V(result.get_upper()) == 6);
+        REQUIRE(V(result.get_lower()) == 2);
+        REQUIRE(V(result.get_upper()) == 6);
       }
     }
-//
-//    WHEN("One contains infinite [2,4]+[6,INF]")
-//    {
-//      intervalt left(values[2], values[4]);
-//      intervalt right(values[6], max_exprt(type));
-//
-//      intervalt result = left.add(right);
-//
-//      THEN("Domain is consistent")
-//      {
-//        REQUIRE(V(left.get_lower()) == 2);
-//        REQUIRE(V(left.get_upper()) == 4);
-//        REQUIRE(V(right.get_lower()) == 6);
-//        REQUIRE(right.is_max());
-//      }
-//
-//      CAPTURE(result);
-//
-//      THEN("The result is [8, MAX]")
-//      {
-//        REQUIRE(V(result.get_lower()) == 8);
-//        REQUIRE(result.is_max());
-//      }
-//    }
-//
-//    WHEN("Both contain infinite [2,INF]+[6,INF]")
-//    {
-//      intervalt left(values[2],  max_exprt(type));
-//      intervalt right(values[6], max_exprt(type));
-//
-//      intervalt result = left.add(right);
-//
-//      THEN("Domain is consistent")
-//      {
-//        REQUIRE(V(left.get_lower()) == 2);
-//        REQUIRE(left.is_max());
-//        REQUIRE(V(right.get_lower()) == 6);
-//        REQUIRE(right.is_max());
-//      }
-//
-//      CAPTURE(result);
-//
-//      THEN("The result is [8, MAX]")
-//      {
-//        REQUIRE(V(result.get_lower()) == 8);
-//        REQUIRE(result.is_max());
-//      }
-//    }
+
+    WHEN("One contains infinite [2,4]-[6,INF]")
+    {
+      intervalt left(values[2], values[4]);
+      intervalt right(values[6], max_exprt(type));
+
+      intervalt result = left.subtract(right);
+
+      THEN("Domain is consistent")
+      {
+        REQUIRE(V(left.get_lower()) == 2);
+        REQUIRE(V(left.get_upper()) == 4);
+        REQUIRE(V(right.get_lower()) == 6);
+        REQUIRE(right.is_max());
+      }
+
+      CAPTURE(result);
+
+      THEN("The result is [MIN, -2]")
+      {
+        REQUIRE(V(result.get_upper()) == -2);
+        REQUIRE(result.is_min());
+      }
+    }
+
+    WHEN("Both contain infinite [2,INF]-[6,INF]")
+    {
+      intervalt left(values[2],  max_exprt(type));
+      intervalt right(values[6], max_exprt(type));
+
+      intervalt result = left.subtract(right);
+
+      THEN("Domain is consistent")
+      {
+        REQUIRE(V(left.get_lower()) == 2);
+        REQUIRE(left.is_max());
+        REQUIRE(V(right.get_lower()) == 6);
+        REQUIRE(right.is_max());
+      }
+
+      CAPTURE(result);
+
+      THEN("The result is [MIN, MAX]")
+      {
+        REQUIRE(result.is_max());
+        REQUIRE(result.is_min());
+      }
+    }
   }
 }

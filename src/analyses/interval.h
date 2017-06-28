@@ -85,9 +85,9 @@ public:
 
   intervalt(const exprt &l, const exprt &u):
     lower(l),
-    upper(u)
+    upper(u),
+    type(calculate_type(l, u))
   {
-    set_type(l, u);
   }
 
 
@@ -191,12 +191,12 @@ public:
   /* Don't allow different types in upper and lower */
   typet get_type() const;
 
-  void set_type() { type=nil_typet(); }
-  void set_type(const typet type_) { type=type_; }
-
-  void set_type(const exprt &e) { type=e.type(); }
+//  void set_type() { type=nil_typet(); }
+//  void set_type(const typet type_) { type=type_; }
+//
+//  void set_type(const exprt &e) { type=e.type(); }
   // More flexible in future?
-  void set_type(const exprt &l, const exprt &u)
+  typet calculate_type(const exprt &l, const exprt &u) const
   {
     if(u.type() != l.type())
     {
@@ -206,7 +206,7 @@ public:
 
     assert(u.type() == l.type());
 
-    type = u.type();
+    return u.type();
   }
 
   min_exprt min() const
@@ -395,9 +395,9 @@ public:
 private:
 
   /* This is the entirety */
-  exprt lower;
-  exprt upper;
-  typet type;
+  const exprt lower;
+  const exprt upper;
+  const typet type;
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */
