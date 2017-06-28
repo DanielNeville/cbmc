@@ -19,19 +19,15 @@
 #include <util/symbol_table.h>
 #include <util/namespace.h>
 #include <util/arith_tools.h>
+#include <ostream>
+#include <sstream>
 
+
+//make clean -s && make -j 7 CXX="/usr/local/bin/ccache g++" -s && ./unit_tests
 
 typet intervalt::get_type() const
 {
-  if(!set())
-  {
-    return nil_typet();
-  }
-
-  assert(set());
-  assert(get_lower().type() == get_upper().type());
-
-  return get_lower().type();
+  return type;
 }
 
 intervalt intervalt::add() const
@@ -41,19 +37,54 @@ intervalt intervalt::add() const
 
 intervalt intervalt::minus() const
 {
-  assert(set());
+  exprt lower;
+  exprt upper;
 
-  // Signed vs unsigned handled via subtract.
-  exprt zero = from_integer(mp_integer(0), get_type());
-  return intervalt(zero).subtract(*this);
+  if(is_max())
+  {
+    lower=min();
+  }
+  else
+  {
+    lower = simplified_expr(unary_minus_exprt(get_upper()));
+  }
+
+  if(is_min())
+  {
+    upper=max();
+  }
+  else
+  {
+    upper = simplified_expr(unary_minus_exprt(get_lower()));
+  }
+
+  return intervalt(lower, upper);
 }
 
 intervalt intervalt::add(const intervalt& o) const
 {
+  exprt lower = nil_exprt();
+  exprt upper = nil_exprt();
 
+  if(is_max(get_upper()) || is_max(o.get_upper()))
+  {
+    upper = max_exprt(get_type());
+  }
+  else
+  {
+    assert(!is_max(get_upper()) && !is_max(o.get_upper()));
+    upper = simplified_expr(plus_exprt(get_upper(), o.get_upper()));
+  }
 
-  exprt lower = plus_exprt(get_lower(), o.get_lower());
-  exprt upper = plus_exprt(get_upper(), o.get_upper());
+  if(is_min(get_lower()) || is_min(o.get_lower()))
+  {
+    lower = min_exprt(get_type());
+  }
+  else
+  {
+    assert(!is_min(get_lower()) && !is_min(o.get_lower()));
+    lower = simplified_expr(plus_exprt(get_lower(), o.get_lower()));
+  }
 
   return simplified_interval(lower, upper);
 }
@@ -61,10 +92,7 @@ intervalt intervalt::add(const intervalt& o) const
 intervalt intervalt::subtract(const intervalt& o) const
 {
   // e.g. [t.u - o.l, t.l - o.u]
-  exprt lower = minus_exprt(get_lower(), o.get_upper());
-  exprt upper = minus_exprt(get_upper(), o.get_lower());
-
-  return simplified_interval(lower, upper);
+  return add(o.minus().swap());
 }
 
 intervalt intervalt::multiply(const intervalt& o) const
@@ -277,51 +305,6 @@ intervalt intervalt::decrement(const intervalt& o) const
 
 #include <iostream>
 
-bool is_infinity(const exprt &expr)
-{
-  return expr.is_nil();
-}
-
-bool is_positive(const exprt &expr)
-{
-  symbol_tablet symbol_table;
-  namespacet ns(symbol_table);
-
-  exprt simplified = simplify_expr(expr, ns);
-
-  if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
-  {
-    return false;
-  }
-
-  binary_relation_exprt op(expr, ID_gt, from_integer(0, expr.type()));
-  simplify(op, ns);
-
-  return op.is_true();
-}
-
-bool is_zero(const exprt &expr)
-{
-  return expr.is_zero();
-}
-
-bool is_negative(const exprt &expr)
-{
-  symbol_tablet symbol_table;
-  namespacet ns(symbol_table);
-
-  exprt simplified = simplify_expr(expr, ns);
-
-  if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
-  {
-    return false;
-  }
-
-  binary_relation_exprt op(expr, ID_lt, from_integer(0, expr.type()));
-  simplify(op, ns);
-
-  return op.is_true();
-}
 
 intervalt intervalt::get_extremes(
     const intervalt &a,
@@ -342,10 +325,10 @@ intervalt intervalt::get_extremes(
   exprt max = nil_exprt();
 
   /* Positive infinities */
-  if((!a.upper_set && !a.lower_set) || (!b.upper_set && !b.lower_set))
-  {
-    return intervalt(a.get_type());
-  }
+//  if((!a.upper_set && !a.lower_set) || (!b.upper_set && !b.lower_set))
+//  {
+//    return intervalt(a.get_type());
+//  }
 
   // both have at most one infinity.
 
@@ -361,7 +344,7 @@ intervalt intervalt::get_extremes(
 //  }
 
   // Generate all results
-  if(a.upper_set && b.upper_set && a.lower_set && b.lower_set)
+  if(!is_extreme(a.get_lower()) && !is_extreme(b.get_lower()) && !is_extreme(a.get_upper()) && !is_extreme(b.get_upper()))
   {
     std::vector<exprt> results;
     results.reserve(4);
@@ -447,3 +430,50 @@ exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
 
   return nil_exprt();
 }
+
+
+std::string intervalt::to_string() const
+{
+  std::stringstream out;
+
+  out << dstringt("[");
+
+  if(!is_min())
+  {
+    out << get_lower().get(ID_value);
+  }
+  else
+  {
+    if(is_signed(get_lower()))
+    {
+      out << dstringt("MIN");
+    }
+    else
+    {
+      out << dstringt("0");
+    }
+  }
+
+  out << dstringt(",");
+
+  if(!is_max())
+  {
+    out << get_upper().get(ID_value);
+  }
+  else
+    out << dstringt("MAX");
+
+  out << dstringt("]");
+
+  return out.str();
+}
+
+std::ostream& operator <<(std::ostream& out,
+    const intervalt& i)
+{
+  out << i.to_string();
+
+  return out;
+}
+
+

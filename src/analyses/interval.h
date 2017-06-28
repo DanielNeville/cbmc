@@ -14,8 +14,13 @@
 #include <util/std_expr.h>
 #include <util/symbol_table.h>
 #include <util/namespace.h>
+#include <util/arith_tools.h>
 
 #include "interval_template.h"
+
+#include <ostream>
+#include <sstream>
+#include <iostream>
 
 /*
  *
@@ -23,74 +28,69 @@
  * Lower set = Specific min (otherwise INF)
  */
 
-class max_infinity_exprt:public exprt
+class max_exprt:public exprt
 {
 public:
-  explicit max_infinity_exprt(const typet &_type):
-    exprt(ID_max_infinity, _type)
+  explicit max_exprt(const typet &_type):
+    exprt(ID_max, _type)
+  {
+  }
+
+  explicit max_exprt(const exprt &_expr):
+    exprt(ID_max, _expr.type())
   {
   }
 };
 
-class min_infinity_exprt:public exprt
+class min_exprt:public exprt
 {
 public:
-  explicit min_infinity_exprt(const typet &_type):
-    exprt(ID_min_infinity, _type)
+  explicit min_exprt(const typet &_type):
+    exprt(ID_min, _type)
+  {
+  }
+
+  explicit min_exprt(const exprt &_expr):
+    exprt(ID_min, _expr.type())
   {
   }
 };
 
 
 
-class intervalt:
-    public interval_templatet<exprt>
+class intervalt
 {
 public:
-  intervalt()
-      : interval_templatet<exprt>()
+  intervalt():
+    lower(min_exprt(nil_typet())),
+    upper(max_exprt(nil_typet())),
+    type(nil_typet())
   {
   }
 
-  intervalt(interval_templatet<exprt> x)
-    : interval_templatet<exprt>()
+  explicit intervalt(const exprt &x):
+    lower(x),
+    upper(x),
+    type(x.type())
   {
-    if(x.lower_set)
-    {
-      lower_set=true;
-      lower=x.lower;
-      set_type(x.lower);
-    }
-    if(x.upper_set)
-    {
-      upper_set=true;
-      upper=x.upper;
-      set_type(x.upper);
-    }
+
   }
 
-  explicit intervalt(const exprt &x)
-      : interval_templatet<exprt>(x)
+  intervalt(const typet type_):
+    lower(min_exprt(type_)),
+    upper(max_exprt(type_)),
+    type(type_)
   {
-    set_type(x);
   }
 
-  intervalt(const typet type_)
-    : interval_templatet<exprt>()
-  {
-    type=type_;
-  }
-
-  intervalt(const exprt &l, const exprt &u)
-      :
-        interval_templatet<exprt>(l, u)
+  intervalt(const exprt &l, const exprt &u):
+    lower(l),
+    upper(u)
   {
     set_type(l, u);
   }
 
 
-
-  /* Decide names later */
 
   /* Unary */
   intervalt add() const;
@@ -124,6 +124,17 @@ public:
   intervalt increment(const intervalt &o) const;
   intervalt decrement(const intervalt &o) const;
 
+
+  const exprt &get_lower() const
+  {
+    return lower;
+  }
+
+  const exprt &get_upper() const
+  {
+    return upper;
+  }
+
 //  bool operator< (const intervalt &lhs, const intervalt &rhs);
 //  bool operator> (const intervalt &lhs, const intervalt &rhs);
 //  bool operator<=(const intervalt &lhs, const intervalt &rhs);
@@ -142,13 +153,16 @@ public:
 //  intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
 //  intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
 
+  friend std::ostream& operator<< (std::ostream& out, const intervalt &i);
+
+  std::string to_string() const;
 
   bool valid()
   {
-    return set();
+    return true;
   }
 
-  intervalt top()
+  static intervalt top()
   {
     return intervalt();
   }
@@ -165,7 +179,8 @@ public:
     return intervalt(simplified_expr(l), simplified_expr(r));
   }
 
-  static exprt simplified_expr(exprt &expr)
+
+  static exprt simplified_expr(exprt expr)
   {
     symbol_tablet symbol_table;
     const namespacet ns(symbol_table);
@@ -175,51 +190,47 @@ public:
 
   /* Don't allow different types in upper and lower */
   typet get_type() const;
+
   void set_type() { type=nil_typet(); }
+  void set_type(const typet type_) { type=type_; }
+
   void set_type(const exprt &e) { type=e.type(); }
   // More flexible in future?
   void set_type(const exprt &l, const exprt &u)
   {
-//    if(l.is_nil() && u.is_nil())
-//    {
-//
-//    }
-//
-//
-//    if(is_signed(l.type()))
-//    {
-//      if(is_unsigned(u.type()))
-//      {
-//        to_signedbv_type(u.type());
-//      }
-//      u.type()=l.type();
-//      type=l.type();
-//
-//      return;
-//    }
-
-    if(is_signed(u.type()))
+    if(u.type() != l.type())
     {
-
-      type=u.type();
+      std::cout << "ERROR!\n1)\n" << l.pretty() << "\n2)\n" << u.pretty() << "\n";
+      assert(0 && "Cannot support mixed types." );
     }
 
-//    assert(l.type() == u.type());
-    type=u.type();
+    assert(u.type() == l.type());
+
+    type = u.type();
   }
 
-
-
-private:
-  typet type;
-
-
-
-
-  bool set() const
+  min_exprt min() const
   {
-    return lower_set && upper_set;
+    return min_exprt(get_type());
   }
+
+  max_exprt max() const
+  {
+    return max_exprt(get_type());
+  }
+
+  static intervalt swap(intervalt &i)
+  {
+    return intervalt(i.get_upper(), i.get_lower());
+  }
+
+  intervalt swap() const
+  {
+    return intervalt(get_lower(), get_upper());
+  }
+
+
+  /* Helpers */
 
   bool is_int() const
   {
@@ -307,6 +318,86 @@ private:
   {
     return is_bitvector(get_type());
   }
+
+
+  static bool is_extreme(const exprt &expr)
+  {
+    return (expr.id() == ID_max || expr.id() == ID_min);
+  }
+
+  bool is_max() const
+  {
+    return is_max(get_upper());
+  }
+
+  bool is_min() const
+  {
+    return is_min(get_lower());
+  }
+
+  static bool is_max(const exprt &expr)
+  {
+    return expr.id() == ID_max;
+  }
+
+  static bool is_min(const exprt &expr)
+  {
+    return expr.id() == ID_min;
+  }
+
+  static bool is_positive(const exprt &expr)
+  {
+    symbol_tablet symbol_table;
+    namespacet ns(symbol_table);
+
+    exprt simplified = simplify_expr(expr, ns);
+
+    if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
+    {
+      return false;
+    }
+
+    binary_relation_exprt op(expr, ID_gt, from_integer(0, expr.type()));
+    simplify(op, ns);
+
+    return op.is_true();
+  }
+
+  static bool is_zero(const exprt &expr)
+  {
+    return expr.is_zero();
+  }
+
+  static bool is_negative(const exprt &expr)
+  {
+    symbol_tablet symbol_table;
+    namespacet ns(symbol_table);
+
+    exprt simplified = simplify_expr(expr, ns);
+
+    if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
+    {
+      return false;
+    }
+
+    if(is_min(expr) && intervalt::is_signed(expr))
+    {
+      return true;
+    }
+
+    binary_relation_exprt op(expr, ID_lt, from_integer(0, expr.type()));
+    simplify(op, ns);
+
+    return op.is_true();
+  }
+
+
+private:
+
+  /* This is the entirety */
+  exprt lower;
+  exprt upper;
+  typet type;
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */

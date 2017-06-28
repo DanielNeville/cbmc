@@ -26,15 +26,11 @@ SCENARIO("add interval domain",
 
     source_locationt source_location;
 
-
-    constant_exprt zero = to_constant_expr(from_integer(0, type));
     std::map<int, constant_exprt> values;
 
     for(int i = -100; i <= 100; i++)
     {
-      constant_exprt expr = zero;
-      expr.set_value(integer2string(i, 2));
-      values[i]=expr;
+      values[i] = from_integer(mp_integer(i), type);
     }
 
     WHEN("Both are positive [2,4]+[6,8]")
@@ -46,17 +42,65 @@ SCENARIO("add interval domain",
 
       THEN("Domain is consistent")
       {
-        REQUIRE(string2integer(left.get_lower().get(ID_value).c_str(), 2) == 2);
-        REQUIRE(string2integer(left.get_upper().get(ID_value).c_str(), 2) == 4);
-        REQUIRE(string2integer(right.get_lower().get(ID_value).c_str(), 2) == 6);
-        REQUIRE(string2integer(right.get_upper().get(ID_value).c_str(), 2) == 8);
+        REQUIRE(V(left.get_lower()) == 2);
+        REQUIRE(V(left.get_upper()) == 4);
+        REQUIRE(V(right.get_lower()) == 6);
+        REQUIRE(V(right.get_upper()) == 8);
       }
 
 
       THEN("The result is [8, 12]")
       {
-        REQUIRE(string2integer(result.get_lower().get(ID_value).c_str(), 2) == 8);
-        REQUIRE(string2integer(result.get_upper().get(ID_value).c_str(), 2) == 12);
+        REQUIRE(V(result.get_lower()) == 8);
+        REQUIRE(V(result.get_upper()) == 12);
+      }
+    }
+
+    WHEN("One contains infinite [2,4]+[6,INF]")
+    {
+      intervalt left(values[2], values[4]);
+      intervalt right(values[6], max_exprt(type));
+
+      intervalt result = left.add(right);
+
+      THEN("Domain is consistent")
+      {
+        REQUIRE(V(left.get_lower()) == 2);
+        REQUIRE(V(left.get_upper()) == 4);
+        REQUIRE(V(right.get_lower()) == 6);
+        REQUIRE(right.is_max());
+      }
+
+      CAPTURE(result);
+
+      THEN("The result is [8, MAX]")
+      {
+        REQUIRE(V(result.get_lower()) == 8);
+        REQUIRE(result.is_max());
+      }
+    }
+
+    WHEN("Both contain infinite [2,INF]+[6,INF]")
+    {
+      intervalt left(values[2],  max_exprt(type));
+      intervalt right(values[6], max_exprt(type));
+
+      intervalt result = left.add(right);
+
+      THEN("Domain is consistent")
+      {
+        REQUIRE(V(left.get_lower()) == 2);
+        REQUIRE(left.is_max());
+        REQUIRE(V(right.get_lower()) == 6);
+        REQUIRE(right.is_max());
+      }
+
+      CAPTURE(result);
+
+      THEN("The result is [8, MAX]")
+      {
+        REQUIRE(V(result.get_lower()) == 8);
+        REQUIRE(result.is_max());
       }
     }
   }

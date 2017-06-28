@@ -5,6 +5,7 @@ SRC = unit_tests.cpp \
 			analyses/interval/multiply.cpp \
 			analyses/interval/add.cpp \
 			analyses/interval/get_extreme.cpp \
+			analyses/interval/subtract.cpp \
       # Empty last line
 
 INCLUDES= -I ../src/ -I.
