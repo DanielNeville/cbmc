@@ -124,6 +124,17 @@ public:
   intervalt increment(const intervalt &o) const;
   intervalt decrement(const intervalt &o) const;
 
+//  tvt contains(intervalt &o) const;
+
+  static bool equal(const exprt &a, const exprt &b);
+  static bool less_than(const exprt &a, const exprt &b);
+  static bool less_than_or_equal(const exprt &a, const exprt &b);
+  static bool more_than(const exprt &a, const exprt &b);
+  static bool more_than_or_equal(const exprt &a, const exprt &b);
+
+
+
+  bool definitely_contains(intervalt &o) const;
 
   const exprt &get_lower() const
   {
@@ -176,7 +187,17 @@ public:
 
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
 
-  static exprt get_extreme(const std::vector<exprt> &values, bool min = true);
+  static exprt get_extreme(std::vector<exprt> values, bool min = true);
+
+  static exprt generate_expression(const exprt &a, const exprt &b, const exprt &operation);
+
+  static exprt generate_multiply_expression(const exprt &a, const exprt &b, exprt operation);
+  static exprt generate_multiply_expression_max(const exprt &expr);
+  static exprt generate_multiply_expression_min(const exprt &min, const exprt &other);
+
+  static exprt generate_division_expression(const exprt &a, const exprt &b, exprt operation);
+
+
 
   /* we don't simplify in the constructor otherwise */
   static intervalt simplified_interval(exprt &l, exprt &r);
@@ -195,6 +216,9 @@ public:
 
   /* Helpers */
   /* Four common params: self, type, expr, interval */
+
+  bool is_numeric() const;
+  bool is_numeric(const typet &type) const;
 
   bool is_int() const;
   bool is_float() const;
@@ -216,6 +240,8 @@ public:
   bool is_signed() const;
   bool is_unsigned() const;
   bool is_bitvector() const;
+
+  static bool contains_extreme(const exprt expr);
 
   static bool is_extreme(const exprt &expr);
   static bool is_max(const exprt &expr);

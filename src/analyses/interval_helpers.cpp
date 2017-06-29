@@ -23,6 +23,8 @@ exprt intervalt::simplified_expr(exprt expr)
   symbol_tablet symbol_table;
   const namespacet ns(symbol_table);
 
+  assert(!contains_extreme(expr));
+
   return simplify_expr(expr, ns);
 }
 
@@ -62,6 +64,11 @@ intervalt intervalt::swap() const
 
 /* Helpers */
 
+bool intervalt::is_numeric() const
+{
+  return is_int(get_type()) || is_float(get_type());
+}
+
 bool intervalt::is_int() const
 {
   return is_int(get_type());
@@ -70,6 +77,11 @@ bool intervalt::is_int() const
 bool intervalt::is_float() const
 {
   return is_float(get_type());
+}
+
+bool intervalt::is_numeric(const typet &type) const
+{
+  return is_int(type) || is_float(type);
 }
 
 bool intervalt::is_int(const typet &type)
@@ -146,7 +158,7 @@ bool intervalt::is_bitvector() const
 
 bool intervalt::is_extreme(const exprt &expr)
 {
-  return (expr.id() == ID_max || expr.id() == ID_min);
+  return (is_max(expr) || is_min(expr));
 }
 
 bool intervalt::is_max() const
@@ -181,6 +193,18 @@ bool intervalt::is_positive(const exprt &expr)
     return false;
   }
 
+  if(is_max(expr))
+  {
+    return true;
+  }
+
+  if(is_min(expr))
+  {
+    return false;
+  }
+
+  assert(!is_max(expr) && !is_min(expr));
+
   binary_relation_exprt op(expr, ID_gt, from_integer(0, expr.type()));
   simplify(op, ns);
 
@@ -189,6 +213,24 @@ bool intervalt::is_positive(const exprt &expr)
 
 bool intervalt::is_zero(const exprt &expr)
 {
+  if(is_min(expr))
+  {
+    if(is_unsigned(expr))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  if(is_max(expr))
+  {
+    return false;
+  }
+
+  assert(!is_max(expr) && !is_min(expr));
   return expr.is_zero();
 }
 
@@ -204,13 +246,99 @@ bool intervalt::is_negative(const exprt &expr)
     return false;
   }
 
-  if(is_min(expr) && intervalt::is_signed(expr))
+  if(is_min(expr))
   {
-    return true;
+    if(is_signed(expr))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
+
+  if(is_max(expr))
+  {
+    return false;
+  }
+
+  assert(!is_max(expr) && !is_min(expr));
 
   binary_relation_exprt op(expr, ID_lt, from_integer(0, expr.type()));
   simplify(op, ns);
 
   return op.is_true();
 }
+
+bool intervalt::equal(const exprt& a, const exprt& b)
+{
+  if(is_max(a) && is_max(b))
+  {
+    return true;
+  }
+
+  if(is_min(a) && is_min(b))
+  {
+    return true;
+  }
+
+  if(is_extreme(a) || is_extreme(b))
+  {
+    // If they're still extreme, they're opposites.
+    return false;
+  }
+
+  return simplified_expr(equal_exprt(a, b)).is_true();
+}
+
+bool intervalt::less_than(const exprt& a, const exprt& b)
+{
+  if((is_max(a) && is_max(b)) || (is_min(a) && is_min(b)))
+  {
+    return false;
+  }
+
+  if(is_min(a) && is_max(b))
+  {
+    return true;
+  }
+
+  if(is_extreme(a) || is_extreme(b))
+  {
+    return false;
+  }
+
+  return simplified_expr(binary_relation_exprt(a, ID_lt, b)).is_true();
+}
+
+bool intervalt::less_than_or_equal(const exprt& a, const exprt& b)
+{
+  return less_than(a, b) || equal(a, b);
+}
+
+bool intervalt::more_than(const exprt& a, const exprt& b)
+{
+  if((is_max(a) && is_max(b)) || (is_min(a) && is_min(b)))
+  {
+    return false;
+  }
+
+  if(is_min(a) && is_max(b))
+  {
+    return true;
+  }
+
+  if(is_extreme(a) || is_extreme(b))
+  {
+    return false;
+  }
+
+  return simplified_expr(binary_relation_exprt(a, ID_gt, b)).is_true();
+}
+
+bool intervalt::more_than_or_equal(const exprt& a, const exprt& b)
+{
+  return more_than(a, b) || equal(a, b);
+}
+

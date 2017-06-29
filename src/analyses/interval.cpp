@@ -92,23 +92,9 @@ intervalt intervalt::subtract(const intervalt& o) const
 
 intervalt intervalt::multiply(const intervalt& o) const
 {
-  exprt upper = nil_exprt();
-  exprt lower = nil_exprt();
-
-//  // Positive / positive
-//  exprt lower = plus_exprt(get_lower(), o.get_lower());
-//  exprt upper = plus_exprt(get_upper(), o.get_upper());
-//
-//  return simplified_interval(lower, upper);
-
-//  if(upper_set && o.upper_set && lower_set && o.lower_set)
-//  {
-
   mult_exprt operation;
   operation.type()=get_type();
   return get_extremes(*this, o, operation);
-//  }
-
 }
 
 intervalt intervalt::divide(const intervalt& o) const
@@ -310,79 +296,27 @@ intervalt intervalt::get_extremes(
     const intervalt &b,
     const exprt operation)
 {
-  // There are four pair-wise results with arbitrary operation X.
-  // 1) L1 X L2, 2) L1 X U2, 3) U1 X L2, 4) U1 X U2
-  // 1) a.l X b.l
-  // 2) a.l X b.u
-  // 3) a.u X b.l
-  // 4) a.u X b.u
-  // We must return a pair with {min, max} of the above under operation X.
-
   intervalt result;
 
-  exprt min = nil_exprt();
-  exprt max = nil_exprt();
+  std::vector<exprt> results;
 
-  /* Positive infinities */
-//  if((!a.upper_set && !a.lower_set) || (!b.upper_set && !b.lower_set))
-//  {
-//    return intervalt(a.get_type());
-//  }
+  results.push_back(
+      generate_expression(a.get_lower(), b.get_lower(), operation));
+  results.push_back(
+      generate_expression(a.get_lower(), b.get_upper(), operation));
+  results.push_back(
+      generate_expression(a.get_upper(), b.get_lower(), operation));
+  results.push_back(
+      generate_expression(a.get_upper(), b.get_upper(), operation));
 
-  // both have at most one infinity.
+  exprt min=get_extreme(results, true);
+  exprt max=get_extreme(results, false);
 
+  return simplified_interval(min, max);
 
-//  if(!b.upper_set)
-//  {
-//    assert(b.lower_set);
-//
-//    if(is_positive(b.lower))
-//    {
-//
-//    }
-//  }
-
-  // Generate all results
-  if(!is_extreme(a.get_lower()) && !is_extreme(b.get_lower()) && !is_extreme(a.get_upper()) && !is_extreme(b.get_upper()))
-  {
-    std::vector<exprt> results;
-    results.reserve(4);
-
-    {
-      exprt op_ll = operation;
-      op_ll.copy_to_operands(a.get_lower(), b.get_lower());
-      results.push_back(simplified_expr(op_ll));
-    }
-
-    {
-      exprt op_lu = operation;
-      op_lu.copy_to_operands(a.get_lower(), b.get_upper());
-      results.push_back(simplified_expr(op_lu));
-    }
-
-    {
-      exprt op_ul = operation;
-      op_ul.copy_to_operands(a.get_upper(), b.get_lower());
-      results.push_back(simplified_expr(op_ul));
-    }
-
-    {
-      exprt op_uu = operation;
-      op_uu.copy_to_operands(a.get_upper(), b.get_upper());
-      results.push_back(simplified_expr(op_uu));
-    }
-
-    exprt min = get_extreme(results, true);
-    exprt max = get_extreme(results, false);
-
-    return simplified_interval(min, max);
-  }
-
-
-  return intervalt();
 }
 
-exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
+exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 {
   dstringt op_string = min ? ID_le : ID_ge;
   symbol_tablet symbol_table;
@@ -398,20 +332,59 @@ exprt intervalt::get_extreme(const std::vector<exprt>& values, bool min)
     return *(values.begin());
   }
 
-  for(auto value: values)
+  typet type=values.begin()->type();
+
+  if(min)
   {
-    if(min)
+    auto i=values.begin();
+
+    while (i != values.end())
     {
-      if(is_min(value))
+      if(is_min(*i))
       {
-        return value;
+        return *i;
+      }
+
+      if(is_max(*i))
+      {
+        i=values.erase(i);
+      }
+      else
+      {
+        i++;
+      }
+
+      if(values.size() == 0)
+      {
+        // Everything was max, return max.
+        return max_exprt(type);
       }
     }
-    else
+  }
+  else
+  {
+    auto i=values.begin();
+
+    while (i != values.end())
     {
-      if(is_max(value))
+      if(is_max(*i))
       {
-        return value;
+        return *i;
+      }
+
+      if(is_min(*i))
+      {
+        i=values.erase(i);
+      }
+      else
+      {
+        i++;
+      }
+
+      if(values.size() == 0)
+      {
+        // Everything was min, return min.
+        return min_exprt(type);
       }
     }
   }
@@ -491,4 +464,156 @@ std::ostream& operator <<(std::ostream& out,
   return out;
 }
 
+exprt intervalt::generate_expression(const exprt& a, const exprt& b, const exprt &operation)
+{
+  if(operation.id() == ID_mult)
+  {
+    return generate_multiply_expression(a, b, operation);
+  }
 
+  if(operation.id() == ID_div)
+  {
+    return generate_division_expression(a, b, operation);
+  }
+
+  assert(0 && "Not yet implemented!");
+}
+
+exprt intervalt::generate_multiply_expression(const exprt& a, const exprt& b,
+    exprt operation)
+{
+  assert(operation.id() == ID_mult);
+  assert(operation.type().is_not_nil() && is_int(operation.type()));
+
+  if(is_max(a))
+  {
+    return generate_multiply_expression_max(b);
+  }
+
+  if(is_max(b))
+  {
+    return generate_multiply_expression_max(a);
+  }
+
+  if(is_min(a))
+  {
+    return generate_multiply_expression_min(a, b);
+  }
+
+  if(is_min(b))
+  {
+    return generate_multiply_expression_min(b, a);
+  }
+
+  assert(!is_extreme(a) && !is_extreme(b));
+
+  operation.copy_to_operands(a, b);
+  return simplified_expr(operation);
+}
+
+
+exprt intervalt::generate_multiply_expression_max(const exprt &expr)
+{
+  if(is_max (expr))
+  {
+    return max_exprt(expr);
+  }
+
+  if(is_min (expr))
+  {
+    if(is_negative(expr))
+    {
+      return min_exprt(expr);
+    }
+    else
+    {
+      assert(!is_positive(expr) && "Min value cannot be >0.");
+      assert(is_zero(expr) && "Non-negative MIN must be zero.");
+
+      return expr;
+    }
+  }
+
+  assert(!is_extreme(expr));
+
+  if(is_negative (expr))
+  {
+    return min_exprt(expr);
+  }
+
+  if(is_zero (expr))
+  {
+    return expr;
+  }
+
+  if(is_positive (expr))
+  {
+    return max_exprt(expr);
+  }
+
+  assert(0 && "Unreachable.");
+  return nil_exprt();
+}
+
+exprt intervalt::generate_multiply_expression_min(const exprt &min, const exprt &other)
+{
+  assert(is_min(min));
+
+  if(is_max(other))
+  {
+    if(is_negative(min))
+    {
+      return min_exprt(min);
+    }
+    else
+    {
+      assert(!is_positive(min) && "Min value cannot be >0.");
+      assert(is_zero(min) && "Non-negative MIN must be zero.");
+
+      return min;
+    }
+  }
+
+  if(is_min(other))
+  {
+    assert(!is_positive(min) && !is_positive(other)  && "Min value cannot be >0.");
+    assert(is_negative(other) || is_zero(other));
+
+    if(is_negative(min) && is_negative(other))
+    {
+      return max_exprt(min);
+    }
+
+    assert(is_zero(min) || is_zero(other));
+    return (is_zero(min) ? min : other);
+  }
+
+  assert(0 && "Unreachable.");
+  return nil_exprt();
+}
+
+
+
+exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
+    exprt operation)
+{
+
+}
+
+bool intervalt::contains_extreme(const exprt expr)
+{
+  forall_operands(it, expr)
+  {
+    if(is_extreme(*it))
+    {
+      return true;
+    }
+
+    if(it->has_operands())
+    {
+      return contains_extreme(*it);
+    }
+  }
+
+  return false;
+}
