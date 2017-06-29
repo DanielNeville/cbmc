@@ -162,9 +162,14 @@ public:
     return true;
   }
 
-  static intervalt top()
+  bool is_top() const
   {
-    return intervalt();
+    return (is_min() && is_max());
+  }
+
+  intervalt generate_top() const
+  {
+    return intervalt(get_type());
   }
 
   /* Private? */
@@ -222,6 +227,7 @@ public:
   static bool is_positive(const exprt &expr);
   static bool is_zero(const exprt &expr);
   static bool is_negative(const exprt &expr);
+
 private:
 
   /* This is the entirety */

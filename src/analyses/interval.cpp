@@ -92,6 +92,9 @@ intervalt intervalt::subtract(const intervalt& o) const
 
 intervalt intervalt::multiply(const intervalt& o) const
 {
+  exprt upper = nil_exprt();
+  exprt lower = nil_exprt();
+
 //  // Positive / positive
 //  exprt lower = plus_exprt(get_lower(), o.get_lower());
 //  exprt upper = plus_exprt(get_upper(), o.get_upper());
@@ -101,8 +104,8 @@ intervalt intervalt::multiply(const intervalt& o) const
 //  if(upper_set && o.upper_set && lower_set && o.lower_set)
 //  {
 
-
   mult_exprt operation;
+  operation.type()=get_type();
   return get_extremes(*this, o, operation);
 //  }
 
@@ -346,31 +349,27 @@ intervalt intervalt::get_extremes(
     results.reserve(4);
 
     {
-      exprt op1 = operation;
-      op1.type() = a.get_type();
-      op1.copy_to_operands(a.get_lower(), b.get_lower());
-      results.push_back(simplified_expr(op1));
+      exprt op_ll = operation;
+      op_ll.copy_to_operands(a.get_lower(), b.get_lower());
+      results.push_back(simplified_expr(op_ll));
     }
 
     {
-      exprt op2 = operation;
-      op2.type() = a.get_type();
-      op2.copy_to_operands(a.get_lower(), b.get_upper());
-      results.push_back(simplified_expr(op2));
+      exprt op_lu = operation;
+      op_lu.copy_to_operands(a.get_lower(), b.get_upper());
+      results.push_back(simplified_expr(op_lu));
     }
 
     {
-      exprt op3 = operation;
-      op3.type() = a.get_type();
-      op3.copy_to_operands(a.get_upper(), b.get_lower());
-      results.push_back(simplified_expr(op3));
+      exprt op_ul = operation;
+      op_ul.copy_to_operands(a.get_upper(), b.get_lower());
+      results.push_back(simplified_expr(op_ul));
     }
 
     {
-      exprt op4 = operation;
-      op4.type() = a.get_type();
-      op4.copy_to_operands(a.get_upper(), b.get_upper());
-      results.push_back(simplified_expr(op4));
+      exprt op_uu = operation;
+      op_uu.copy_to_operands(a.get_upper(), b.get_upper());
+      results.push_back(simplified_expr(op_uu));
     }
 
     exprt min = get_extreme(results, true);
