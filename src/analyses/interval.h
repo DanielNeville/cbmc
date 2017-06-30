@@ -91,10 +91,12 @@ public:
   }
 
 
+  /** SET OF ARITHMETIC OPERATORS */
 
   /* Unary */
   intervalt add() const;
   intervalt minus() const;
+  intervalt bitwise_not() const;
 
   /* Binary */
   intervalt add(const intervalt &o) const;
@@ -111,30 +113,26 @@ public:
   intervalt bitwise_xor(const intervalt &o) const;
   intervalt bitwise_or(const intervalt &o) const;
   intervalt bitwise_and(const intervalt &o) const;
-  intervalt bitwise_not(const intervalt &o) const;
 
-  intervalt less_than(const intervalt &o) const;
+  tvt less_than(const intervalt &o) const;
+  tvt greater_than(const intervalt &o) const;
+  tvt less_than_or_equal(const intervalt &o) const;
+  tvt greater_than_or_equal(const intervalt &o) const;
+  tvt equal(const intervalt &o) const;
+  tvt not_equal(const intervalt &o) const;
 
-  intervalt greater_than(const intervalt &o) const;
-  intervalt less_than_or_equal(const intervalt &o) const;
-  intervalt greater_than_or_equal(const intervalt &o) const;
-  intervalt equal(const intervalt &o) const;
-  intervalt not_equal(const intervalt &o) const;
-
-  intervalt increment(const intervalt &o) const;
-  intervalt decrement(const intervalt &o) const;
+  intervalt increment() const;
+  intervalt decrement() const;
 
 //  tvt contains(intervalt &o) const;
 
+  /* SET OF EXPR COMPARATORS */
   static bool equal(const exprt &a, const exprt &b);
+  static bool not_equal(const exprt &a, const exprt &b);
   static bool less_than(const exprt &a, const exprt &b);
   static bool less_than_or_equal(const exprt &a, const exprt &b);
   static bool more_than(const exprt &a, const exprt &b);
   static bool more_than_or_equal(const exprt &a, const exprt &b);
-
-
-
-  bool definitely_contains(intervalt &o) const;
 
   const exprt &get_lower() const
   {
@@ -146,26 +144,26 @@ public:
     return upper;
   }
 
-//  bool operator< (const intervalt &lhs, const intervalt &rhs);
-//  bool operator> (const intervalt &lhs, const intervalt &rhs);
-//  bool operator<=(const intervalt &lhs, const intervalt &rhs);
-//  bool operator>=(const intervalt &lhs, const intervalt &rhs);
-//  bool operator==(const intervalt &lhs, const intervalt &rhs);
-//  bool operator!=(const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator< (const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator> (const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator<=(const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator>=(const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator==(const intervalt &lhs, const intervalt &rhs);
+  friend tvt operator!=(const intervalt &lhs, const intervalt &rhs);
 
-//  intervalt operator+(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator-(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator/(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator*(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator%(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator&(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator|(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator^(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
-//  intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator+(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator-(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator/(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator*(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator%(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator!(const intervalt &lhs);
+  friend intervalt operator&(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator|(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator^(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
+  friend intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
 
   friend std::ostream& operator<< (std::ostream& out, const intervalt &i);
-
   std::string to_string() const;
 
   bool valid()
@@ -184,9 +182,7 @@ public:
   }
 
   /* Private? */
-
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
-
   static exprt get_extreme(std::vector<exprt> values, bool min = true);
 
   static exprt generate_expression(const exprt &a, const exprt &b, const exprt &operation);
@@ -207,9 +203,11 @@ public:
   typet get_type() const;
   typet calculate_type(const exprt &l, const exprt &u) const;
 
+  /* Generate min and max exprt according to current type */
   min_exprt min() const;
   max_exprt max() const;
 
+  /* Swap lower and upper! */
   static intervalt swap(intervalt &i);
   intervalt swap() const;
 
@@ -218,7 +216,7 @@ public:
   /* Four common params: self, type, expr, interval */
 
   bool is_numeric() const;
-  bool is_numeric(const typet &type) const;
+  static bool is_numeric(const typet &type);
 
   bool is_int() const;
   bool is_float() const;
@@ -255,7 +253,6 @@ public:
   static bool is_negative(const exprt &expr);
 
 private:
-
   /* This is the entirety */
   const exprt lower;
   const exprt upper;

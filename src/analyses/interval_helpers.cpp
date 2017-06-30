@@ -63,7 +63,6 @@ intervalt intervalt::swap() const
 }
 
 /* Helpers */
-
 bool intervalt::is_numeric() const
 {
   return is_int(get_type()) || is_float(get_type());
@@ -79,7 +78,7 @@ bool intervalt::is_float() const
   return is_float(get_type());
 }
 
-bool intervalt::is_numeric(const typet &type) const
+bool intervalt::is_numeric(const typet &type)
 {
   return is_int(type) || is_float(type);
 }
@@ -312,11 +311,6 @@ bool intervalt::less_than(const exprt& a, const exprt& b)
   return simplified_expr(binary_relation_exprt(a, ID_lt, b)).is_true();
 }
 
-bool intervalt::less_than_or_equal(const exprt& a, const exprt& b)
-{
-  return less_than(a, b) || equal(a, b);
-}
-
 bool intervalt::more_than(const exprt& a, const exprt& b)
 {
   if((is_max(a) && is_max(b)) || (is_min(a) && is_min(b)))
@@ -337,8 +331,147 @@ bool intervalt::more_than(const exprt& a, const exprt& b)
   return simplified_expr(binary_relation_exprt(a, ID_gt, b)).is_true();
 }
 
+bool intervalt::less_than_or_equal(const exprt& a, const exprt& b)
+{
+  return less_than(a, b) || equal(a, b);
+}
+
 bool intervalt::more_than_or_equal(const exprt& a, const exprt& b)
 {
   return more_than(a, b) || equal(a, b);
 }
 
+bool intervalt::not_equal(const exprt &a, const exprt &b)
+{
+  return !equal(a, b);
+}
+
+
+std::string intervalt::to_string() const
+{
+  std::stringstream out;
+
+  out << dstringt("[");
+
+  if(!is_min())
+  {
+    out << get_lower().get(ID_value);
+  }
+  else
+  {
+    if(is_signed(get_lower()))
+    {
+      out << dstringt("MIN");
+    }
+    else
+    {
+      out << dstringt("0");
+    }
+  }
+
+  out << dstringt(",");
+
+  if(!is_max())
+  {
+    out << get_upper().get(ID_value);
+  }
+  else
+    out << dstringt("MAX");
+
+  out << dstringt("]");
+
+  return out.str();
+}
+
+std::ostream& operator <<(std::ostream& out,
+    const intervalt& i)
+{
+  out << i.to_string();
+
+  return out;
+}
+
+tvt operator< (const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.less_than(rhs);
+}
+
+tvt operator> (const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.greater_than(rhs);
+}
+
+tvt operator<=(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.less_than_or_equal(rhs);
+}
+
+tvt operator>=(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.greater_than(rhs);
+}
+
+tvt operator==(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.equal(rhs);
+}
+
+tvt operator!=(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.not_equal(rhs);
+}
+
+intervalt operator+(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.add(rhs);
+}
+
+intervalt operator-(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.subtract(rhs);
+}
+
+intervalt operator/(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.divide(rhs);
+}
+
+intervalt operator*(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.multiply(rhs);
+}
+
+intervalt operator%(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.modulo(rhs);
+}
+
+intervalt operator&(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.bitwise_and(rhs);
+}
+
+intervalt operator|(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.bitwise_or(rhs);
+}
+
+intervalt operator^(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.bitwise_xor(rhs);
+}
+
+intervalt operator!(const intervalt &lhs)
+{
+  return lhs.bitwise_not();
+}
+
+intervalt operator<<(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.left_shift(rhs);
+}
+
+intervalt operator>>(const intervalt &lhs, const intervalt &rhs)
+{
+  return lhs.right_shift(rhs);
+}

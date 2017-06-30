@@ -139,58 +139,56 @@ intervalt intervalt::bitwise_and(const intervalt& o) const
 
 }
 
-intervalt intervalt::bitwise_not(const intervalt& o) const
+intervalt intervalt::bitwise_not() const
 {
   return intervalt();
 
 }
 
-intervalt intervalt::less_than(const intervalt& o) const
+tvt intervalt::less_than(const intervalt& o) const
 {
-  return intervalt();
+  return tvt::unknown();
+}
+
+tvt intervalt::greater_than(const intervalt& o) const
+{
+  return tvt::unknown();
 
 }
 
-intervalt intervalt::greater_than(const intervalt& o) const
+tvt intervalt::less_than_or_equal(const intervalt& o) const
 {
-  return intervalt();
+  return tvt::unknown();
 
 }
 
-intervalt intervalt::less_than_or_equal(const intervalt& o) const
+tvt intervalt::greater_than_or_equal(const intervalt& o) const
 {
-  return intervalt();
+  return tvt::unknown();
 
 }
 
-intervalt intervalt::greater_than_or_equal(const intervalt& o) const
+tvt intervalt::equal(const intervalt& o) const
 {
-  return intervalt();
+  return tvt::unknown();
 
 }
 
-intervalt intervalt::equal(const intervalt& o) const
+tvt intervalt::not_equal(const intervalt& o) const
 {
-  return intervalt();
+  return tvt::unknown();
 
 }
 
-intervalt intervalt::not_equal(const intervalt& o) const
+intervalt intervalt::increment() const
 {
-  return intervalt();
+  return add(intervalt(from_integer(mp_integer(1), get_type())));
 
 }
 
-intervalt intervalt::increment(const intervalt& o) const
+intervalt intervalt::decrement() const
 {
-  return intervalt();
-
-}
-
-intervalt intervalt::decrement(const intervalt& o) const
-{
-  return intervalt();
-
+  return subtract(intervalt(from_integer(mp_integer(1), get_type())));
 }
 
 //bool intervalt::operator <(const intervalt& lhs, const intervalt& rhs)
@@ -420,49 +418,6 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 }
 
 
-std::string intervalt::to_string() const
-{
-  std::stringstream out;
-
-  out << dstringt("[");
-
-  if(!is_min())
-  {
-    out << get_lower().get(ID_value);
-  }
-  else
-  {
-    if(is_signed(get_lower()))
-    {
-      out << dstringt("MIN");
-    }
-    else
-    {
-      out << dstringt("0");
-    }
-  }
-
-  out << dstringt(",");
-
-  if(!is_max())
-  {
-    out << get_upper().get(ID_value);
-  }
-  else
-    out << dstringt("MAX");
-
-  out << dstringt("]");
-
-  return out.str();
-}
-
-std::ostream& operator <<(std::ostream& out,
-    const intervalt& i)
-{
-  out << i.to_string();
-
-  return out;
-}
 
 exprt intervalt::generate_expression(const exprt& a, const exprt& b, const exprt &operation)
 {
@@ -598,6 +553,8 @@ exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
     exprt operation)
 {
 
+
+  return nil_exprt();
 }
 
 bool intervalt::contains_extreme(const exprt expr)
