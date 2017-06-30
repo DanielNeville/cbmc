@@ -55,6 +55,11 @@ constant_exprt intervalt::zero(const exprt& expr)
   return zero(expr.type());
 }
 
+constant_exprt intervalt::zero(const intervalt &interval)
+{
+  return zero(interval.get_type());
+}
+
 constant_exprt intervalt::zero() const
 {
   return zero(get_type());
@@ -68,6 +73,37 @@ min_exprt intervalt::min() const
 max_exprt intervalt::max() const
 {
   return max_exprt(get_type());
+}
+
+bool intervalt::is_top() const
+{
+  return (is_min() && is_max());
+}
+
+bool intervalt::is_bottom() const
+{
+  // This should ONLY happen for bottom.
+  return is_min(get_upper()) || is_max(get_lower());
+}
+
+intervalt intervalt::top(const typet &type)
+{
+  return intervalt(type);
+}
+
+intervalt intervalt::bottom(const typet &type)
+{
+  return intervalt(max_exprt(type), min_exprt(type));
+}
+
+intervalt intervalt::top() const
+{
+  return intervalt(get_type());
+}
+
+intervalt intervalt::bottom() const
+{
+  return bottom(type);
 }
 
 intervalt intervalt::swap(intervalt &i)
@@ -136,6 +172,12 @@ bool intervalt::is_float(const exprt &expr)
 {
   return is_float(expr.type());
 }
+
+bool intervalt::is_float(const intervalt &interval)
+{
+  return interval.is_float();
+}
+
 
 bool intervalt::is_bitvector(const typet &t)
 {
@@ -231,32 +273,27 @@ bool intervalt::is_min(const exprt &expr)
 
 bool intervalt::is_positive(const exprt &expr)
 {
-  symbol_tablet symbol_table;
-  namespacet ns(symbol_table);
-
-  exprt simplified=simplify_expr(expr, ns);
+  exprt simplified=simplified_expr(expr);
 
   if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
   {
     return false;
   }
 
-  if(is_max(expr))
+  if(is_unsigned(expr) || is_max(expr))
   {
     return true;
   }
+
+  assert(is_signed(expr));
+  // Floats later
 
   if(is_min(expr))
   {
     return false;
   }
 
-  assert(!is_max(expr) && !is_min(expr));
-
-  binary_relation_exprt op(expr, ID_gt, from_integer(0, expr.type()));
-  simplify(op, ns);
-
-  return op.is_true();
+  return greater_than(expr, zero(expr));
 }
 
 bool intervalt::is_zero(const exprt &expr)
@@ -290,26 +327,24 @@ bool intervalt::is_zero(const exprt &expr)
 
 bool intervalt::is_negative(const exprt &expr)
 {
-  symbol_tablet symbol_table;
-  namespacet ns(symbol_table);
-
-  exprt simplified=simplify_expr(expr, ns);
+  exprt simplified=simplified_expr(expr);
 
   if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
   {
     return false;
   }
 
+  if(is_unsigned(expr))
+  {
+    return false;
+  }
+
+  assert(is_signed(expr));
+  // Floats later
+
   if(is_min(expr))
   {
-    if(is_signed(expr))
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return true;
   }
 
   if(is_max(expr))
@@ -317,12 +352,7 @@ bool intervalt::is_negative(const exprt &expr)
     return false;
   }
 
-  assert(!is_max(expr) && !is_min(expr));
-
-  binary_relation_exprt op(expr, ID_lt, from_integer(0, expr.type()));
-  simplify(op, ns);
-
-  return op.is_true();
+  return less_than(expr, zero(expr));
 }
 
 bool intervalt::equal(const exprt& a, const exprt& b)
@@ -640,4 +670,37 @@ bool intervalt::contains_zero() const
   }
 
   return false;
+}
+
+
+bool intervalt::is_positive(const intervalt& interval)
+{
+  return interval.is_positive();
+}
+
+bool intervalt::is_zero(const intervalt& interval)
+{
+  return interval.is_zero();
+}
+
+bool intervalt::is_negative(const intervalt& interval)
+{
+  return interval.is_negative();
+}
+
+bool intervalt::is_positive() const
+{
+  return is_positive(get_lower()) && is_positive(get_upper());
+}
+
+bool intervalt::is_zero() const
+{
+  return is_zero(get_lower()) && is_zero(get_upper());
+
+}
+
+bool intervalt::is_negative() const
+{
+  return is_negative(get_lower()) && is_negative(get_upper());
+
 }

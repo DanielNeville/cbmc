@@ -90,6 +90,13 @@ public:
   {
   }
 
+  /* Naming scheme
+   *      is_[X]?  Returns bool / tvt
+   *      get_[X]? Returns relevant object
+   *      [X]      Generator of some object.
+   *      generate_[X]  generator used for evaluation
+   */
+
 
   /** SET OF ARITHMETIC OPERATORS */
 
@@ -174,21 +181,27 @@ public:
     return true;
   }
 
-  bool is_top() const
-  {
-    return (is_min() && is_max());
-  }
+  bool is_top() const;
+  bool is_bottom() const;
+  static intervalt top(const typet &type);
+  static intervalt bottom(const typet &type);
+  intervalt top() const;
+  intervalt bottom() const;
 
-  bool is_bottom() const
-  {
-    // This should ONLY happen for bottom.
-    return is_min(get_upper()) || is_max(get_lower());
-  }
 
-  intervalt generate_top() const
-  {
-    return intervalt(get_type());
-  }
+  /* Generate min and max exprt according to current type */
+  bool is_max() const;
+  static bool is_max(const exprt &expr);
+  bool is_min() const;
+  static bool is_min(const exprt &expr);
+  min_exprt min() const;
+  max_exprt max() const;
+
+  static constant_exprt zero(const typet &type);
+  static constant_exprt zero(const intervalt &interval);
+  static constant_exprt zero(const exprt &expr);
+  constant_exprt zero() const;
+
 
   /* Private? */
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
@@ -212,9 +225,6 @@ public:
   typet get_type() const;
   typet calculate_type(const exprt &l, const exprt &u) const;
 
-  /* Generate min and max exprt according to current type */
-  min_exprt min() const;
-  max_exprt max() const;
 
   /* Swap lower and upper! */
   static intervalt swap(intervalt &i);
@@ -235,21 +245,22 @@ public:
   static bool is_int(const intervalt &interval);
 
   bool is_float() const;
-  static bool is_float(const typet &src);
+  static bool is_float(const typet &type);
   static bool is_float(const exprt &expr);
+  static bool is_float(const intervalt &interval);
 
   bool is_bitvector() const;
-  static bool is_bitvector(const typet &t);
+  static bool is_bitvector(const typet &type);
   static bool is_bitvector(const intervalt &interval);
   static bool is_bitvector(const exprt &expr);
 
   bool is_signed() const;
-  static bool is_signed(const typet &t);
+  static bool is_signed(const typet &type);
   static bool is_signed(const exprt &expr);
   static bool is_signed(const intervalt &interval);
 
   bool is_unsigned() const;
-  static bool is_unsigned(const typet &t);
+  static bool is_unsigned(const typet &type);
   static bool is_unsigned(const exprt &expr);
   static bool is_unsigned(const intervalt &interval);
 
@@ -262,19 +273,17 @@ public:
   static bool is_extreme(const exprt &expr);
   static bool is_extreme(const exprt &expr1, const exprt &expr2);
 
-  bool is_max() const;
-  static bool is_max(const exprt &expr);
-  bool is_min() const;
-  static bool is_min(const exprt &expr);
-
   static bool is_positive(const exprt &expr);
   static bool is_zero(const exprt &expr);
   static bool is_negative(const exprt &expr);
 
-  static constant_exprt zero(const typet &type);
-  static constant_exprt zero(const exprt &expr);
-  constant_exprt zero() const;
+  static bool is_positive(const intervalt &interval);
+  static bool is_zero(const intervalt &interval);
+  static bool is_negative(const intervalt &interval);
 
+  bool is_positive() const;
+  bool is_zero() const;
+  bool is_negative() const;
 private:
   /* This is the entirety */
   const exprt lower;

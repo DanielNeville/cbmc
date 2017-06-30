@@ -102,7 +102,7 @@ intervalt intervalt::divide(const intervalt& o) const
   // If other might be division by zero, set everything to top.
   if(o.contains_zero())
   {
-    return intervalt();
+    return top();
   }
 
   div_exprt operation;
@@ -111,49 +111,94 @@ intervalt intervalt::divide(const intervalt& o) const
 
 intervalt intervalt::modulo(const intervalt& o) const
 {
+  if(o.is_bottom())
+  {
+    return top();
+  }
+
+  if(is_constant() && o.is_constant())
+  {
+    return intervalt(simplified_expr(mod_exprt(get_lower(), o.get_lower())));
+  }
+
   // If other might be modulo by zero, set everything to top.
   if(o.contains_zero())
   {
-    return intervalt();
+    return top();
   }
 
-  mod_exprt operation;
-  return get_extremes(*this, o, operation);
+  exprt lower=min();
+  exprt upper=max();
+
+  // SEE https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
+
+
+//  if(is_negative(o.get_lower()))
+//  {
+//    // If o doesn't contain zero, and o_lower is negative,
+//    // then o_upper must always be negative too.
+//    assert(is_negative(o.get_upper()));
+//
+//    assert(is_signed(o));
+//    // Handle modulo of a potentially negative number.
+//  }
+//
+//  // If o_lower isn't negative, and o doesn't contain zero, o is positive!
+//  assert(is_positive(o.get_lower()));
+//
+//  lower=zero();
+//
+//  if(greater_than_or_equal(o.get_upper(), get_upper()))
+//  {
+//    // If the upper of the modulo range is greater than current max
+//    // Just give 0 -> current upper
+//    upper=get_upper();
+//  }
+//  else
+//  {
+//    // Else go to other upper - 1
+//    upper=simplified_expr(minus_exprt(o.get_upper(), from_integer(1, o.get_type())));
+//  }
+
+  return intervalt(lower, upper);
+
+//  mod_exprt operation;
+//  return get_extremes(*this, o, operation);
 
 }
 
 intervalt intervalt::left_shift(const intervalt& o) const
 {
-  return intervalt();
+  return top();
 }
 
 intervalt intervalt::right_shift(const intervalt& o) const
 {
-  return intervalt();
+  return top();
 
 }
 
 intervalt intervalt::bitwise_xor(const intervalt& o) const
 {
-  return intervalt();
+  return top();
 
 }
 
 intervalt intervalt::bitwise_or(const intervalt& o) const
 {
-  return intervalt();
+  return top();
 
 }
 
 intervalt intervalt::bitwise_and(const intervalt& o) const
 {
-  return intervalt();
+  return top();
 
 }
 
 intervalt intervalt::bitwise_not() const
 {
-  return intervalt();
+  return top();
 
 }
 
