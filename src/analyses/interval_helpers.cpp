@@ -42,6 +42,28 @@ typet intervalt::calculate_type(const exprt &l, const exprt &u) const
   return u.type();
 }
 
+
+constant_exprt intervalt::zero(const typet& type)
+{
+  constant_exprt zero = from_integer(mp_integer(0), type);
+  assert(is_zero(zero));
+
+  return zero;
+}
+
+constant_exprt intervalt::zero(const exprt& expr)
+{
+  constant_exprt zero = from_integer(mp_integer(0), expr.type());
+  assert(is_zero(zero));
+
+  return zero;
+}
+
+constant_exprt intervalt::zero() const
+{
+  return zero(get_type());
+}
+
 min_exprt intervalt::min() const
 {
   return min_exprt(get_type());
@@ -293,6 +315,11 @@ bool intervalt::equal(const exprt& a, const exprt& b)
 
 bool intervalt::less_than(const exprt& a, const exprt& b)
 {
+  if(is_min(a) && !is_min(b))
+  {
+    return true;
+  }
+
   if((is_max(a) && is_max(b)) || (is_min(a) && is_min(b)))
   {
     return false;
@@ -301,18 +328,18 @@ bool intervalt::less_than(const exprt& a, const exprt& b)
   if(is_min(a) && is_max(b))
   {
     return true;
-  }
-
-  if(is_extreme(a) || is_extreme(b))
-  {
-    return false;
   }
 
   return simplified_expr(binary_relation_exprt(a, ID_lt, b)).is_true();
 }
 
-bool intervalt::more_than(const exprt& a, const exprt& b)
+bool intervalt::greater_than(const exprt& a, const exprt& b)
 {
+  if(is_max(a) && !is_max(b))
+  {
+    return true;
+  }
+
   if((is_max(a) && is_max(b)) || (is_min(a) && is_min(b)))
   {
     return false;
@@ -321,11 +348,6 @@ bool intervalt::more_than(const exprt& a, const exprt& b)
   if(is_min(a) && is_max(b))
   {
     return true;
-  }
-
-  if(is_extreme(a) || is_extreme(b))
-  {
-    return false;
   }
 
   return simplified_expr(binary_relation_exprt(a, ID_gt, b)).is_true();
@@ -336,9 +358,9 @@ bool intervalt::less_than_or_equal(const exprt& a, const exprt& b)
   return less_than(a, b) || equal(a, b);
 }
 
-bool intervalt::more_than_or_equal(const exprt& a, const exprt& b)
+bool intervalt::greater_than_or_equal(const exprt& a, const exprt& b)
 {
-  return more_than(a, b) || equal(a, b);
+  return greater_than(a, b) || equal(a, b);
 }
 
 bool intervalt::not_equal(const exprt &a, const exprt &b)

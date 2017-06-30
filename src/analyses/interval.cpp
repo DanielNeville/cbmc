@@ -298,6 +298,12 @@ intervalt intervalt::get_extremes(
 
   std::vector<exprt> results;
 
+  // If b might be division by zero, set everything to top.
+  if(b.contains_zero())
+  {
+    return intervalt();
+  }
+
   results.push_back(
       generate_expression(a.get_lower(), b.get_lower(), operation));
   results.push_back(
@@ -316,7 +322,6 @@ intervalt intervalt::get_extremes(
 
 exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 {
-  dstringt op_string = min ? ID_le : ID_ge;
   symbol_tablet symbol_table;
   namespacet ns(symbol_table); // Empty
 
@@ -395,13 +400,9 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 
     for(auto right: values)
     {
-      binary_relation_exprt op(left, op_string, right);
-      simplify(op, ns);
-
-      if(op.is_true())
+      if((min && less_than_or_equal(left, right)) || (!min && greater_than_or_equal(left, right)))
       {
         continue;
-        // left OP right
       }
 
       all_left_OP_right = false;
@@ -552,9 +553,49 @@ exprt intervalt::generate_multiply_expression_min(const exprt &min, const exprt 
 exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
     exprt operation)
 {
+  assert(!is_zero(b));
 
+  if(b.is_one())
+  {
+    return a;
+  }
 
-  return nil_exprt();
+  if(is_max(a)) {
+    if(is_negative(b))
+    {
+      return min_exprt(a);
+    }
+
+    return a;
+  }
+
+  if(is_min(a))
+  {
+    if(is_negative(b))
+    {
+      return max_exprt(a);
+    }
+
+    return a;
+  }
+
+  assert(!is_extreme(a));
+
+  if(is_max(b))
+  {
+    return zero(b);
+  }
+
+  if(is_min(b))
+  {
+    assert(is_signed(b));
+    return zero(b);
+  }
+
+  assert(!is_extreme(a) && !is_extreme(b));
+
+  operation.copy_to_operands(a, b);
+  return simplified_expr(operation);
 }
 
 bool intervalt::contains_extreme(const exprt expr)
@@ -574,3 +615,29 @@ bool intervalt::contains_extreme(const exprt expr)
 
   return false;
 }
+
+bool intervalt::contains_zero() const
+{
+  if(!is_numeric())
+  {
+    return false;
+  }
+
+  if(get_lower().is_zero() || get_upper().is_zero())
+  {
+    return true;
+  }
+
+  if(is_unsigned() && is_min(get_lower()))
+  {
+    return true;
+  }
+
+  if(less_than_or_equal(get_lower(), zero()) && greater_than_or_equal(get_upper(), zero()))
+  {
+    return true;
+  }
+
+  return false;
+}
+

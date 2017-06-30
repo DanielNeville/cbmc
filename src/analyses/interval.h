@@ -131,8 +131,8 @@ public:
   static bool not_equal(const exprt &a, const exprt &b);
   static bool less_than(const exprt &a, const exprt &b);
   static bool less_than_or_equal(const exprt &a, const exprt &b);
-  static bool more_than(const exprt &a, const exprt &b);
-  static bool more_than_or_equal(const exprt &a, const exprt &b);
+  static bool greater_than(const exprt &a, const exprt &b);
+  static bool greater_than_or_equal(const exprt &a, const exprt &b);
 
   const exprt &get_lower() const
   {
@@ -240,6 +240,7 @@ public:
   bool is_bitvector() const;
 
   static bool contains_extreme(const exprt expr);
+  bool contains_zero() const;
 
   static bool is_extreme(const exprt &expr);
   static bool is_max(const exprt &expr);
@@ -251,6 +252,10 @@ public:
   static bool is_positive(const exprt &expr);
   static bool is_zero(const exprt &expr);
   static bool is_negative(const exprt &expr);
+
+  static constant_exprt zero(const typet &type);
+  static constant_exprt zero(const exprt &expr);
+  constant_exprt zero() const;
 
 private:
   /* This is the entirety */
