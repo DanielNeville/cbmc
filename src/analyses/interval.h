@@ -124,6 +124,9 @@ public:
   intervalt increment() const;
   intervalt decrement() const;
 
+  bool is_empty() const;
+  bool is_constant() const;
+
 //  tvt contains(intervalt &o) const;
 
   /* SET OF EXPR COMPARATORS */
@@ -176,6 +179,12 @@ public:
     return (is_min() && is_max());
   }
 
+  bool is_bottom() const
+  {
+    // This should ONLY happen for bottom.
+    return is_min(get_upper()) || is_max(get_lower());
+  }
+
   intervalt generate_top() const
   {
     return intervalt(get_type());
@@ -192,7 +201,7 @@ public:
   static exprt generate_multiply_expression_min(const exprt &min, const exprt &other);
 
   static exprt generate_division_expression(const exprt &a, const exprt &b, exprt operation);
-
+  static exprt generate_modulo_expression(const exprt &a, const exprt &b, exprt operation);
 
 
   /* we don't simplify in the constructor otherwise */
@@ -213,41 +222,50 @@ public:
 
 
   /* Helpers */
-  /* Four common params: self, type, expr, interval */
+  /* Four common params: self, static: type, expr, interval */
 
   bool is_numeric() const;
   static bool is_numeric(const typet &type);
+  static bool is_numeric(const exprt &expr);
+  static bool is_numeric(const intervalt &interval);
 
   bool is_int() const;
-  bool is_float() const;
   static bool is_int(const typet &type);
+  static bool is_int(const exprt &expr);
+  static bool is_int(const intervalt &interval);
+
+  bool is_float() const;
   static bool is_float(const typet &src);
+  static bool is_float(const exprt &expr);
 
+  bool is_bitvector() const;
   static bool is_bitvector(const typet &t);
-  static bool is_signed(const typet &t);
-  static bool is_unsigned(const typet &t);
-
-  static bool is_signed(const intervalt &interval);
-  static bool is_unsigned(const intervalt &interval);
   static bool is_bitvector(const intervalt &interval);
-
-  static bool is_signed(const exprt &expr);
-  static bool is_unsigned(const exprt &expr);
   static bool is_bitvector(const exprt &expr);
 
   bool is_signed() const;
+  static bool is_signed(const typet &t);
+  static bool is_signed(const exprt &expr);
+  static bool is_signed(const intervalt &interval);
+
   bool is_unsigned() const;
-  bool is_bitvector() const;
+  static bool is_unsigned(const typet &t);
+  static bool is_unsigned(const exprt &expr);
+  static bool is_unsigned(const intervalt &interval);
 
   static bool contains_extreme(const exprt expr);
+  static bool contains_extreme(const exprt expr1, const exprt expr2);
+
   bool contains_zero() const;
+  bool contains(const intervalt &interval) const;
 
   static bool is_extreme(const exprt &expr);
-  static bool is_max(const exprt &expr);
-  static bool is_min(const exprt &expr);
+  static bool is_extreme(const exprt &expr1, const exprt &expr2);
 
   bool is_max() const;
+  static bool is_max(const exprt &expr);
   bool is_min() const;
+  static bool is_min(const exprt &expr);
 
   static bool is_positive(const exprt &expr);
   static bool is_zero(const exprt &expr);
@@ -265,48 +283,3 @@ private:
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */
-
-
-
-
-//  void transform(const exprt &o);
-//
-//  // Unary minus, not subtract
-//  void minus(const exprt &o);
-//
-//  void add(const exprt &o);
-//  void subtract(const exprt &o);
-//  void multiply(const exprt &o);
-//  void divide(const exprt &o);
-//  void modulo(const exprt &o);
-//
-//  void left_shift(const exprt &o);
-//  void right_shift(const exprt &o);
-//
-//  void bitwise_xor(const exprt &o);
-//  void bitwise_or(const exprt &o);
-//  void bitwise_and(const exprt &o);
-//  void bitwise_not(const exprt &o);
-/*+a
--a
-a + b
-a - b
-a * b
-a / b
-a % b
-~a
-a & b
-a | b
-a ^ b
-a << b
-a >> b*/
-
-
-  /*
-   * a == b
-a != b
-a < b
-a > b
-a <= b
-a >= b */
-

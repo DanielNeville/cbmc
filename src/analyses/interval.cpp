@@ -99,12 +99,24 @@ intervalt intervalt::multiply(const intervalt& o) const
 
 intervalt intervalt::divide(const intervalt& o) const
 {
+  // If other might be division by zero, set everything to top.
+  if(o.contains_zero())
+  {
+    return intervalt();
+  }
+
   div_exprt operation;
   return get_extremes(*this, o, operation);
 }
 
 intervalt intervalt::modulo(const intervalt& o) const
 {
+  // If other might be modulo by zero, set everything to top.
+  if(o.contains_zero())
+  {
+    return intervalt();
+  }
+
   mod_exprt operation;
   return get_extremes(*this, o, operation);
 
@@ -145,39 +157,65 @@ intervalt intervalt::bitwise_not() const
 
 }
 
-tvt intervalt::less_than(const intervalt& o) const
+tvt intervalt::less_than(const intervalt &o) const
 {
+  if(less_than(get_upper(), o.get_lower()))
+  {
+    return tvt(true);
+  }
+
+  if(greater_than_or_equal(o.get_lower(), get_upper()))
+  {
+    return tvt(false);
+  }
+
   return tvt::unknown();
 }
 
 tvt intervalt::greater_than(const intervalt& o) const
 {
-  return tvt::unknown();
-
+  return o.less_than(*this);
 }
 
 tvt intervalt::less_than_or_equal(const intervalt& o) const
 {
-  return tvt::unknown();
+  if(less_than_or_equal(get_upper(), o.get_lower()))
+  {
+    return tvt(true);
+  }
 
+  if(greater_than(o.get_lower(), get_upper()))
+  {
+    return tvt(false);
+  }
+
+  return tvt::unknown();
 }
 
 tvt intervalt::greater_than_or_equal(const intervalt& o) const
 {
-  return tvt::unknown();
-
+  return o.less_than_or_equal(*this);
 }
 
 tvt intervalt::equal(const intervalt& o) const
 {
-  return tvt::unknown();
+  if(equal(get_upper(), o.get_upper()) && equal(get_upper(), o.get_upper()))
+  {
+    return tvt(true);
+  }
 
+  if(less_than(o).is_true() || greater_than(o).is_true() || o.less_than(*this).is_true() || o.greater_than(*this).is_true())
+  {
+    return tvt(false);
+  }
+
+  // Don't know.  Could have [3, 5] == [4] (not equal)
+  return tvt::unknown();
 }
 
 tvt intervalt::not_equal(const intervalt& o) const
 {
-  return tvt::unknown();
-
+  return !equal(o);
 }
 
 intervalt intervalt::increment() const
@@ -191,104 +229,6 @@ intervalt intervalt::decrement() const
   return subtract(intervalt(from_integer(mp_integer(1), get_type())));
 }
 
-//bool intervalt::operator <(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//bool intervalt::operator >(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//bool intervalt::operator <=(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//bool intervalt::operator >=(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//bool intervalt::operator ==(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//bool intervalt::operator !=(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator +(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator -(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator /(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator *(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator %(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator &(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator |(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator ^(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator <<(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-//
-//intervalt intervalt::operator >>(const intervalt& lhs, const intervalt& rhs)
-//{
-//  return intervalt();
-//
-//}
-
-
-
 intervalt intervalt::get_extremes(
     const intervalt &a,
     const intervalt &b,
@@ -297,12 +237,6 @@ intervalt intervalt::get_extremes(
   intervalt result;
 
   std::vector<exprt> results;
-
-  // If b might be division by zero, set everything to top.
-  if(b.contains_zero())
-  {
-    return intervalt();
-  }
 
   results.push_back(
       generate_expression(a.get_lower(), b.get_lower(), operation));
@@ -313,6 +247,14 @@ intervalt intervalt::get_extremes(
   results.push_back(
       generate_expression(a.get_upper(), b.get_upper(), operation));
 
+  for(auto result: results)
+  {
+    if(!is_extreme(result) && contains_extreme(result))
+    {
+      return intervalt(result);
+    }
+  }
+
   exprt min=get_extreme(results, true);
   exprt max=get_extreme(results, false);
 
@@ -320,7 +262,7 @@ intervalt intervalt::get_extremes(
 
 }
 
-exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
+exprt intervalt::get_extreme(std::vector<exprt> values, bool min_value)
 {
   symbol_tablet symbol_table;
   namespacet ns(symbol_table); // Empty
@@ -337,7 +279,7 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 
   typet type=values.begin()->type();
 
-  if(min)
+  if(min_value)
   {
     auto i=values.begin();
 
@@ -400,7 +342,7 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
 
     for(auto right: values)
     {
-      if((min && less_than_or_equal(left, right)) || (!min && greater_than_or_equal(left, right)))
+      if((min_value && less_than_or_equal(left, right)) || (!min_value && greater_than_or_equal(left, right)))
       {
         continue;
       }
@@ -415,7 +357,16 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min)
     }
   }
 
-  return nil_exprt();
+  if(min_value)
+  {
+    return min_exprt(type);
+  }
+  else
+  {
+    return max_exprt(type);
+  }
+
+  assert(0);
 }
 
 
@@ -432,6 +383,11 @@ exprt intervalt::generate_expression(const exprt& a, const exprt& b, const exprt
     return generate_division_expression(a, b, operation);
   }
 
+  if(operation.id() == ID_mod)
+  {
+    return generate_modulo_expression(a, b, operation);
+  }
+
   assert(0 && "Not yet implemented!");
 }
 
@@ -439,7 +395,7 @@ exprt intervalt::generate_multiply_expression(const exprt& a, const exprt& b,
     exprt operation)
 {
   assert(operation.id() == ID_mult);
-  assert(operation.type().is_not_nil() && is_int(operation.type()));
+  assert(operation.type().is_not_nil() && is_numeric(operation.type()));
 
   if(is_max(a))
   {
@@ -553,6 +509,9 @@ exprt intervalt::generate_multiply_expression_min(const exprt &min, const exprt 
 exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
     exprt operation)
 {
+  assert(operation.id() == ID_div);
+  assert(operation.type().is_not_nil() && is_numeric(operation.type()));
+
   assert(!is_zero(b));
 
   if(b.is_one())
@@ -560,7 +519,8 @@ exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
     return a;
   }
 
-  if(is_max(a)) {
+  if(is_max(a))
+  {
     if(is_negative(b))
     {
       return min_exprt(a);
@@ -598,46 +558,55 @@ exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
   return simplified_expr(operation);
 }
 
-bool intervalt::contains_extreme(const exprt expr)
+exprt intervalt::generate_modulo_expression(const exprt& a, const exprt& b,
+    exprt operation)
 {
-  forall_operands(it, expr)
+  assert(operation.id() == ID_mod);
+  assert(operation.type().is_not_nil() && is_numeric(operation.type()));
+
+  assert(!is_zero(b));
+
+  if(b.is_one())
   {
-    if(is_extreme(*it))
+    return a;
+  }
+
+  if(is_max(a))
+  {
+    if(is_negative(b))
     {
-      return true;
+      return min_exprt(a);
     }
 
-    if(it->has_operands())
+    return a;
+  }
+
+  if(is_min(a))
+  {
+    if(is_negative(b))
     {
-      return contains_extreme(*it);
+      return max_exprt(a);
     }
+
+    return a;
   }
 
-  return false;
-}
+  assert(!is_extreme(a));
 
-bool intervalt::contains_zero() const
-{
-  if(!is_numeric())
+  if(is_max(b))
   {
-    return false;
+    return zero(b);
   }
 
-  if(get_lower().is_zero() || get_upper().is_zero())
+  if(is_min(b))
   {
-    return true;
+    assert(is_signed(b));
+    return zero(b);
   }
 
-  if(is_unsigned() && is_min(get_lower()))
-  {
-    return true;
-  }
+  assert(!is_extreme(a) && !is_extreme(b));
 
-  if(less_than_or_equal(get_lower(), zero()) && greater_than_or_equal(get_upper(), zero()))
-  {
-    return true;
-  }
-
-  return false;
+  operation.copy_to_operands(a, b);
+  return simplified_expr(operation);
 }
 
