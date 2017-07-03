@@ -25,6 +25,32 @@
 
 //make clean -s && make -j 7 CXX="/usr/local/bin/ccache g++" -s && ./unit_tests
 
+intervalt intervalt::handle_constants(exprt expr) const
+{
+  if(is_constant())
+  {
+    expr.type()=get_type();
+
+    expr.copy_to_operands(get_lower());
+    return intervalt(simplified_expr(expr));
+  }
+
+  return top();
+}
+
+intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
+{
+  if(is_constant() && o.is_constant())
+  {
+    expr.type()=get_type();
+
+    expr.copy_to_operands(get_lower(), o.get_lower());
+    return intervalt(simplified_expr(expr));
+  }
+
+  return top();
+}
+
 intervalt intervalt::add() const
 {
   return *this;
@@ -32,6 +58,11 @@ intervalt intervalt::add() const
 
 intervalt intervalt::minus() const
 {
+  if(is_constant())
+  {
+    handle_constants(unary_minus_exprt());
+  }
+
   exprt lower;
   exprt upper;
 
@@ -58,8 +89,13 @@ intervalt intervalt::minus() const
 
 intervalt intervalt::add(const intervalt& o) const
 {
-  exprt lower = nil_exprt();
-  exprt upper = nil_exprt();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, plus_exprt());
+  }
+
+  exprt lower = min();
+  exprt upper = max();
 
   if(is_max(get_upper()) || is_max(o.get_upper()))
   {
@@ -86,12 +122,22 @@ intervalt intervalt::add(const intervalt& o) const
 
 intervalt intervalt::subtract(const intervalt& o) const
 {
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, minus_exprt());
+  }
+
   // e.g. [t.u - o.l, t.l - o.u]
   return add(o.minus().swap());
 }
 
 intervalt intervalt::multiply(const intervalt& o) const
 {
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, mult_exprt());
+  }
+
   mult_exprt operation;
   operation.type()=get_type();
   return get_extremes(*this, o, operation);
@@ -99,6 +145,11 @@ intervalt intervalt::multiply(const intervalt& o) const
 
 intervalt intervalt::divide(const intervalt& o) const
 {
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, div_exprt());
+  }
+
   // If other might be division by zero, set everything to top.
   if(o.contains_zero())
   {
@@ -111,14 +162,23 @@ intervalt intervalt::divide(const intervalt& o) const
 
 intervalt intervalt::modulo(const intervalt& o) const
 {
+  // SEE https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
+
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, mod_exprt());
+  }
+
   if(o.is_bottom())
   {
     return top();
   }
 
-  if(is_constant() && o.is_constant())
+  // If the RHS is 1, or -1 (signed only), then return zero.
+  if(o == intervalt(from_integer(1, o.get_type())) ||
+      (o.is_signed() && o == intervalt(from_integer(-1, o.get_type()))))
   {
-    return intervalt(simplified_expr(mod_exprt(get_lower(), o.get_lower())));
+    return intervalt(zero());
   }
 
   // If other might be modulo by zero, set everything to top.
@@ -127,89 +187,130 @@ intervalt intervalt::modulo(const intervalt& o) const
     return top();
   }
 
+  if(is_zero())
+  {
+    return intervalt(zero());
+  }
+
   exprt lower=min();
   exprt upper=max();
 
-  // SEE https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
+  // Positive case (cannot have zero on RHS).
+  // 10 % 5 = [0, 4], 3 % 5 = [0, 3]
+  if(!is_negative() && o.is_positive())
+  {
+    lower=zero();
+    upper=get_min(get_upper(), o.decrement().get_upper());
+  }
 
+  // [-5, 5] % [3]
+  if(is_negative(get_lower()) && is_positive(get_upper()))
+  {
+    assert(contains_zero());
 
-//  if(is_negative(o.get_lower()))
-//  {
-//    // If o doesn't contain zero, and o_lower is negative,
-//    // then o_upper must always be negative too.
-//    assert(is_negative(o.get_upper()));
-//
-//    assert(is_signed(o));
-//    // Handle modulo of a potentially negative number.
-//  }
-//
-//  // If o_lower isn't negative, and o doesn't contain zero, o is positive!
-//  assert(is_positive(o.get_lower()));
-//
-//  lower=zero();
-//
-//  if(greater_than_or_equal(o.get_upper(), get_upper()))
-//  {
-//    // If the upper of the modulo range is greater than current max
-//    // Just give 0 -> current upper
-//    upper=get_upper();
-//  }
-//  else
-//  {
-//    // Else go to other upper - 1
-//    upper=simplified_expr(minus_exprt(o.get_upper(), from_integer(1, o.get_type())));
-//  }
+    // This can be done more accurately.
+    lower=get_min(o.get_lower(), get_lower());
+    upper=get_max(o.get_upper(), get_upper());
+  }
+
+  if(is_negative() && o.is_negative())
+  {
+    lower=get_min(o.get_lower(), o.get_lower());
+    upper=zero();
+  }
 
   return intervalt(lower, upper);
-
-//  mod_exprt operation;
-//  return get_extremes(*this, o, operation);
-
 }
 
 intervalt intervalt::left_shift(const intervalt& o) const
 {
-  return top();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, shl_exprt());
+  }
+
+  if(is_negative(o.get_lower()))
+  {
+    return top();
+  }
+
+  shl_exprt operation;
+  operation.type()=get_type();
+  return get_extremes(*this, o, operation);
 }
 
+// Arithmetic
 intervalt intervalt::right_shift(const intervalt& o) const
 {
-  return top();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, ashr_exprt());
+  }
 
+  if(is_negative(o.get_lower()))
+  {
+    return top();
+  }
+
+  ashr_exprt operation;
+  operation.type()=get_type();
+  return get_extremes(*this, o, operation);
 }
 
 intervalt intervalt::bitwise_xor(const intervalt& o) const
 {
-  return top();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, bitxor_exprt());
+  }
 
+  return top();
 }
 
 intervalt intervalt::bitwise_or(const intervalt& o) const
 {
-  return top();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, bitor_exprt());
+  }
 
+  return top();
 }
 
 intervalt intervalt::bitwise_and(const intervalt& o) const
 {
-  return top();
+  if(o.is_constant() && is_constant())
+  {
+    handle_constants(o, bitand_exprt());
+  }
 
+  return top();
 }
 
 intervalt intervalt::bitwise_not() const
 {
-  return top();
+  if(is_constant())
+  {
+    handle_constants(bitnot_exprt());
+  }
 
+  return top();
 }
 
 tvt intervalt::less_than(const intervalt &o) const
 {
+  // [get_lower, get_upper] < [o.get_lower(), o.get_upper()]
+  if(is_constant() && o.is_constant())
+  {
+    return tvt(less_than(get_lower(), o.get_lower()));
+  }
+
   if(less_than(get_upper(), o.get_lower()))
   {
     return tvt(true);
   }
 
-  if(greater_than_or_equal(o.get_lower(), get_upper()))
+  if(greater_than(get_lower(), o.get_upper()))
   {
     return tvt(false);
   }
@@ -224,12 +325,18 @@ tvt intervalt::greater_than(const intervalt& o) const
 
 tvt intervalt::less_than_or_equal(const intervalt& o) const
 {
+  if(is_constant() && o.is_constant())
+  {
+    return tvt(less_than_or_equal(get_lower(), o.get_lower()));
+  }
+
+  // [get_lower, get_upper] <= [o.get_lower(), o.get_upper()]
   if(less_than_or_equal(get_upper(), o.get_lower()))
   {
     return tvt(true);
   }
 
-  if(greater_than(o.get_lower(), get_upper()))
+  if(greater_than(get_lower(), o.get_upper()))
   {
     return tvt(false);
   }
@@ -244,6 +351,11 @@ tvt intervalt::greater_than_or_equal(const intervalt& o) const
 
 tvt intervalt::equal(const intervalt& o) const
 {
+  if(is_constant() && o.is_constant())
+  {
+    return tvt(equal(get_lower(), o.get_lower()));
+  }
+
   if(equal(get_upper(), o.get_upper()) && equal(get_upper(), o.get_upper()))
   {
     return tvt(true);
@@ -292,19 +404,19 @@ intervalt intervalt::get_extremes(
   results.push_back(
       generate_expression(a.get_upper(), b.get_upper(), operation));
 
+
   for(auto result: results)
   {
     if(!is_extreme(result) && contains_extreme(result))
     {
-      return intervalt(result);
+      return intervalt(result.type());
     }
   }
 
-  exprt min=get_extreme(results, true);
-  exprt max=get_extreme(results, false);
+  exprt min=get_min(results);
+  exprt max=get_max(results);
 
   return simplified_interval(min, max);
-
 }
 
 exprt intervalt::get_extreme(std::vector<exprt> values, bool min_value)
@@ -431,6 +543,11 @@ exprt intervalt::generate_expression(const exprt& a, const exprt& b, const exprt
   if(operation.id() == ID_mod)
   {
     return generate_modulo_expression(a, b, operation);
+  }
+
+  if(operation.id() == ID_shl || operation.id() == ID_ashr)
+  {
+    return generate_shift_expression(a, b, operation);
   }
 
   assert(0 && "Not yet implemented!");
@@ -599,6 +716,7 @@ exprt intervalt::generate_division_expression(const exprt& a, const exprt& b,
 
   assert(!is_extreme(a) && !is_extreme(b));
 
+  assert(!operation.has_operands());
   operation.copy_to_operands(a, b);
   return simplified_expr(operation);
 }
@@ -651,7 +769,44 @@ exprt intervalt::generate_modulo_expression(const exprt& a, const exprt& b,
 
   assert(!is_extreme(a) && !is_extreme(b));
 
+  assert(!operation.has_operands());
   operation.copy_to_operands(a, b);
   return simplified_expr(operation);
 }
 
+exprt intervalt::generate_shift_expression(const exprt& a, const exprt& b,
+    exprt operation)
+{
+  assert(operation.id() == ID_shl || operation.id() == ID_ashr);
+
+  if(is_zero(a) || is_zero(b))
+  {
+    // Shifting zero does nothing.
+    // Shifting BY zero also does nothing.
+    return a;
+  }
+
+  // Should be caught at an earlier stage.
+  assert(!is_negative(b));
+
+  if(is_max(a))
+  {
+    return a;
+  }
+
+  if(is_min(a))
+  {
+    return a;
+  }
+
+  if(is_max(b))
+  {
+    return min_exprt(b);
+  }
+
+  assert(!is_extreme(a) && !is_extreme(b));
+
+  operation.op0()=a;
+  operation.op1()=b;
+  return simplified_expr(operation);
+}

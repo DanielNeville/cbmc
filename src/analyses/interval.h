@@ -99,6 +99,8 @@ public:
 
 
   /** SET OF ARITHMETIC OPERATORS */
+  intervalt handle_constants(exprt expr) const;
+  intervalt handle_constants(const intervalt &o, exprt expr) const;
 
   /* Unary arithmetic */
   intervalt add() const;
@@ -146,6 +148,7 @@ public:
   static bool greater_than(const exprt &a, const exprt &b);
   static bool greater_than_or_equal(const exprt &a, const exprt &b);
 
+
   const exprt &get_lower() const
   {
     return lower;
@@ -156,12 +159,12 @@ public:
     return upper;
   }
 
-  friend tvt operator< (const intervalt &lhs, const intervalt &rhs);
-  friend tvt operator> (const intervalt &lhs, const intervalt &rhs);
-  friend tvt operator<=(const intervalt &lhs, const intervalt &rhs);
-  friend tvt operator>=(const intervalt &lhs, const intervalt &rhs);
-  friend tvt operator==(const intervalt &lhs, const intervalt &rhs);
-  friend tvt operator!=(const intervalt &lhs, const intervalt &rhs);
+  friend bool operator< (const intervalt &lhs, const intervalt &rhs);
+  friend bool operator> (const intervalt &lhs, const intervalt &rhs);
+  friend bool operator<=(const intervalt &lhs, const intervalt &rhs);
+  friend bool operator>=(const intervalt &lhs, const intervalt &rhs);
+  friend bool operator==(const intervalt &lhs, const intervalt &rhs);
+  friend bool operator!=(const intervalt &lhs, const intervalt &rhs);
 
   friend intervalt operator+(const intervalt &lhs, const intervalt &rhs);
   friend intervalt operator-(const intervalt &lhs, const intervalt &rhs);
@@ -209,6 +212,26 @@ public:
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
   static exprt get_extreme(std::vector<exprt> values, bool min = true);
 
+  static exprt get_min(std::vector<exprt> &values)
+  {
+    return get_extreme(values, true);
+  }
+
+  static exprt get_max(std::vector<exprt> &values)
+  {
+    return get_extreme(values, false);
+  }
+
+  static exprt get_max(const exprt &a, const exprt &b)
+  {
+    return greater_than(a, b) ? a : b;
+  }
+
+  static exprt get_min(const exprt &a, const exprt &b)
+  {
+    return less_than(a, b) ? a : b;
+  }
+
   static exprt generate_expression(const exprt &a, const exprt &b, const exprt &operation);
 
   static exprt generate_multiply_expression(const exprt &a, const exprt &b, exprt operation);
@@ -217,6 +240,9 @@ public:
 
   static exprt generate_division_expression(const exprt &a, const exprt &b, exprt operation);
   static exprt generate_modulo_expression(const exprt &a, const exprt &b, exprt operation);
+
+  static exprt generate_shift_expression(const exprt &a, const exprt &b, exprt operation);
+
 
 
   /* we don't simplify in the constructor otherwise */
@@ -278,6 +304,8 @@ public:
   static bool is_positive(const exprt &expr);
   static bool is_zero(const exprt &expr);
   static bool is_negative(const exprt &expr);
+
+  static exprt abs(const exprt &expr);
 
   static bool is_positive(const intervalt &interval);
   static bool is_zero(const intervalt &interval);

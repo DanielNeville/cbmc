@@ -26,18 +26,18 @@ SCENARIO("shift interval domain",
 
     source_locationt source_location;
 
-    std::map<int, constant_exprt> values;
+    std::map<int, constant_exprt> v;
 
     for(int i = -100; i <= 100; i++)
     {
-      values[i] = from_integer(mp_integer(i), type);
+      v[i] = from_integer(mp_integer(i), type);
     }
 
     WHEN("Something")
     {
       THEN("Something else")
       {
-        REQUIRE(true);
+        REQUIRE(intervalt(v[4], v[8]).left_shift(intervalt(v[1])) == intervalt(v[8], v[16]));
       }
     }
   }

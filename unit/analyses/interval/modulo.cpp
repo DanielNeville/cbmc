@@ -26,18 +26,33 @@ SCENARIO("modulo interval domain",
 
     source_locationt source_location;
 
-    std::map<int, constant_exprt> values;
+    std::map<int, constant_exprt> v;
 
     for(int i = -100; i <= 100; i++)
     {
-      values[i] = from_integer(mp_integer(i), type);
+      v[i] = from_integer(mp_integer(i), type);
     }
 
-    WHEN("Something")
+    WHEN("Positive RHS")
     {
-      THEN("Something else")
+
+      THEN("Ensure result is consistent.")
       {
-        REQUIRE(true);
+        REQUIRE(intervalt(v[10], v[20]).modulo(intervalt(v[5], v[5])) == intervalt(v[0], v[4]));
+        REQUIRE(intervalt(v[10], v[20]).modulo(intervalt(v[4], v[5])) == intervalt(v[0], v[4]));
+        REQUIRE(intervalt(v[10], v[20]).modulo(intervalt(v[0], v[5])) == intervalt::top(type));
+        REQUIRE(intervalt(v[10], v[20]).modulo(intervalt(v[-5], v[5])) == intervalt::top(type));
+
+        REQUIRE(intervalt(v[-10], v[20]).modulo(intervalt(v[0], v[5])) == intervalt::top(type));
+        REQUIRE(intervalt(v[-20], v[-10]).modulo(intervalt(v[0], v[5])) == intervalt::top(type));
+
+        REQUIRE(intervalt(v[-20], v[-10]).modulo(intervalt(v[1], v[1])) == intervalt(v[0]));
+
+        REQUIRE(intervalt(v[30], v[50]).modulo(intervalt(v[2], v[2])) == intervalt(v[0], v[1]));
+
+        // Problems
+        REQUIRE(intervalt(v[30], max_exprt(type)).modulo(intervalt(v[2], v[2])) == intervalt(v[0], v[1]));
+
       }
     }
   }

@@ -327,33 +327,38 @@ bool intervalt::is_zero(const exprt &expr)
 
 bool intervalt::is_negative(const exprt &expr)
 {
-  exprt simplified=simplified_expr(expr);
-
-  if(expr.is_nil() || !simplified.is_constant() || expr.get(ID_value) == "")
-  {
-    return false;
-  }
-
-  if(is_unsigned(expr))
+  if(is_unsigned(expr) || is_max(expr))
   {
     return false;
   }
 
   assert(is_signed(expr));
-  // Floats later
 
   if(is_min(expr))
   {
     return true;
   }
 
-  if(is_max(expr))
-  {
-    return false;
-  }
+  assert(!is_extreme(expr));
 
   return less_than(expr, zero(expr));
 }
+
+exprt intervalt::abs(const exprt &expr)
+{
+  if(is_signed(expr) && is_min(expr))
+  {
+    return max_exprt(expr);
+  }
+
+  if(is_max(expr) || is_unsigned(expr) || is_zero(expr) || is_positive(expr))
+  {
+    return expr;
+  }
+
+  return simplified_expr(unary_minus_exprt(expr));
+}
+
 
 bool intervalt::equal(const exprt& a, const exprt& b)
 {
@@ -377,19 +382,21 @@ bool intervalt::equal(const exprt& a, const exprt& b)
   exprt l=(is_min(a) && is_unsigned(a)) ? zero(a) : a;
   exprt r=(is_min(b) && is_unsigned(b)) ? zero(b) : b;
 
-  if((is_min(a) && is_min(b)))
+  // CANNOT use is_zero(X) but can use X.is_zero();
+  if((is_min(l) && is_min(r)))
   {
     return true;
   }
 
-  if(is_extreme(a, b))
+  if((is_max(l) && !is_max(r)) || (is_min(l) && !is_min(r)) ||
+     (is_max(r) && !is_max(l)) || (is_min(r) && !is_min(l)))
   {
-    assert(((is_max(a) && is_min(b)) || (is_min(b) && is_max(a))));
-    // If they're still extreme, they're opposites.
     return false;
   }
 
-  return simplified_expr(equal_exprt(a, b)).is_true();
+  assert(!is_extreme(l, r));
+
+  return simplified_expr(equal_exprt(l, r)).is_true();
 }
 
 // TODO: Signed/unsigned comparisons.
@@ -403,20 +410,36 @@ bool intervalt::less_than(const exprt& a, const exprt& b)
   exprt l=(is_min(a) && is_unsigned(a)) ? zero(a) : a;
   exprt r=(is_min(b) && is_unsigned(b)) ? zero(b) : b;
 
-  if(is_min(l) && !is_min(r))
-  {
-    return true;
-  }
-
-  if((is_max(l) && is_max(r)) || (is_min(l) && is_min(r)))
+  if(is_max(l))
   {
     return false;
   }
 
-  if((is_min(l) || is_zero(l)) && is_max(r))
+  assert(!is_max(l));
+
+  if(is_min(r))
   {
+    // Can't be smaller than min.
+    return false;
+  }
+
+  assert(!is_max(l) && !is_min(r));
+
+  if(is_min(l))
+  {
+    assert(!is_min(r));
     return true;
   }
+
+  assert(!is_max(l) && !is_min(r) && !is_min(l));
+
+  if(is_max(r))
+  {
+    // If r is max, then l is less, unless l is max.
+    return !is_max(l);
+  }
+
+  assert(!is_max(l) && !is_min(r) && !is_min(l) && !is_max(r));
 
   assert(!is_extreme(l, r));
 
@@ -425,32 +448,34 @@ bool intervalt::less_than(const exprt& a, const exprt& b)
 
 bool intervalt::greater_than(const exprt &a, const exprt &b)
 {
-  if(!is_numeric(a) || !is_numeric(b))
-  {
-    return false;
-  }
+  return less_than(b, a);
 
-  exprt l=(is_min(a) && is_unsigned(a)) ? zero(a) : a;
-  exprt r=(is_min(b) && is_unsigned(b)) ? zero(b) : b;
-
-  if(is_max(l) && !is_max(r))
-  {
-    return true;
-  }
-
-  if((is_max(l) && is_max(r)) || (is_min(l) && is_min(r)))
-  {
-    return false;
-  }
-
-  if(is_min(l) && is_max(r))
-  {
-    return false;
-  }
-
-  assert(!is_extreme(l) && !is_extreme(r));
-
-  return simplified_expr(binary_relation_exprt(l, ID_gt, r)).is_true();
+//  if(!is_numeric(a) || !is_numeric(b))
+//  {
+//    return false;
+//  }
+//
+//  exprt l=(is_min(a) && is_unsigned(a)) ? zero(a) : a;
+//  exprt r=(is_min(b) && is_unsigned(b)) ? zero(b) : b;
+//
+//  if(is_max(l) && !is_max(r))
+//  {
+//    return true;
+//  }
+//
+//  if((is_max(l) && is_max(r)) || (is_min(l) && is_min(r)))
+//  {
+//    return false;
+//  }
+//
+//  if(is_min(l) && is_max(r))
+//  {
+//    return false;
+//  }
+//
+//  assert(!is_extreme(l) && !is_extreme(r));
+//
+//  return simplified_expr(binary_relation_exprt(l, ID_gt, r)).is_true();
 }
 
 bool intervalt::less_than_or_equal(const exprt& a, const exprt& b)
@@ -487,7 +512,14 @@ std::string intervalt::to_string() const
 
   if(!is_min())
   {
-    out << get_lower().get(ID_value);
+    if(is_bitvector(get_lower()))
+    {
+      out << binary2integer(get_lower().get(ID_value).c_str(), 2);
+    }
+    else
+    {
+      out << get_lower().get(ID_value);
+    }
   }
   else
   {
@@ -505,7 +537,14 @@ std::string intervalt::to_string() const
 
   if(!is_max())
   {
-    out << get_upper().get(ID_value);
+    if(is_bitvector(get_upper()))
+    {
+      out << binary2integer(get_upper().get(ID_value).c_str(), 2);
+    }
+    else
+    {
+      out << get_upper().get(ID_value);
+    }
   }
   else
     out << dstringt("MAX");
@@ -523,34 +562,34 @@ std::ostream& operator <<(std::ostream& out,
   return out;
 }
 
-tvt operator< (const intervalt &lhs, const intervalt &rhs)
+bool operator< (const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.less_than(rhs);
+  return lhs.less_than(rhs).is_true();
 }
 
-tvt operator> (const intervalt &lhs, const intervalt &rhs)
+bool operator> (const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.greater_than(rhs);
+  return lhs.greater_than(rhs).is_true();
 }
 
-tvt operator<=(const intervalt &lhs, const intervalt &rhs)
+bool operator<=(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.less_than_or_equal(rhs);
+  return lhs.less_than_or_equal(rhs).is_true();
 }
 
-tvt operator>=(const intervalt &lhs, const intervalt &rhs)
+bool operator>=(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.greater_than(rhs);
+  return lhs.greater_than(rhs).is_true();
 }
 
-tvt operator==(const intervalt &lhs, const intervalt &rhs)
+bool operator==(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.equal(rhs);
+  return lhs.equal(rhs).is_true();
 }
 
-tvt operator!=(const intervalt &lhs, const intervalt &rhs)
+bool operator!=(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.not_equal(rhs);
+  return lhs.not_equal(rhs).is_true();
 }
 
 intervalt operator+(const intervalt &lhs, const intervalt &rhs)
@@ -644,7 +683,7 @@ bool intervalt::is_empty() const
 
 bool intervalt::is_constant() const
 {
-  return equal(get_lower(), get_upper());
+  return !is_extreme(get_lower()) && !is_extreme(get_upper()) && equal(get_lower(), get_upper());
 }
 
 bool intervalt::contains_zero() const
