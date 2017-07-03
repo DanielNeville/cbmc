@@ -6,6 +6,10 @@ SRC = unit_tests.cpp \
 			analyses/interval/add.cpp \
 			analyses/interval/get_extreme.cpp \
 			analyses/interval/subtract.cpp \
+			analyses/interval/modulo.cpp \
+			analyses/interval/shift.cpp \
+			analyses/interval/comparisons.cpp \
+			analyses/interval/bitwise.cpp \
       # Empty last line
 
 INCLUDES= -I ../src/ -I.

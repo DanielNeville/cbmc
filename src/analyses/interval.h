@@ -100,10 +100,9 @@ public:
 
   /** SET OF ARITHMETIC OPERATORS */
 
-  /* Unary */
+  /* Unary arithmetic */
   intervalt add() const;
   intervalt minus() const;
-  intervalt bitwise_not() const;
 
   /* Binary */
   intervalt add(const intervalt &o) const;
@@ -115,6 +114,9 @@ public:
   /* Binary shifts */
   intervalt left_shift(const intervalt &o) const;
   intervalt right_shift(const intervalt &o) const;
+
+  /* Unary bitwise */
+  intervalt bitwise_not() const;
 
   /* Binary bitwise */
   intervalt bitwise_xor(const intervalt &o) const;
