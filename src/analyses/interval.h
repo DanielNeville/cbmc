@@ -102,31 +102,31 @@ public:
   const exprt &get_upper() const;
 
   /** SET OF ARITHMETIC OPERATORS */
-  intervalt handle_constants(exprt expr) const;
-  intervalt handle_constants(const intervalt &o, exprt expr) const;
+  const intervalt handle_constants(exprt expr) const;
+  const intervalt handle_constants(const intervalt &o, exprt expr) const;
 
   /* Unary arithmetic */
-  intervalt add() const;
-  intervalt minus() const;
+  const intervalt add() const;
+  const intervalt minus() const;
 
   /* Binary */
-  intervalt add(const intervalt &o) const;
-  intervalt subtract(const intervalt &o) const;
-  intervalt multiply(const intervalt &o) const;
-  intervalt divide(const intervalt &o) const;
-  intervalt modulo(const intervalt &o) const;
+  const intervalt add(const intervalt &o) const;
+  const intervalt subtract(const intervalt &o) const;
+  const intervalt multiply(const intervalt &o) const;
+  const intervalt divide(const intervalt &o) const;
+  const intervalt modulo(const intervalt &o) const;
 
   /* Binary shifts */
-  intervalt left_shift(const intervalt &o) const;
-  intervalt right_shift(const intervalt &o) const;
+  const intervalt left_shift(const intervalt &o) const;
+  const intervalt right_shift(const intervalt &o) const;
 
   /* Unary bitwise */
-  intervalt bitwise_not() const;
+  const intervalt bitwise_not() const;
 
   /* Binary bitwise */
-  intervalt bitwise_xor(const intervalt &o) const;
-  intervalt bitwise_or(const intervalt &o) const;
-  intervalt bitwise_and(const intervalt &o) const;
+  const intervalt bitwise_xor(const intervalt &o) const;
+  const intervalt bitwise_or(const intervalt &o) const;
+  const intervalt bitwise_and(const intervalt &o) const;
 
   tvt less_than(const intervalt &o) const;
   tvt greater_than(const intervalt &o) const;
@@ -135,11 +135,12 @@ public:
   tvt equal(const intervalt &o) const;
   tvt not_equal(const intervalt &o) const;
 
-  intervalt increment() const;
-  intervalt decrement() const;
+  const intervalt increment() const;
+  const intervalt decrement() const;
 
   bool is_empty() const;
   bool is_constant() const;
+  /** END SET OF ARITHMETIC OPERATORS */
 
 //  tvt contains(intervalt &o) const;
 
@@ -150,7 +151,11 @@ public:
   static bool less_than_or_equal(const exprt &a, const exprt &b);
   static bool greater_than(const exprt &a, const exprt &b);
   static bool greater_than_or_equal(const exprt &a, const exprt &b);
+  /* END SET OF EXPR COMPS */
 
+  /* INTERVAL COMPARISONS, returns tvt.is_true().  False cannot be trusted
+   * (could be false or unknown, either use less_than, etc method or use the correct
+   * operator)! */
   friend bool operator< (const intervalt &lhs, const intervalt &rhs);
   friend bool operator> (const intervalt &lhs, const intervalt &rhs);
   friend bool operator<=(const intervalt &lhs, const intervalt &rhs);
@@ -158,43 +163,94 @@ public:
   friend bool operator==(const intervalt &lhs, const intervalt &rhs);
   friend bool operator!=(const intervalt &lhs, const intervalt &rhs);
 
-  friend intervalt operator+(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator-(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator/(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator*(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator%(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator!(const intervalt &lhs);
-  friend intervalt operator&(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator|(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator^(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
-  friend intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
+  /* Operator override for intervals */
+  friend const intervalt operator+(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator-(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator/(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator*(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator%(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator!(const intervalt &lhs);
+  friend const intervalt operator&(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator|(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator^(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator<<(const intervalt &lhs, const intervalt &rhs);
+  friend const intervalt operator>>(const intervalt &lhs, const intervalt &rhs);
 
   friend std::ostream& operator<< (std::ostream& out, const intervalt &i);
   std::string to_string() const;
 
+
+
+  /* Now static equivalents! */
+  static const intervalt unary_add(const intervalt &a);
+  static const intervalt minus(const intervalt &a);
+
+  /* Binary */
+  static const intervalt add(const intervalt &a, const intervalt &b);
+  static const intervalt subtract(const intervalt &a, const intervalt &b);
+  static const intervalt multiply(const intervalt &a, const intervalt &b);
+  static const intervalt divide(const intervalt &a, const intervalt &b);
+  static const intervalt modulo(const intervalt &a, const intervalt &b);
+
+  /* Binary shifts */
+  static const intervalt left_shift(const intervalt &a, const intervalt &b);
+  static const intervalt right_shift(const intervalt &a, const intervalt &b);
+
+  /* Unary bitwise */
+  static const intervalt bitwise_not(const intervalt &a);
+
+  /* Binary bitwise */
+  static const intervalt bitwise_xor(const intervalt &a, const intervalt &b);
+  static const intervalt bitwise_or(const intervalt &a, const intervalt &b);
+  static const intervalt bitwise_and(const intervalt &a, const intervalt &b);
+
+  static tvt less_than(const intervalt &a, const intervalt &b);
+  static tvt greater_than(const intervalt &a, const intervalt &b);
+  static tvt less_than_or_equal(const intervalt &a, const intervalt &b);
+  static tvt greater_than_or_equal(const intervalt &a, const intervalt &b);
+  static tvt equal(const intervalt &a, const intervalt &b);
+  static tvt not_equal(const intervalt &a, const intervalt &b);
+
+  static const intervalt increment(const intervalt &a);
+  static const intervalt decrement(const intervalt &a);
+
+  static bool is_empty(const intervalt &a);
+  static bool is_constant(const intervalt &a);
+
+  static bool is_top(const intervalt &a);
+  static bool is_bottom(const intervalt &a);
+
+  static bool is_min(const intervalt &a);
+  static bool is_max(const intervalt &a);
+  /* End static equivalents */
+
+
+
+
+
   bool is_top() const;
   bool is_bottom() const;
-  static intervalt top(const typet &type);
-  static intervalt bottom(const typet &type);
-  intervalt top() const;
-  intervalt bottom() const;
+  static const intervalt top(const typet &type);
+  static const intervalt bottom(const typet &type);
+  const intervalt top() const;
+  const intervalt bottom() const;
+
+  bool is_min() const;
+  bool is_max() const;
+  static bool is_min(const exprt &expr);
+  static bool is_max(const exprt &expr);
 
   /* Generate min and max exprt according to current type */
-  bool is_max() const;
-  static bool is_max(const exprt &expr);
-  bool is_min() const;
-  static bool is_min(const exprt &expr);
   min_exprt min() const;
   max_exprt max() const;
 
-  static constant_exprt zero(const typet &type);
-  static constant_exprt zero(const intervalt &interval);
-  static constant_exprt zero(const exprt &expr);
   constant_exprt zero() const;
+  static constant_exprt zero(const typet &type);
+  static constant_exprt zero(const exprt &expr);
+  static constant_exprt zero(const intervalt &interval);
 
   /* Private? */
-  static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
+  static const intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
   static exprt get_extreme(std::vector<exprt> values, bool min = true);
   static exprt get_max(const exprt &a, const exprt &b);
   static exprt get_min(const exprt &a, const exprt &b);
@@ -202,7 +258,7 @@ public:
   static exprt get_max(std::vector<exprt> &values);
 
   /* we don't simplify in the constructor otherwise */
-  static intervalt simplified_interval(exprt &l, exprt &r);
+  static const intervalt simplified_interval(exprt &l, exprt &r);
   static exprt simplified_expr(exprt expr);
 
   /* Don't allow different types in upper and lower */
@@ -210,8 +266,8 @@ public:
   const typet& calculate_type(const exprt &l, const exprt &u) const;
 
   /* Swap lower and upper! */
-  static intervalt swap(intervalt &i);
-  intervalt swap() const;
+  const intervalt swap() const;
+  static const intervalt swap(intervalt &i);
   /* Helpers */
   /* Four common params: self, static: type, expr, interval */
 
@@ -245,14 +301,14 @@ public:
   static bool is_unsigned(const exprt &expr);
   static bool is_unsigned(const intervalt &interval);
 
-  static bool contains_extreme(const exprt expr);
-  static bool contains_extreme(const exprt expr1, const exprt expr2);
-
   bool contains_zero() const;
   bool contains(const intervalt &interval) const;
 
   static bool is_extreme(const exprt &expr);
   static bool is_extreme(const exprt &expr1, const exprt &expr2);
+
+  static bool contains_extreme(const exprt expr);
+  static bool contains_extreme(const exprt expr1, const exprt expr2);
 
   bool is_positive() const;
   static bool is_positive(const exprt &expr);
@@ -267,6 +323,7 @@ public:
   static bool is_negative(const intervalt &interval);
 
   static exprt abs(const exprt &expr);
+
 private:
   /* This is the entirety */
   const exprt lower;

@@ -43,7 +43,7 @@ exprt intervalt::get_max(std::vector<exprt> &values)
 }
 
 /* we don't simplify in the constructor otherwise */
-intervalt intervalt::simplified_interval(exprt &l, exprt &r)
+const intervalt intervalt::simplified_interval(exprt &l, exprt &r)
 {
   return intervalt(simplified_expr(l), simplified_expr(r));
 }
@@ -63,12 +63,10 @@ const typet& intervalt::calculate_type(const exprt &l, const exprt &u) const
 {
   if(u.type() != l.type())
   {
-    std::cout << "ERROR!\n1)\n" << l.pretty() << "\n2)\n" << u.pretty() << "\n";
     assert(0 && "Cannot support mixed types.");
   }
 
   assert(u.type() == l.type());
-
   return u.type();
 }
 
@@ -116,32 +114,32 @@ bool intervalt::is_bottom() const
   return is_min(get_upper()) || is_max(get_lower());
 }
 
-intervalt intervalt::top(const typet &type)
+const intervalt intervalt::top(const typet &type)
 {
   return intervalt(type);
 }
 
-intervalt intervalt::bottom(const typet &type)
+const intervalt intervalt::bottom(const typet &type)
 {
   return intervalt(max_exprt(type), min_exprt(type));
 }
 
-intervalt intervalt::top() const
+const intervalt intervalt::top() const
 {
   return intervalt(get_type());
 }
 
-intervalt intervalt::bottom() const
+const intervalt intervalt::bottom() const
 {
   return bottom(type);
 }
 
-intervalt intervalt::swap(intervalt &i)
+const intervalt intervalt::swap(intervalt &i)
 {
   return intervalt(i.get_upper(), i.get_lower());
 }
 
-intervalt intervalt::swap() const
+const intervalt intervalt::swap() const
 {
   return intervalt(get_lower(), get_upper());
 }
@@ -622,61 +620,199 @@ bool operator!=(const intervalt &lhs, const intervalt &rhs)
   return lhs.not_equal(rhs).is_true();
 }
 
-intervalt operator+(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator+(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.add(rhs);
+  return lhs.unary_add(rhs);
 }
 
-intervalt operator-(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator-(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.subtract(rhs);
 }
 
-intervalt operator/(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator/(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.divide(rhs);
 }
 
-intervalt operator*(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator*(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.multiply(rhs);
 }
 
-intervalt operator%(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator%(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.modulo(rhs);
 }
 
-intervalt operator&(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator&(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.bitwise_and(rhs);
 }
 
-intervalt operator|(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator|(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.bitwise_or(rhs);
 }
 
-intervalt operator^(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator^(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.bitwise_xor(rhs);
 }
 
-intervalt operator!(const intervalt &lhs)
+const intervalt operator!(const intervalt &lhs)
 {
   return lhs.bitwise_not();
 }
 
-intervalt operator<<(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator<<(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.left_shift(rhs);
 }
 
-intervalt operator>>(const intervalt &lhs, const intervalt &rhs)
+const intervalt operator>>(const intervalt &lhs, const intervalt &rhs)
 {
   return lhs.right_shift(rhs);
 }
 
+const intervalt intervalt::unary_add(const intervalt &a)
+{
+  return a.add();
+}
+
+const intervalt intervalt::minus(const intervalt &a)
+{
+  return a.minus();
+}
+
+/* Binary */
+const intervalt intervalt::add(const intervalt &a, const intervalt &b)
+{
+  return a.add(b);
+}
+
+const intervalt intervalt::subtract(const intervalt &a, const intervalt &b)
+{
+  return a.subtract(b);
+}
+
+const intervalt intervalt::multiply(const intervalt &a, const intervalt &b)
+{
+  return a.multiply(b);
+}
+
+const intervalt intervalt::divide(const intervalt &a, const intervalt &b)
+{
+  return a.divide(b);
+}
+
+const intervalt intervalt::modulo(const intervalt &a, const intervalt &b)
+{
+  return a.modulo(b);
+}
+
+/* Binary shifts */
+const intervalt intervalt::left_shift(const intervalt &a, const intervalt &b)
+{
+  return a.left_shift(b);
+}
+
+const intervalt intervalt::right_shift(const intervalt &a, const intervalt &b)
+{
+  return a.right_shift(b);
+}
+
+/* Unary bitwise */
+const intervalt intervalt::bitwise_not(const intervalt &a)
+{
+  return a.bitwise_not();
+}
+
+/* Binary bitwise */
+const intervalt intervalt::bitwise_xor(const intervalt &a, const intervalt &b)
+{
+  return a.bitwise_xor(b);
+}
+
+const intervalt intervalt::bitwise_or(const intervalt &a, const intervalt &b)
+{
+  return a.bitwise_or(b);
+}
+
+const intervalt intervalt::bitwise_and(const intervalt &a, const intervalt &b)
+{
+  return a.bitwise_and(b);
+}
+
+tvt intervalt::less_than(const intervalt &a, const intervalt &b)
+{
+  return a.less_than(b);
+}
+
+tvt intervalt::greater_than(const intervalt &a, const intervalt &b)
+{
+  return a.greater_than(b);
+}
+
+tvt intervalt::less_than_or_equal(const intervalt &a, const intervalt &b)
+{
+  return a.less_than_or_equal(b);
+}
+
+tvt intervalt::greater_than_or_equal(const intervalt &a, const intervalt &b)
+{
+  return a.greater_than_or_equal(b);
+}
+
+tvt intervalt::equal(const intervalt &a, const intervalt &b)
+{
+  return a.equal(b);
+}
+
+tvt intervalt::not_equal(const intervalt &a, const intervalt &b)
+{
+  return a.equal(b);
+}
+
+const intervalt intervalt::increment(const intervalt &a)
+{
+  return a.increment();
+}
+
+const intervalt intervalt::decrement(const intervalt &a)
+{
+  return a.decrement();
+}
+
+bool intervalt::is_empty(const intervalt &a)
+{
+  return a.is_empty();
+}
+
+bool intervalt::is_constant(const intervalt &a)
+{
+  return a.is_constant();
+}
+
+bool intervalt::is_top(const intervalt &a)
+{
+  return a.is_top();
+}
+
+bool intervalt::is_bottom(const intervalt &a)
+{
+  return a.is_bottom();
+}
+
+bool intervalt::is_min(const intervalt &a)
+{
+  return a.is_min();
+}
+
+bool intervalt::is_max(const intervalt &a)
+{
+  return a.is_max();
+}
 
 bool intervalt::contains_extreme(const exprt expr)
 {
@@ -765,11 +901,9 @@ bool intervalt::is_positive() const
 bool intervalt::is_zero() const
 {
   return is_zero(get_lower()) && is_zero(get_upper());
-
 }
 
 bool intervalt::is_negative() const
 {
   return is_negative(get_lower()) && is_negative(get_upper());
-
 }

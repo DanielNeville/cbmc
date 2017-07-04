@@ -25,20 +25,20 @@
 
 //make clean -s && make -j 7 CXX="/usr/local/bin/ccache g++" -s && ./unit_tests
 
-intervalt intervalt::handle_constants(exprt expr) const
+const intervalt intervalt::handle_constants(exprt expr) const
 {
   if(is_constant())
   {
     expr.type()=get_type();
-
     expr.copy_to_operands(get_lower());
+
     return intervalt(simplified_expr(expr));
   }
 
   return top();
 }
 
-intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
+const intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
 {
   if(is_constant() && o.is_constant())
   {
@@ -51,12 +51,12 @@ intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
   return top();
 }
 
-intervalt intervalt::add() const
+const intervalt intervalt::add() const
 {
   return *this;
 }
 
-intervalt intervalt::minus() const
+const intervalt intervalt::minus() const
 {
   if(is_constant())
   {
@@ -87,7 +87,7 @@ intervalt intervalt::minus() const
   return intervalt(lower, upper);
 }
 
-intervalt intervalt::add(const intervalt& o) const
+const intervalt intervalt::add(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -120,7 +120,7 @@ intervalt intervalt::add(const intervalt& o) const
   return simplified_interval(lower, upper);
 }
 
-intervalt intervalt::subtract(const intervalt& o) const
+const intervalt intervalt::subtract(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -131,7 +131,7 @@ intervalt intervalt::subtract(const intervalt& o) const
   return add(o.minus().swap());
 }
 
-intervalt intervalt::multiply(const intervalt& o) const
+const intervalt intervalt::multiply(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -143,7 +143,7 @@ intervalt intervalt::multiply(const intervalt& o) const
   return get_extremes(*this, o, operation);
 }
 
-intervalt intervalt::divide(const intervalt& o) const
+const intervalt intervalt::divide(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -160,7 +160,7 @@ intervalt intervalt::divide(const intervalt& o) const
   return get_extremes(*this, o, operation);
 }
 
-intervalt intervalt::modulo(const intervalt& o) const
+const intervalt intervalt::modulo(const intervalt& o) const
 {
   // SEE https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
 
@@ -222,7 +222,7 @@ intervalt intervalt::modulo(const intervalt& o) const
   return intervalt(lower, upper);
 }
 
-intervalt intervalt::left_shift(const intervalt& o) const
+const intervalt intervalt::left_shift(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -240,7 +240,7 @@ intervalt intervalt::left_shift(const intervalt& o) const
 }
 
 // Arithmetic
-intervalt intervalt::right_shift(const intervalt& o) const
+const intervalt intervalt::right_shift(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -257,7 +257,7 @@ intervalt intervalt::right_shift(const intervalt& o) const
   return get_extremes(*this, o, operation);
 }
 
-intervalt intervalt::bitwise_xor(const intervalt& o) const
+const intervalt intervalt::bitwise_xor(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -267,7 +267,7 @@ intervalt intervalt::bitwise_xor(const intervalt& o) const
   return top();
 }
 
-intervalt intervalt::bitwise_or(const intervalt& o) const
+const intervalt intervalt::bitwise_or(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -277,7 +277,7 @@ intervalt intervalt::bitwise_or(const intervalt& o) const
   return top();
 }
 
-intervalt intervalt::bitwise_and(const intervalt& o) const
+const intervalt intervalt::bitwise_and(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -287,7 +287,7 @@ intervalt intervalt::bitwise_and(const intervalt& o) const
   return top();
 }
 
-intervalt intervalt::bitwise_not() const
+const intervalt intervalt::bitwise_not() const
 {
   if(is_constant())
   {
@@ -375,18 +375,18 @@ tvt intervalt::not_equal(const intervalt& o) const
   return !equal(o);
 }
 
-intervalt intervalt::increment() const
+const intervalt intervalt::increment() const
 {
   return add(intervalt(from_integer(mp_integer(1), get_type())));
 
 }
 
-intervalt intervalt::decrement() const
+const intervalt intervalt::decrement() const
 {
   return subtract(intervalt(from_integer(mp_integer(1), get_type())));
 }
 
-intervalt intervalt::get_extremes(
+const intervalt intervalt::get_extremes(
     const intervalt &a,
     const intervalt &b,
     const exprt operation)
