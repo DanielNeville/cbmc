@@ -434,67 +434,30 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min_value)
     return *(values.begin());
   }
 
-  typet type=values.begin()->type();
-
-  if(min_value)
+  if(values.size() == 2)
   {
-    auto i=values.begin();
-
-    while (i != values.end())
+    if(min_value)
     {
-      if(is_min(*i))
-      {
-        return *i;
-      }
-
-      if(is_max(*i))
-      {
-        i=values.erase(i);
-      }
-      else
-      {
-        i++;
-      }
-
-      if(values.size() == 0)
-      {
-        // Everything was max, return max.
-        return max_exprt(type);
-      }
+      return get_min(values.front(), values.back());
+    }
+    else
+    {
+      return get_max(values.front(), values.back());
     }
   }
-  else
+
+  typet type=values.begin()->type();
+
+  for(auto v: values)
   {
-    auto i=values.begin();
-
-    while (i != values.end())
+    if((min_value && is_min(v)) || (!min_value && is_max(v)))
     {
-      if(is_max(*i))
-      {
-        return *i;
-      }
-
-      if(is_min(*i))
-      {
-        i=values.erase(i);
-      }
-      else
-      {
-        i++;
-      }
-
-      if(values.size() == 0)
-      {
-        // Everything was min, return min.
-        return min_exprt(type);
-      }
+      return v;
     }
   }
 
   for(auto left: values)
   {
-    assert(!is_min(left) && !is_max(left));
-
     bool all_left_OP_right = true;
 
     for(auto right: values)
@@ -514,6 +477,7 @@ exprt intervalt::get_extreme(std::vector<exprt> values, bool min_value)
     }
   }
 
+  /* Return top */
   if(min_value)
   {
     return min_exprt(type);

@@ -97,6 +97,9 @@ public:
    *      generate_[X]  generator used for evaluation
    */
 
+  /* Getters */
+  const exprt &get_lower() const;
+  const exprt &get_upper() const;
 
   /** SET OF ARITHMETIC OPERATORS */
   intervalt handle_constants(exprt expr) const;
@@ -148,17 +151,6 @@ public:
   static bool greater_than(const exprt &a, const exprt &b);
   static bool greater_than_or_equal(const exprt &a, const exprt &b);
 
-
-  const exprt &get_lower() const
-  {
-    return lower;
-  }
-
-  const exprt &get_upper() const
-  {
-    return upper;
-  }
-
   friend bool operator< (const intervalt &lhs, const intervalt &rhs);
   friend bool operator> (const intervalt &lhs, const intervalt &rhs);
   friend bool operator<=(const intervalt &lhs, const intervalt &rhs);
@@ -181,18 +173,12 @@ public:
   friend std::ostream& operator<< (std::ostream& out, const intervalt &i);
   std::string to_string() const;
 
-  bool valid()
-  {
-    return true;
-  }
-
   bool is_top() const;
   bool is_bottom() const;
   static intervalt top(const typet &type);
   static intervalt bottom(const typet &type);
   intervalt top() const;
   intervalt bottom() const;
-
 
   /* Generate min and max exprt according to current type */
   bool is_max() const;
@@ -207,58 +193,25 @@ public:
   static constant_exprt zero(const exprt &expr);
   constant_exprt zero() const;
 
-
   /* Private? */
   static intervalt get_extremes(const intervalt &lhs, const intervalt &rhs, const exprt operation);
   static exprt get_extreme(std::vector<exprt> values, bool min = true);
-
-  static exprt get_min(std::vector<exprt> &values)
-  {
-    return get_extreme(values, true);
-  }
-
-  static exprt get_max(std::vector<exprt> &values)
-  {
-    return get_extreme(values, false);
-  }
-
-  static exprt get_max(const exprt &a, const exprt &b)
-  {
-    return greater_than(a, b) ? a : b;
-  }
-
-  static exprt get_min(const exprt &a, const exprt &b)
-  {
-    return less_than(a, b) ? a : b;
-  }
-
-  static exprt generate_expression(const exprt &a, const exprt &b, const exprt &operation);
-
-  static exprt generate_multiply_expression(const exprt &a, const exprt &b, exprt operation);
-  static exprt generate_multiply_expression_max(const exprt &expr);
-  static exprt generate_multiply_expression_min(const exprt &min, const exprt &other);
-
-  static exprt generate_division_expression(const exprt &a, const exprt &b, exprt operation);
-  static exprt generate_modulo_expression(const exprt &a, const exprt &b, exprt operation);
-
-  static exprt generate_shift_expression(const exprt &a, const exprt &b, exprt operation);
-
-
+  static exprt get_max(const exprt &a, const exprt &b);
+  static exprt get_min(const exprt &a, const exprt &b);
+  static exprt get_min(std::vector<exprt> &values);
+  static exprt get_max(std::vector<exprt> &values);
 
   /* we don't simplify in the constructor otherwise */
   static intervalt simplified_interval(exprt &l, exprt &r);
   static exprt simplified_expr(exprt expr);
 
   /* Don't allow different types in upper and lower */
-  typet get_type() const;
-  typet calculate_type(const exprt &l, const exprt &u) const;
-
+  const typet& get_type() const;
+  const typet& calculate_type(const exprt &l, const exprt &u) const;
 
   /* Swap lower and upper! */
   static intervalt swap(intervalt &i);
   intervalt swap() const;
-
-
   /* Helpers */
   /* Four common params: self, static: type, expr, interval */
 
@@ -301,24 +254,32 @@ public:
   static bool is_extreme(const exprt &expr);
   static bool is_extreme(const exprt &expr1, const exprt &expr2);
 
+  bool is_positive() const;
   static bool is_positive(const exprt &expr);
-  static bool is_zero(const exprt &expr);
-  static bool is_negative(const exprt &expr);
-
-  static exprt abs(const exprt &expr);
-
   static bool is_positive(const intervalt &interval);
+
+  bool is_zero() const;
+  static bool is_zero(const exprt &expr);
   static bool is_zero(const intervalt &interval);
+
+  bool is_negative() const;
+  static bool is_negative(const exprt &expr);
   static bool is_negative(const intervalt &interval);
 
-  bool is_positive() const;
-  bool is_zero() const;
-  bool is_negative() const;
+  static exprt abs(const exprt &expr);
 private:
   /* This is the entirety */
   const exprt lower;
   const exprt upper;
   const typet type;
+
+  static exprt generate_expression(const exprt &a, const exprt &b, const exprt &operation);
+  static exprt generate_multiply_expression(const exprt &a, const exprt &b, exprt operation);
+  static exprt generate_multiply_expression_max(const exprt &expr);
+  static exprt generate_multiply_expression_min(const exprt &min, const exprt &other);
+  static exprt generate_division_expression(const exprt &a, const exprt &b, exprt operation);
+  static exprt generate_modulo_expression(const exprt &a, const exprt &b, exprt operation);
+  static exprt generate_shift_expression(const exprt &a, const exprt &b, exprt operation);
 };
 
 #endif /* SRC_ANALYSES_INTERVAL_H_ */

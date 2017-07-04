@@ -7,9 +7,39 @@
 #include <ostream>
 #include <sstream>
 
-typet intervalt::get_type() const
+const exprt& intervalt::get_lower() const
+{
+  return lower;
+}
+
+const exprt& intervalt::get_upper() const
+{
+  return upper;
+}
+
+const typet& intervalt::get_type() const
 {
   return type;
+}
+
+exprt intervalt::get_max(const exprt &a, const exprt &b)
+{
+  return greater_than(a, b) ? a : b;
+}
+
+exprt intervalt::get_min(const exprt &a, const exprt &b)
+{
+  return less_than(a, b) ? a : b;
+}
+
+exprt intervalt::get_min(std::vector<exprt> &values)
+{
+  return get_extreme(values, true);
+}
+
+exprt intervalt::get_max(std::vector<exprt> &values)
+{
+  return get_extreme(values, false);
 }
 
 /* we don't simplify in the constructor otherwise */
@@ -29,7 +59,7 @@ exprt intervalt::simplified_expr(exprt expr)
 }
 
 /* Don't allow different types in upper and lower */
-typet intervalt::calculate_type(const exprt &l, const exprt &u) const
+const typet& intervalt::calculate_type(const exprt &l, const exprt &u) const
 {
   if(u.type() != l.type())
   {
