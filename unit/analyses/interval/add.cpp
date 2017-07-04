@@ -38,7 +38,7 @@ SCENARIO("add interval domain",
       intervalt left(values[2], values[4]);
       intervalt right(values[6], values[8]);
 
-      intervalt result = left.add(right);
+      intervalt result = left.plus(right);
 
       THEN("Domain is consistent")
       {
@@ -61,7 +61,7 @@ SCENARIO("add interval domain",
       intervalt left(values[2], values[4]);
       intervalt right(values[6], max_exprt(type));
 
-      intervalt result = left.add(right);
+      intervalt result = left.plus(right);
 
       THEN("Domain is consistent")
       {
@@ -85,7 +85,7 @@ SCENARIO("add interval domain",
       intervalt left(values[2],  max_exprt(type));
       intervalt right(values[6], max_exprt(type));
 
-      intervalt result = left.add(right);
+      intervalt result = left.plus(right);
 
       THEN("Domain is consistent")
       {

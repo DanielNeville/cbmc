@@ -43,7 +43,6 @@ const intervalt intervalt::handle_constants(const intervalt &o, exprt expr) cons
   if(is_constant() && o.is_constant())
   {
     expr.type()=get_type();
-
     expr.copy_to_operands(get_lower(), o.get_lower());
     return intervalt(simplified_expr(expr));
   }
@@ -51,12 +50,12 @@ const intervalt intervalt::handle_constants(const intervalt &o, exprt expr) cons
   return top();
 }
 
-const intervalt intervalt::add() const
+const intervalt intervalt::unary_plus() const
 {
   return *this;
 }
 
-const intervalt intervalt::minus() const
+const intervalt intervalt::unary_minus() const
 {
   if(is_constant())
   {
@@ -87,7 +86,7 @@ const intervalt intervalt::minus() const
   return intervalt(lower, upper);
 }
 
-const intervalt intervalt::add(const intervalt& o) const
+const intervalt intervalt::plus(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -120,7 +119,7 @@ const intervalt intervalt::add(const intervalt& o) const
   return simplified_interval(lower, upper);
 }
 
-const intervalt intervalt::subtract(const intervalt& o) const
+const intervalt intervalt::minus(const intervalt& o) const
 {
   if(o.is_constant() && is_constant())
   {
@@ -128,7 +127,7 @@ const intervalt intervalt::subtract(const intervalt& o) const
   }
 
   // e.g. [t.u - o.l, t.l - o.u]
-  return add(o.minus().swap());
+  return plus(o.unary_minus().swap());
 }
 
 const intervalt intervalt::multiply(const intervalt& o) const
@@ -221,6 +220,61 @@ const intervalt intervalt::modulo(const intervalt& o) const
 
   return intervalt(lower, upper);
 }
+
+
+const tvt intervalt::is_true() const
+{
+  // tvt not
+  return !is_false();
+}
+
+const tvt intervalt::is_false() const
+{
+  if(equal(intervalt(zero())).is_true())
+  {
+    return tvt(true);
+  }
+
+  if(contains(intervalt(zero())))
+  {
+    assert(is_positive(get_upper()) || is_negative(get_lower()));
+    return tvt::unknown();
+  }
+
+  return tvt(false);
+}
+
+const tvt intervalt::logical_or(const intervalt& o) const
+{
+  tvt a = is_true();
+  tvt b = o.is_true();
+
+  return (a || b);
+}
+
+const tvt intervalt::logical_xor(const intervalt& o) const
+{
+  return (
+      (is_true() && !o.is_true()) ||
+      (!is_true() && o.is_true())
+  );
+}
+
+const tvt intervalt::logical_not() const
+{
+  if(is_true())
+  {
+    return tvt(false);
+  }
+
+  if(is_false())
+  {
+    return tvt(true);
+  }
+
+  return tvt::unknown();
+}
+
 
 const intervalt intervalt::left_shift(const intervalt& o) const
 {
@@ -377,13 +431,13 @@ tvt intervalt::not_equal(const intervalt& o) const
 
 const intervalt intervalt::increment() const
 {
-  return add(intervalt(from_integer(mp_integer(1), get_type())));
+  return plus(intervalt(from_integer(mp_integer(1), get_type())));
 
 }
 
 const intervalt intervalt::decrement() const
 {
-  return subtract(intervalt(from_integer(mp_integer(1), get_type())));
+  return minus(intervalt(from_integer(mp_integer(1), get_type())));
 }
 
 const intervalt intervalt::get_extremes(
@@ -736,6 +790,118 @@ exprt intervalt::generate_modulo_expression(const exprt& a, const exprt& b,
   assert(!operation.has_operands());
   operation.copy_to_operands(a, b);
   return simplified_expr(operation);
+}
+
+const intervalt intervalt::eval(const exprt& expr)
+{
+  const irep_idt &id = expr.id();
+
+  if(id == ID_unary_plus)
+  {
+    return unary_plus();
+  }
+  if(id == ID_unary_minus)
+  {
+    return unary_minus();
+  }
+  if(id == ID_bitnot)
+  {
+    return bitwise_not();
+  }
+
+  return top();
+}
+
+const intervalt intervalt::eval(const exprt& expr, const intervalt& o)
+{
+  const irep_idt &id = expr.id();
+
+  if(id == ID_plus)
+  {
+    return plus(o);
+  }
+  if(id == ID_minus)
+  {
+    return unary_minus(o);
+  }
+  if(id == ID_mult)
+  {
+    return multiply(o);
+  }
+  if(id == ID_div)
+  {
+    return divide(o);
+  }
+  if(id == ID_mod)
+  {
+    return modulo(o);
+  }
+  if(id == ID_shl)
+  {
+    return left_shift(o);
+  }
+  if(id == ID_ashr)
+  {
+    return right_shift(o);
+  }
+  if(id == ID_bitor)
+  {
+    return bitwise_or(o);
+  }
+  if(id == ID_bitand)
+  {
+    return bitwise_and(o);
+  }
+  if(id == ID_bitxor)
+  {
+    return bitwise_xor(o);
+  }
+  if(id == ID_lt)
+  {
+    return tv_to_interval(less_than(o));
+  }
+  if(id == ID_le)
+  {
+    return tv_to_interval(less_than_or_equal(o));
+  }
+  if(id == ID_gt)
+  {
+    return tv_to_interval(greater_than(o));
+  }
+  if(id == ID_ge)
+  {
+    return tv_to_interval(greater_than_or_equal(o));
+  }
+  if(id == ID_equal)
+  {
+    return tv_to_interval(equal(o));
+  }
+  if(id == ID_notequal)
+  {
+    return tv_to_interval(not_equal(o));
+  }
+
+  return top();
+}
+
+static const intervalt tv_to_interval(const intervalt &interval, const tvt &tv)
+{
+  return interval.tv_to_interval(tv);
+}
+
+const intervalt intervalt::tv_to_interval(const tvt &tv) const
+{
+  if(tv.is_true())
+  {
+    return intervalt(from_integer(1, get_type()));
+  }
+  if(tv.is_false())
+  {
+    return intervalt(zero());
+  }
+
+  assert(tv.is_unknown());
+  return top();
 }
 
 exprt intervalt::generate_shift_expression(const exprt& a, const exprt& b,

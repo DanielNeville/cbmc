@@ -622,12 +622,12 @@ bool operator!=(const intervalt &lhs, const intervalt &rhs)
 
 const intervalt operator+(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.unary_add(rhs);
+  return lhs.unary_plus(rhs);
 }
 
 const intervalt operator-(const intervalt &lhs, const intervalt &rhs)
 {
-  return lhs.subtract(rhs);
+  return lhs.minus(rhs);
 }
 
 const intervalt operator/(const intervalt &lhs, const intervalt &rhs)
@@ -675,25 +675,25 @@ const intervalt operator>>(const intervalt &lhs, const intervalt &rhs)
   return lhs.right_shift(rhs);
 }
 
-const intervalt intervalt::unary_add(const intervalt &a)
+const intervalt intervalt::unary_plus(const intervalt &a)
 {
-  return a.add();
+  return a.unary_plus();
 }
 
-const intervalt intervalt::minus(const intervalt &a)
+const intervalt intervalt::unary_minus(const intervalt &a)
 {
-  return a.minus();
+  return a.unary_minus();
 }
 
 /* Binary */
-const intervalt intervalt::add(const intervalt &a, const intervalt &b)
+const intervalt intervalt::plus(const intervalt &a, const intervalt &b)
 {
-  return a.add(b);
+  return a.plus(b);
 }
 
-const intervalt intervalt::subtract(const intervalt &a, const intervalt &b)
+const intervalt intervalt::minus(const intervalt &a, const intervalt &b)
 {
-  return a.subtract(b);
+  return a.minus(b);
 }
 
 const intervalt intervalt::multiply(const intervalt &a, const intervalt &b)

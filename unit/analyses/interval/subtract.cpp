@@ -38,7 +38,7 @@ SCENARIO("subtract interval domain",
       intervalt left(values[6], values[8]);
       intervalt right(values[2], values[4]);
 
-      intervalt result = left.subtract(right);
+      intervalt result = left.minus(right);
 
       THEN("Domain is consistent")
       {
@@ -60,7 +60,7 @@ SCENARIO("subtract interval domain",
       intervalt left(values[2], values[4]);
       intervalt right(values[6], max_exprt(type));
 
-      intervalt result = left.subtract(right);
+      intervalt result = left.minus(right);
 
       THEN("Domain is consistent")
       {
@@ -84,7 +84,7 @@ SCENARIO("subtract interval domain",
       intervalt left(values[2],  max_exprt(type));
       intervalt right(values[6], max_exprt(type));
 
-      intervalt result = left.subtract(right);
+      intervalt result = left.minus(right);
 
       THEN("Domain is consistent")
       {

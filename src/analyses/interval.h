@@ -105,13 +105,31 @@ public:
   const intervalt handle_constants(exprt expr) const;
   const intervalt handle_constants(const intervalt &o, exprt expr) const;
 
+  const intervalt eval(const exprt &expr);
+  const intervalt eval(const exprt &expr, const intervalt &o);
+
   /* Unary arithmetic */
-  const intervalt add() const;
-  const intervalt minus() const;
+  const intervalt unary_plus() const;
+  const intervalt unary_minus() const;
+
+  /* Logical */
+  const tvt is_true() const;
+  const tvt is_false() const;
+
+  const tvt logical_and(const intervalt& o) const
+  {
+    return is_true() && o.is_true();
+  }
+  const tvt logical_or(const intervalt &o) const;
+  const tvt logical_xor(const intervalt &o) const;
+  const tvt logical_not() const;
+
+  static const intervalt tv_to_interval(const intervalt &interval, const tvt &tv);
+  const intervalt tv_to_interval(const tvt &tv) const;
 
   /* Binary */
-  const intervalt add(const intervalt &o) const;
-  const intervalt subtract(const intervalt &o) const;
+  const intervalt plus(const intervalt &o) const;
+  const intervalt minus(const intervalt &o) const;
   const intervalt multiply(const intervalt &o) const;
   const intervalt divide(const intervalt &o) const;
   const intervalt modulo(const intervalt &o) const;
@@ -182,12 +200,12 @@ public:
 
 
   /* Now static equivalents! */
-  static const intervalt unary_add(const intervalt &a);
-  static const intervalt minus(const intervalt &a);
+  static const intervalt unary_plus(const intervalt &a);
+  static const intervalt unary_minus(const intervalt &a);
 
   /* Binary */
-  static const intervalt add(const intervalt &a, const intervalt &b);
-  static const intervalt subtract(const intervalt &a, const intervalt &b);
+  static const intervalt plus(const intervalt &a, const intervalt &b);
+  static const intervalt minus(const intervalt &a, const intervalt &b);
   static const intervalt multiply(const intervalt &a, const intervalt &b);
   static const intervalt divide(const intervalt &a, const intervalt &b);
   static const intervalt modulo(const intervalt &a, const intervalt &b);
