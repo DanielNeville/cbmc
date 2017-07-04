@@ -116,15 +116,11 @@ public:
   const tvt is_true() const;
   const tvt is_false() const;
 
-  const tvt logical_and(const intervalt& o) const
-  {
-    return is_true() && o.is_true();
-  }
+  const tvt logical_and(const intervalt& o) const;
   const tvt logical_or(const intervalt &o) const;
   const tvt logical_xor(const intervalt &o) const;
   const tvt logical_not() const;
 
-  static const intervalt tv_to_interval(const intervalt &interval, const tvt &tv);
   const intervalt tv_to_interval(const tvt &tv) const;
 
   /* Binary */
@@ -198,8 +194,17 @@ public:
   std::string to_string() const;
 
 
-
   /* Now static equivalents! */
+  static const tvt is_true(const intervalt &a);
+  static const tvt is_false(const intervalt &a);
+
+  static const tvt logical_and(const intervalt &a, const intervalt &b);
+  static const tvt logical_or(const intervalt &a, const intervalt &b);
+  static const tvt logical_xor(const intervalt &a, const intervalt &b);
+  static const tvt logical_not(const intervalt &a);
+
+  static const intervalt tv_to_interval(const intervalt &interval, const tvt &tv);
+
   static const intervalt unary_plus(const intervalt &a);
   static const intervalt unary_minus(const intervalt &a);
 

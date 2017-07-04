@@ -25,31 +25,6 @@
 
 //make clean -s && make -j 7 CXX="/usr/local/bin/ccache g++" -s && ./unit_tests
 
-const intervalt intervalt::handle_constants(exprt expr) const
-{
-  if(is_constant())
-  {
-    expr.type()=get_type();
-    expr.copy_to_operands(get_lower());
-
-    return intervalt(simplified_expr(expr));
-  }
-
-  return top();
-}
-
-const intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
-{
-  if(is_constant() && o.is_constant())
-  {
-    expr.type()=get_type();
-    expr.copy_to_operands(get_lower(), o.get_lower());
-    return intervalt(simplified_expr(expr));
-  }
-
-  return top();
-}
-
 const intervalt intervalt::unary_plus() const
 {
   return *this;
@@ -252,6 +227,11 @@ const tvt intervalt::logical_or(const intervalt& o) const
   return (a || b);
 }
 
+const tvt intervalt::logical_and(const intervalt& o) const
+{
+  return (is_true() && o.is_true());
+}
+
 const tvt intervalt::logical_xor(const intervalt& o) const
 {
   return (
@@ -262,12 +242,12 @@ const tvt intervalt::logical_xor(const intervalt& o) const
 
 const tvt intervalt::logical_not() const
 {
-  if(is_true())
+  if(is_true().is_true())
   {
     return tvt(false);
   }
 
-  if(is_false())
+  if(is_false().is_true())
   {
     return tvt(true);
   }
@@ -808,6 +788,10 @@ const intervalt intervalt::eval(const exprt& expr)
   {
     return bitwise_not();
   }
+  if(id == ID_not)
+  {
+    return logical_not();
+  }
 
   return top();
 }
@@ -880,13 +864,20 @@ const intervalt intervalt::eval(const exprt& expr, const intervalt& o)
   {
     return tv_to_interval(not_equal(o));
   }
+  if(id == ID_and)
+  {
+    return tv_to_interval(logical_and(o));
+  }
+  if(id == ID_or)
+  {
+    return tv_to_interval(logical_or(o));
+  }
+  if(id == ID_xor)
+  {
+    return tv_to_interval(logical_xor(o));
+  }
 
   return top();
-}
-
-static const intervalt tv_to_interval(const intervalt &interval, const tvt &tv)
-{
-  return interval.tv_to_interval(tv);
 }
 
 const intervalt intervalt::tv_to_interval(const tvt &tv) const

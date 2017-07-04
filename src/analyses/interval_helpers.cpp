@@ -22,6 +22,31 @@ const typet& intervalt::get_type() const
   return type;
 }
 
+const intervalt intervalt::handle_constants(exprt expr) const
+{
+  if(is_constant())
+  {
+    expr.type()=get_type();
+    expr.copy_to_operands(get_lower());
+
+    return intervalt(simplified_expr(expr));
+  }
+
+  return top();
+}
+
+const intervalt intervalt::handle_constants(const intervalt &o, exprt expr) const
+{
+  if(is_constant() && o.is_constant())
+  {
+    expr.type()=get_type();
+    expr.copy_to_operands(get_lower(), o.get_lower());
+    return intervalt(simplified_expr(expr));
+  }
+
+  return top();
+}
+
 exprt intervalt::get_max(const exprt &a, const exprt &b)
 {
   return greater_than(a, b) ? a : b;
@@ -906,4 +931,39 @@ bool intervalt::is_zero() const
 bool intervalt::is_negative() const
 {
   return is_negative(get_lower()) && is_negative(get_upper());
+}
+
+const intervalt tv_to_interval(const intervalt &interval, const tvt &tv)
+{
+  return interval.tv_to_interval(tv);
+}
+
+const tvt intervalt::is_true(const intervalt& a)
+{
+  return a.is_true();
+}
+
+const tvt intervalt::is_false(const intervalt& a)
+{
+  return a.is_false();
+}
+
+const tvt intervalt::logical_and(const intervalt& a, const intervalt& b)
+{
+  return a.logical_and(b);
+}
+
+const tvt intervalt::logical_or(const intervalt& a, const intervalt& b)
+{
+  return a.logical_or(b);
+}
+
+const tvt intervalt::logical_xor(const intervalt& a, const intervalt& b)
+{
+  return a.logical_xor(b);
+}
+
+const tvt intervalt::logical_not(const intervalt& a)
+{
+  return a.logical_not();
 }
